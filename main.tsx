@@ -49,7 +49,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        {/* Full-screen background blocker */}
+        {/* Background layer (behind app content) */}
         <div
           style={{
             position: "fixed",
@@ -57,10 +57,12 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             left: 0,
             right: 0,
             bottom: 0,
-            zIndex: 0,
+            // Ensure this layer never covers content
+            zIndex: -1,
             background: "#0f172a",
             pointerEvents: "none",
           }}
+          aria-hidden="true"
         />
         <NetworkStatus />
         <PinProviderStandalone>

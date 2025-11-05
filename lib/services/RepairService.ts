@@ -1,5 +1,5 @@
 import type { CashTransaction, PinRepairOrder } from "../../types";
-import type { PinContextType } from "../../../contexts/pincorp/types";
+import type { PinContextType } from "../../contexts/types";
 import { supabase, IS_OFFLINE_MODE } from "../../supabaseClient";
 
 function genId(prefix: string) {
@@ -18,8 +18,8 @@ export function createRepairService(ctx: PinContextType): RepairService {
   return {
     upsertPinRepairOrder: async (order, newCashTx) => {
       if (IS_OFFLINE_MODE) {
-        ctx.setRepairOrders((prev) => {
-          const idx = prev.findIndex((o) => o.id === order.id);
+        ctx.setRepairOrders((prev: any[]) => {
+          const idx = prev.findIndex((o: any) => o.id === order.id);
           if (idx > -1) {
             const next = [...prev];
             next[idx] = order;
@@ -51,7 +51,7 @@ export function createRepairService(ctx: PinContextType): RepairService {
         if (order.materialsUsed && order.materialsUsed.length > 0) {
           for (const material of order.materialsUsed) {
             const stockMaterial = ctx.pinMaterials.find(
-              (m) =>
+              (m: any) =>
                 m.name === material.materialName ||
                 (m as any).id === material.materialName ||
                 m.id === material.materialId
@@ -80,8 +80,8 @@ export function createRepairService(ctx: PinContextType): RepairService {
               return;
             }
             // local state
-            ctx.setPinMaterials((prev) =>
-              prev.map((m) =>
+            ctx.setPinMaterials((prev: any[]) =>
+              prev.map((m: any) =>
                 m.id === stockMaterial.id ? { ...m, stock: newStock } : m
               )
             );
@@ -97,7 +97,7 @@ export function createRepairService(ctx: PinContextType): RepairService {
               created_by: ctx.currentUser?.id,
               created_at: new Date().toISOString(),
             } as any;
-            await supabase.from("pincorp_stock_history").insert(history);
+            await supabase.from("pin_stock_history").insert(history);
           }
         }
 
@@ -137,9 +137,10 @@ export function createRepairService(ctx: PinContextType): RepairService {
           return;
         }
         // local state
-        ctx.setRepairOrders((prev) => {
-          const idx = prev.findIndex((o) => o.id === order.id);
-          if (idx > -1) return prev.map((o) => (o.id === order.id ? order : o));
+        ctx.setRepairOrders((prev: any[]) => {
+          const idx = prev.findIndex((o: any) => o.id === order.id);
+          if (idx > -1)
+            return prev.map((o: any) => (o.id === order.id ? order : o));
           return [order, ...prev];
         });
         ctx.addToast?.({
@@ -166,7 +167,9 @@ export function createRepairService(ctx: PinContextType): RepairService {
 
     deletePinRepairOrder: async (orderId) => {
       if (IS_OFFLINE_MODE) {
-        ctx.setRepairOrders((prev) => prev.filter((o) => o.id !== orderId));
+        ctx.setRepairOrders((prev: any[]) =>
+          prev.filter((o: any) => o.id !== orderId)
+        );
         return;
       }
       if (!ctx.currentUser) {
@@ -190,7 +193,9 @@ export function createRepairService(ctx: PinContextType): RepairService {
           });
           return;
         }
-        ctx.setRepairOrders((prev) => prev.filter((o) => o.id !== orderId));
+        ctx.setRepairOrders((prev: any[]) =>
+          prev.filter((o: any) => o.id !== orderId)
+        );
         ctx.addToast?.({
           title: "Đã xoá repair order",
           message: orderId,

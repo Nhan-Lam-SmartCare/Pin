@@ -1446,7 +1446,7 @@ const MaterialDetailModal: React.FC<{
     setLoadingHistory(true);
     try {
       const { data, error } = await supabase
-        .from("pincorp_stock_history")
+        .from("pin_stock_history")
         .select(
           `
           *,
@@ -2001,7 +2001,7 @@ const StockForecastModal: React.FC<{
     try {
       // Lấy lịch sử giao dịch trong 90 ngày qua
       const { data: history, error } = await supabase
-        .from("pincorp_stock_history")
+        .from("pin_stock_history")
         .select("*")
         .eq("material_id", material.id)
         .gte(
@@ -2964,7 +2964,7 @@ const MaterialManager: React.FC<{
 
       // Fetch materials
       const { data, error: fetchError } = await supabase
-        .from("pincorp_materials")
+        .from("pin_materials")
         .select("*")
         .order("created_at", { ascending: false });
 
@@ -2981,12 +2981,14 @@ const MaterialManager: React.FC<{
         name: item.name || "",
         sku: item.sku || "",
         unit: item.unit || "cái",
-        purchasePrice: Number(item.purchaseprice) || 0,
-        retailPrice: Number(item.retailprice) || 0,
-        wholesalePrice: Number(item.wholesaleprice) || 0,
-        stock: Number(item.stock) || 0,
+        purchasePrice:
+          Number(item.purchaseprice ?? item.purchase_price ?? 0) || 0,
+        retailPrice: Number(item.retailprice ?? item.retail_price ?? 0) || 0,
+        wholesalePrice:
+          Number(item.wholesaleprice ?? item.wholesale_price ?? 0) || 0,
+        stock: Number(item.stock ?? 0) || 0,
         supplier: item.supplier || "",
-        supplierPhone: item.supplierphone || "",
+        supplierPhone: item.supplierphone || item.supplier_phone || "",
         description: item.description || "",
         created_at: item.created_at,
       }));
@@ -3014,7 +3016,8 @@ const MaterialManager: React.FC<{
         throw new Error("Chưa đăng nhập");
       }
 
-      const materialId = editingMaterial?.id || generateId();
+  // If creating new, let DB generate UUID
+  let materialId: string | null = editingMaterial?.id || null;
       const sku = formData.sku || generateMaterialSKU(materials);
       const importId = `IMP${Date.now()}-${Math.random()
         .toString(36)
@@ -3025,7 +3028,7 @@ const MaterialManager: React.FC<{
       if (!currentMaterial) {
         // Kiểm tra xem nguyên vật liệu đã tồn tại chưa
         const { data: existingMaterials } = await supabase
-          .from("pincorp_materials")
+          .from("pin_materials")
           .select("*")
           .eq("name", formData.name)
           .limit(1);
@@ -3037,10 +3040,9 @@ const MaterialManager: React.FC<{
 
       // 2. Cập nhật hoặc tạo mới nguyên vật liệu
       const newStock = (currentMaterial?.stock || 0) + formData.quantity;
-      const materialPayload = {
-        id: materialId,
+      const base = {
         name: formData.name,
-        sku: sku,
+        sku,
         unit: formData.unit,
         purchaseprice: formData.purchasePrice,
         retailprice: formData.retailPrice || 0,
@@ -3054,9 +3056,24 @@ const MaterialManager: React.FC<{
         updated_at: new Date().toISOString(),
       };
 
-      const { data: materialData, error: materialError } = await supabase
-        .from("pincorp_materials")
-        .upsert(materialPayload)
+      const dbPayload: any = {
+        name: base.name,
+        sku: base.sku,
+        unit: base.unit,
+        purchase_price: base.purchaseprice,
+        retail_price: base.retailprice,
+        wholesale_price: base.wholesaleprice,
+        stock: base.stock,
+        supplier: base.supplier,
+        description: base.description,
+        created_at: base.created_at,
+        updated_at: base.updated_at,
+      };
+      if (materialId) dbPayload.id = materialId;
+
+      const { data: upsertData, error: materialError } = await supabase
+        .from("pin_materials")
+        .upsert(dbPayload, { onConflict: "sku" })
         .select();
 
       if (materialError) {
@@ -3064,10 +3081,16 @@ const MaterialManager: React.FC<{
         throw new Error(materialError.message);
       }
 
+      // Resolve materialId from upsert result (if newly inserted)
+      const upsertedRow: any = Array.isArray(upsertData)
+        ? upsertData[0]
+        : (upsertData as any);
+      materialId = materialId || upsertedRow?.id || null;
+
       // 3. Tạo bản ghi nhập kho
       const importPayload = {
         id: importId,
-        material_id: materialId,
+        material_id: materialId || undefined,
         material_name: formData.name,
         quantity: formData.quantity,
         unit_price: formData.purchasePrice,
@@ -3083,23 +3106,17 @@ const MaterialManager: React.FC<{
         created_at: new Date().toISOString(),
       };
 
-      // Tạo bảng nhập kho nếu chưa có
-      const { error: importError } = await supabase
-        .from("pincorp_material_imports")
-        .insert(importPayload);
-
-      if (importError) {
-        console.log(
-          "⚠️ Import log error (table might not exist):",
-          importError
-        );
-        // Không dừng quá trình nếu bảng import chưa có
+      // Ghi vào bảng nhập kho nếu có cấu hình (bỏ qua nếu bảng không tồn tại)
+      try {
+        await supabase.from("pin_material_imports").insert(importPayload);
+      } catch (e) {
+        console.log("⚠️ Import log table missing or not configured - continue");
       }
 
       // 4. GHI VÀO BẢNG LỊCH SỬ NHẬP KHO (cho tab Lịch sử)
       // Lưu ý: KHÔNG set id thủ công nếu cột id là UUID; để DB tự tạo.
       const historyPayload = {
-        material_id: materialId,
+        material_id: materialId || undefined,
         material_name: formData.name,
         material_sku: sku,
         quantity: formData.quantity,
@@ -3120,7 +3137,7 @@ const MaterialManager: React.FC<{
       let historyError: any | null = null;
       {
         const { data, error } = await supabase
-          .from("pincorp_material_history")
+          .from("pin_material_history")
           .insert(historyPayload)
           .select()
           .single();
@@ -3133,7 +3150,7 @@ const MaterialManager: React.FC<{
           const fallbackPayload: any = { ...historyPayload };
           delete fallbackPayload.created_by;
           const { data: data2, error: error2 } = await supabase
-            .from("pincorp_material_history")
+            .from("pin_material_history")
             .insert(fallbackPayload)
             .select()
             .single();
@@ -3176,7 +3193,10 @@ const MaterialManager: React.FC<{
           branchId: insertedHistory.branch_id || "main",
           created_at: insertedHistory.created_at || undefined,
         };
-        setPinMaterialHistory((prev) => [newHistory, ...prev]);
+        setPinMaterialHistory((prev: PinMaterialHistory[]) => [
+          newHistory,
+          ...prev,
+        ]);
         console.log("✅ History updated in context (inserted)");
       }
 
@@ -3408,7 +3428,7 @@ const MaterialManager: React.FC<{
     try {
       // First, try to create the stock_history table if it doesn't exist
       const createTableSQL = `
-        CREATE TABLE IF NOT EXISTS pincorp_stock_history (
+        CREATE TABLE IF NOT EXISTS pin_stock_history (
           id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
           material_id UUID NOT NULL REFERENCES pincorp_materials(id) ON DELETE CASCADE,
           transaction_type VARCHAR(20) NOT NULL CHECK (transaction_type IN ('import', 'export', 'adjustment')),
@@ -3432,7 +3452,7 @@ const MaterialManager: React.FC<{
 
       // Record the stock history
       const { error: historyError } = await supabase
-        .from("pincorp_stock_history")
+        .from("pin_stock_history")
         .insert({
           material_id: adjustment.material_id,
           transaction_type: "adjustment",
@@ -3448,7 +3468,7 @@ const MaterialManager: React.FC<{
 
       // Update material stock
       const { error: updateError } = await supabase
-        .from("pincorp_materials")
+        .from("pin_materials")
         .update({ stock: adjustment.actual_stock })
         .eq("id", adjustment.material_id);
 
@@ -3547,18 +3567,35 @@ const MaterialManager: React.FC<{
     });
 
   return (
-    <div className="flex flex-col h-screen space-y-6 p-6">
-      {/* Header with Tabs */}
-      <div className="flex justify-between items-center flex-shrink-0">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Quản lý Kho Nguyên vật liệu
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Hệ thống nhập kho và quản lý dòng tiền
-          </p>
+    <div className="flex flex-col h-full min-h-0 space-y-6 p-6">
+      {/* Toolbar: tabs on the left, actions on the right */}
+      <div className="flex items-center justify-between gap-3 flex-shrink-0 sticky top-0 z-10 pb-2 bg-slate-100/20 dark:bg-slate-900/20 backdrop-blur-sm">
+        {/* Tabs */}
+        <div className="flex gap-2 border-b border-transparent">
+          <button
+            onClick={() => setActiveView("materials")}
+            className={`px-4 py-2 font-medium rounded-md transition-colors ${
+              activeView === "materials"
+                ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20"
+                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+            }`}
+          >
+            📦 Danh sách vật liệu
+          </button>
+          <button
+            onClick={() => setActiveView("history")}
+            className={`px-4 py-2 font-medium rounded-md transition-colors ${
+              activeView === "history"
+                ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20"
+                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+            }`}
+          >
+            📊 Lịch sử nhập kho
+          </button>
         </div>
-        <div className="flex gap-3">
+
+        {/* Actions */}
+        <div className="flex items-center gap-2">
           <button
             onClick={loadMaterials}
             className="px-4 py-2 bg-gray-500 hover:bg-gray-600 dark:bg-gray-600 dark:hover:bg-gray-700 text-white rounded-lg text-sm font-medium transition-colors"
@@ -3570,7 +3607,7 @@ const MaterialManager: React.FC<{
             <>
               <button
                 onClick={() => setShowImportModal(true)}
-                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-medium transition-colors shadow-lg"
+                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-lg"
                 title="Upload danh sách CSV - Tự nhận biết cột"
               >
                 📥 Import CSV
@@ -3580,38 +3617,14 @@ const MaterialManager: React.FC<{
                   setEditingMaterial(null);
                   setShowForm(true);
                 }}
-                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white px-6 py-2 rounded-lg font-medium transition-colors shadow-lg"
+                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-lg"
               >
                 <PlusIcon className="w-5 h-5" />
-                📦 Tạo phiếu nhập kho
+                Tạo phiếu nhập kho
               </button>
             </>
           )}
         </div>
-      </div>
-
-      {/* Tab Navigation */}
-      <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-        <button
-          onClick={() => setActiveView("materials")}
-          className={`px-6 py-3 font-medium transition-colors ${
-            activeView === "materials"
-              ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400"
-              : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-          }`}
-        >
-          📦 Danh sách vật liệu
-        </button>
-        <button
-          onClick={() => setActiveView("history")}
-          className={`px-6 py-3 font-medium transition-colors ${
-            activeView === "history"
-              ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400"
-              : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-          }`}
-        >
-          📊 Lịch sử nhập kho
-        </button>
       </div>
 
       {/* Content based on active view */}

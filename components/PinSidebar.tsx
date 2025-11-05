@@ -214,7 +214,7 @@ export const PinTopNav: React.FC<{
               PIN Corp
             </h1>
           </div>
-          <div className="flex items-center">
+          <div className="flex items-center gap-3">
             <nav className="flex items-center gap-1">
               {navLinks.map((link, index) => (
                 <PinNavItem
@@ -226,6 +226,10 @@ export const PinTopNav: React.FC<{
                 />
               ))}
             </nav>
+            {/* Theme toggle */}
+            <div className="hidden md:block">
+              <ThemeToggle />
+            </div>
           </div>
         </div>
       </div>

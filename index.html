@@ -6,14 +6,18 @@
     <title>PinCorp App - Quản Lý Sản Xuất</title>
     <link rel="icon" type="image/png" href="/nhan-lam-logo.png" />
     
-    <!-- Initialize theme from localStorage -->
+    <!-- Initialize theme from localStorage with system-preference fallback -->
     <script>
-      const savedTheme = localStorage.getItem('theme');
-      if (savedTheme === 'dark') {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
+      (function(){
+        const savedTheme = localStorage.getItem('theme');
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const initial = savedTheme ?? (prefersDark ? 'dark' : 'light');
+        if (initial === 'dark') {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      })();
     </script>
 
     <!-- Hide only injected SVGs, not component SVGs -->

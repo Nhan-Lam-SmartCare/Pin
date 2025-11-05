@@ -93,9 +93,9 @@ export const PinProviderStandalone: React.FC<{ children: React.ReactNode }> = ({
     if (IS_OFFLINE_MODE || !currentUser) return;
     try {
       const { data, error } = await supabase
-        .from("pincorp_stock_history")
+        .from("pin_material_history")
         .select("*")
-        .order("created_at", { ascending: false });
+        .order("import_date", { ascending: false });
       if (!error) setPinMaterialHistory(data || []);
     } catch {}
   };
@@ -221,11 +221,11 @@ export const PinProviderStandalone: React.FC<{ children: React.ReactNode }> = ({
               .from("cashtransactions")
               .select("*")
               .order("date", { ascending: false }),
-            supabase.from("pincorp_boms").select("*"),
-            supabase.from("pincorp_materials").select("*"),
-            supabase.from("pincorp_products").select("*"),
+            supabase.from("pin_boms").select("*"),
+            supabase.from("pin_materials").select("*"),
+            supabase.from("pin_products").select("*"),
             supabase
-              .from("pincorp_productionorders")
+              .from("pin_production_orders")
               .select("*")
               .order("created_at", { ascending: false }),
           ]);

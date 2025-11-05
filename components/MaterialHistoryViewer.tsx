@@ -10,13 +10,8 @@ interface MaterialHistoryViewerProps {
 const MaterialHistoryViewer: React.FC<MaterialHistoryViewerProps> = ({
   onClose,
 }) => {
-  const {
-    pinMaterialHistory,
-    pinMaterials,
-    reloadPinMaterialHistory,
-    currentUser,
-    currentBranchId,
-  } = usePinContext();
+  const { pinMaterialHistory, pinMaterials, reloadPinMaterialHistory, currentUser } =
+    usePinContext();
 
   // Local fallback: fetch directly if context has no data
   const [localHistory, setLocalHistory] = useState<PinMaterialHistory[]>([]);
@@ -32,7 +27,7 @@ const MaterialHistoryViewer: React.FC<MaterialHistoryViewerProps> = ({
     try {
       // Note: keep mapping robust to snake/camel cases
       const { data, error } = await supabase
-        .from("pincorp_material_history")
+        .from("pin_material_history")
         .select("*")
         .order("import_date", { ascending: false })
         .limit(1000);
@@ -63,7 +58,7 @@ const MaterialHistoryViewer: React.FC<MaterialHistoryViewerProps> = ({
       // If no records found, attempt fallback from stock history
       if ((mapped || []).length === 0) {
         const { data: stockRows, error: stockErr } = await supabase
-          .from("pincorp_stock_history")
+          .from("pin_stock_history")
           .select("*")
           .eq("transaction_type", "import")
           .order("created_at", { ascending: false })
@@ -71,7 +66,7 @@ const MaterialHistoryViewer: React.FC<MaterialHistoryViewerProps> = ({
         if (!stockErr && Array.isArray(stockRows)) {
           const byId: Record<string, { name: string; sku?: string }> = {};
           pinMaterials.forEach(
-            (m) => (byId[m.id] = { name: m.name, sku: m.sku })
+            (m: any) => (byId[m.id] = { name: m.name, sku: m.sku })
           );
           const mappedFromStock: PinMaterialHistory[] = stockRows.map(
             (row: any) => {
@@ -293,8 +288,8 @@ const MaterialHistoryViewer: React.FC<MaterialHistoryViewerProps> = ({
         <div className="p-3 text-xs text-yellow-800 bg-yellow-100 border-b border-yellow-300 dark:text-yellow-200 dark:bg-yellow-900/30 dark:border-yellow-800">
           Đang hiển thị lịch sử từ nguồn:{" "}
           {usedFallbackSource === "direct"
-            ? "pincorp_material_history"
-            : "pincorp_stock_history"}
+            ? "pin_material_history"
+            : "pin_stock_history"}
         </div>
       )}
       {!isLoading && !error && sourceHistory.length === 0 && (
@@ -318,11 +313,11 @@ const MaterialHistoryViewer: React.FC<MaterialHistoryViewerProps> = ({
                   notes: "Bản ghi demo để kiểm tra hiển thị",
                   user_id: currentUser?.id ?? null,
                   user_name: currentUser?.email ?? "Demo",
-                  branch_id: currentBranchId ?? "main",
+                  branch_id: "main",
                   created_at: new Date().toISOString(),
                 };
                 const { error } = await supabase
-                  .from("pincorp_material_history")
+                  .from("pin_material_history")
                   .insert(demo);
                 if (error) throw error;
                 await reloadPinMaterialHistory?.();
@@ -356,7 +351,7 @@ const MaterialHistoryViewer: React.FC<MaterialHistoryViewerProps> = ({
             className="px-3 py-2 bg-gray-700 text-white rounded border border-gray-600 focus:outline-none focus:border-blue-500"
           >
             <option value="">Tất cả vật liệu</option>
-            {pinMaterials.map((m) => (
+            {pinMaterials.map((m: any) => (
               <option key={m.id} value={m.id}>
                 {m.name} - {m.sku}
               </option>

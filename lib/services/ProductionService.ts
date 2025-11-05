@@ -1,4 +1,4 @@
-import type { PinContextType } from "../../../contexts/pincorp/types";
+import type { PinContextType } from "../../contexts/types";
 import type { PinBOM, ProductionOrder, PinProduct } from "../../types";
 import { supabase, IS_OFFLINE_MODE } from "../../supabaseClient";
 import { generateProductSKU } from "../../lib/sku";
@@ -28,8 +28,8 @@ export function createProductionService(
   // Helper: upsert product to DB or state
   const persistProduct = async (product: PinProduct): Promise<boolean> => {
     if (IS_OFFLINE_MODE || !ctx.currentUser) {
-      ctx.setPinProducts((prev) => {
-        const idx = prev.findIndex((p) => p.id === product.id);
+      ctx.setPinProducts((prev: any[]) => {
+        const idx = prev.findIndex((p: any) => p.id === product.id);
         if (idx >= 0) {
           const next = [...prev];
           next[idx] = product;
@@ -72,8 +72,8 @@ export function createProductionService(
       });
       return false;
     }
-    ctx.setPinProducts((prev) => {
-      const idx = prev.findIndex((p) => p.id === product.id);
+    ctx.setPinProducts((prev: any[]) => {
+      const idx = prev.findIndex((p: any) => p.id === product.id);
       if (idx >= 0) {
         const next = [...prev];
         next[idx] = product;
@@ -155,7 +155,7 @@ export function createProductionService(
       // Default status if missing
       const status = (order.status || "Đang chờ") as ProductionOrder["status"];
       if (IS_OFFLINE_MODE || !ctx.currentUser) {
-        ctx.setProductionOrders((prev) => [order, ...prev]);
+        ctx.setProductionOrders((prev: any[]) => [order, ...prev]);
         ctx.addToast?.({
           title: "Đã tạo lệnh (Offline)",
           message: `${order.productName} - SL: ${order.quantityProduced}`,
@@ -185,7 +185,7 @@ export function createProductionService(
         });
         return;
       }
-      ctx.setProductionOrders((prev) => [order, ...prev]);
+  ctx.setProductionOrders((prev: any[]) => [order, ...prev]);
       ctx.addToast?.({
         title: "Đã tạo lệnh sản xuất",
         message: `${order.productName} - SL: ${order.quantityProduced}`,
@@ -194,8 +194,8 @@ export function createProductionService(
     },
     updateOrderStatus: async (orderId, status) => {
       if (IS_OFFLINE_MODE || !ctx.currentUser) {
-        ctx.setProductionOrders((prev) =>
-          prev.map((o) => (o.id === orderId ? { ...o, status } : o))
+        ctx.setProductionOrders((prev: any[]) =>
+          prev.map((o: any) => (o.id === orderId ? { ...o, status } : o))
         );
         return;
       }
@@ -211,16 +211,16 @@ export function createProductionService(
         });
         return;
       }
-      ctx.setProductionOrders((prev) =>
-        prev.map((o) => (o.id === orderId ? { ...o, status } : o))
+      ctx.setProductionOrders((prev: any[]) =>
+        prev.map((o: any) => (o.id === orderId ? { ...o, status } : o))
       );
     },
     completeOrder: async (orderId) => {
       // Offline-first guard
       if (IS_OFFLINE_MODE) {
-        const order = ctx.productionOrders.find((o) => o.id === orderId);
+        const order = ctx.productionOrders.find((o: any) => o.id === orderId);
         if (!order) return;
-        const bom = ctx.pinBOMs.find((b) => b.id === order.bomId);
+        const bom = ctx.pinBOMs.find((b: any) => b.id === order.bomId);
         if (!bom) return;
 
         const producedQty = Number(order.quantityProduced || 0);
@@ -229,7 +229,7 @@ export function createProductionService(
         // Deduct materials locally
         for (const bomItem of bom.materials || []) {
           const material = ctx.pinMaterials.find(
-            (m) => m.id === bomItem.materialId
+            (m: any) => m.id === bomItem.materialId
           );
           if (!material) continue;
           const required = Number(bomItem.quantity || 0) * producedQty;
@@ -242,23 +242,23 @@ export function createProductionService(
             });
             return;
           }
-          ctx.setPinMaterials((prev) =>
-            prev.map((m) =>
+          ctx.setPinMaterials((prev: any[]) =>
+            prev.map((m: any) =>
               m.id === material.id ? { ...m, stock: newStock } : m
             )
           );
         }
 
         // Mark order completed in memory
-        ctx.setProductionOrders((prev) =>
-          prev.map((o) =>
+        ctx.setProductionOrders((prev: any[]) =>
+          prev.map((o: any) =>
             o.id === orderId ? { ...o, status: "Hoàn thành" } : o
           )
         );
 
         // Upsert product locally
         const existingProd = ctx.pinProducts.find(
-          (p) => p.sku === (bom as any).productSku
+          (p: any) => p.sku === (bom as any).productSku
         );
         const prodId =
           existingProd?.id ||
@@ -280,8 +280,8 @@ export function createProductionService(
           sellingPrice: existingProd?.sellingPrice || 0,
         } as PinProduct;
 
-        ctx.setPinProducts((prev) => {
-          const idx = prev.findIndex((p) => p.id === prodId);
+        ctx.setPinProducts((prev: any[]) => {
+          const idx = prev.findIndex((p: any) => p.id === prodId);
           if (idx >= 0) {
             const next = [...prev];
             next[idx] = updated;
@@ -301,7 +301,7 @@ export function createProductionService(
       }
 
       // Online path - persist changes
-      const order = ctx.productionOrders.find((o) => o.id === orderId);
+  const order = ctx.productionOrders.find((o: any) => o.id === orderId);
       if (!order) {
         ctx.addToast?.({
           title: "Không tìm thấy lệnh sản xuất",
@@ -318,7 +318,7 @@ export function createProductionService(
         });
         return;
       }
-      const bom = ctx.pinBOMs.find((b) => b.id === order.bomId);
+  const bom = ctx.pinBOMs.find((b: any) => b.id === order.bomId);
       if (!bom) {
         ctx.addToast?.({
           title: "Không tìm thấy BOM",
@@ -340,7 +340,7 @@ export function createProductionService(
       // 1) Deduct materials with persistence via upsertPinMaterial
       for (const bomItem of bom.materials || []) {
         const material = ctx.pinMaterials.find(
-          (m) => m.id === bomItem.materialId
+          (m: any) => m.id === bomItem.materialId
         );
         if (!material) continue;
         const required = Number(bomItem.quantity || 0) * producedQty;
@@ -364,8 +364,8 @@ export function createProductionService(
           }
         } catch {}
         // Update local state
-        ctx.setPinMaterials((prev) =>
-          prev.map((m) =>
+        ctx.setPinMaterials((prev: any[]) =>
+          prev.map((m: any) =>
             m.id === material.id ? { ...m, stock: newStock } : m
           )
         );
@@ -383,7 +383,7 @@ export function createProductionService(
           created_at: new Date().toISOString(),
         } as any;
         try {
-          await supabase.from("pincorp_stock_history").insert(historyPayload);
+          await supabase.from("pin_stock_history").insert(historyPayload);
         } catch (e) {
           console.warn("Không thể ghi lịch sử kho:", e);
         }
@@ -405,7 +405,7 @@ export function createProductionService(
 
       // 3) Upsert finished product via existing context helper (handles normalize + RLS)
       const existingProd = ctx.pinProducts.find(
-        (p) => p.sku === (bom as any).productSku
+        (p: any) => p.sku === (bom as any).productSku
       );
       const prodId =
         existingProd?.id || (bom as any).id || `PINP-${Date.now()}`;
@@ -427,12 +427,14 @@ export function createProductionService(
       const ok = await persistProduct(product);
 
       // 4) Local state updates
-      ctx.setProductionOrders((prev) =>
-        prev.map((o) => (o.id === orderId ? { ...o, status: "Hoàn thành" } : o))
+      ctx.setProductionOrders((prev: any[]) =>
+        prev.map((o: any) =>
+          o.id === orderId ? { ...o, status: "Hoàn thành" } : o
+        )
       );
       if (ok) {
-        ctx.setPinProducts((prev) => {
-          const idx = prev.findIndex((p) => p.id === prodId);
+        ctx.setPinProducts((prev: any[]) => {
+          const idx = prev.findIndex((p: any) => p.id === prodId);
           if (idx >= 0) {
             const next = [...prev];
             next[idx] = product;
@@ -472,7 +474,7 @@ export function createProductionService(
       }
 
       const completedOrders = ctx.productionOrders.filter(
-        (o) => o.status === "Hoàn thành"
+        (o: any) => o.status === "Hoàn thành"
       );
       if (completedOrders.length === 0) {
         ctx.addToast?.({
@@ -485,11 +487,11 @@ export function createProductionService(
       }
 
       const productMap = new Map<string, PinProduct>();
-      ctx.pinProducts.forEach((p) => productMap.set(p.sku, p));
+  ctx.pinProducts.forEach((p: any) => productMap.set(p.sku, p));
 
       let syncedCount = 0;
       for (const order of completedOrders) {
-        const bom = ctx.pinBOMs.find((b) => b.id === order.bomId);
+  const bom = ctx.pinBOMs.find((b: any) => b.id === order.bomId);
         if (!bom) continue;
 
         const producedQty = Number(order.quantityProduced || 0);
@@ -498,7 +500,7 @@ export function createProductionService(
         // Prefer current BOM SKU, fallback by product name for legacy
         let existingProduct =
           productMap.get((bom as any).productSku) ||
-          ctx.pinProducts.find((p) => p.name === (bom as any).productName);
+          ctx.pinProducts.find((p: any) => p.name === (bom as any).productName);
 
         // Ensure SKU format TP-ddmmyyyy-xxx; migrate if needed
         const tpPattern = /^TP-\d{8}-\d{3}$/;
@@ -559,8 +561,8 @@ export function createProductionService(
           productMap.set(product.sku, product);
           syncedCount++;
           // mark as synced locally
-          ctx.setProductionOrders((prev) =>
-            prev.map((o) =>
+          ctx.setProductionOrders((prev: any[]) =>
+            prev.map((o: any) =>
               o.id === order.id ? { ...o, status: "Đã nhập kho" } : o
             )
           );
@@ -580,8 +582,8 @@ export function createProductionService(
                 .update({ status: "Đã nhập kho" })
                 .eq("id", order.id);
               if (!statusErr) {
-                ctx.setProductionOrders((prev) =>
-                  prev.map((o) =>
+                ctx.setProductionOrders((prev: any[]) =>
+                  prev.map((o: any) =>
                     o.id === order.id ? { ...o, status: "Đã nhập kho" } : o
                   )
                 );
@@ -631,7 +633,8 @@ export function createProductionService(
       // Helper: return materials for qty based on BOM
       const returnMaterialsForQty = async (qtyToReturn: number) => {
         const bom = ctx.pinBOMs.find(
-          (b) => b.productSku === product.sku || b.productName === product.name
+          (b: any) =>
+            b.productSku === product.sku || b.productName === product.name
         );
         if (!bom) {
           ctx.addToast?.({
@@ -643,7 +646,7 @@ export function createProductionService(
           return;
         }
         const returnMap = new Map<string, number>();
-        (bom.materials || []).forEach((m) => {
+  (bom.materials || []).forEach((m: any) => {
           const q = (m.quantity || 0) * qtyToReturn;
           if (q > 0)
             returnMap.set(m.materialId, (returnMap.get(m.materialId) || 0) + q);
@@ -651,8 +654,8 @@ export function createProductionService(
         if (returnMap.size === 0) return;
 
         // Apply to state and persist via upsertPinMaterial
-        ctx.setPinMaterials((prev) =>
-          prev.map((mat) =>
+        ctx.setPinMaterials((prev: any[]) =>
+          prev.map((mat: any) =>
             returnMap.has(mat.id)
               ? {
                   ...mat,
@@ -664,7 +667,7 @@ export function createProductionService(
         // Persist each material change (online only)
         if (!IS_OFFLINE_MODE) {
           for (const [materialId, delta] of returnMap.entries()) {
-            const mat = ctx.pinMaterials.find((m) => m.id === materialId);
+            const mat = ctx.pinMaterials.find((m: any) => m.id === materialId);
             if (mat) {
               try {
                 await supabase
@@ -681,10 +684,12 @@ export function createProductionService(
         await returnMaterialsForQty(qty);
         const remaining = Math.max(0, (product.stock || 0) - qty);
         if (remaining === 0) {
-          ctx.setPinProducts((prev) => prev.filter((p) => p.id !== product.id));
+          ctx.setPinProducts((prev: any[]) =>
+            prev.filter((p: any) => p.id !== product.id)
+          );
         } else {
-          ctx.setPinProducts((prev) =>
-            prev.map((p) =>
+          ctx.setPinProducts((prev: any[]) =>
+            prev.map((p: any) =>
               p.id === product.id ? { ...p, stock: remaining } : p
             )
           );
@@ -697,8 +702,8 @@ export function createProductionService(
       const remaining = Math.max(0, (product.stock || 0) - qty);
       if (remaining === 0) {
         // Cancel related completed orders to avoid re-sync, then delete product
-        const relatedOrders = ctx.productionOrders.filter((o) => {
-          const bom = ctx.pinBOMs.find((b) => b.id === o.bomId);
+        const relatedOrders = ctx.productionOrders.filter((o: any) => {
+          const bom = ctx.pinBOMs.find((b: any) => b.id === o.bomId);
           return (
             bom &&
             ((bom as any).productSku === product.sku ||
@@ -712,9 +717,9 @@ export function createProductionService(
             .from("pincorp_productionorders")
             .update({ status: "Đã hủy" })
             .eq("id", order.id);
-          if (!orderErr) {
-            ctx.setProductionOrders((prev) =>
-              prev.map((o) =>
+            if (!orderErr) {
+            ctx.setProductionOrders((prev: any[]) =>
+              prev.map((o: any) =>
                 o.id === order.id ? { ...o, status: "Đã hủy" } : o
               )
             );
@@ -733,7 +738,9 @@ export function createProductionService(
           });
           return;
         }
-        ctx.setPinProducts((prev) => prev.filter((p) => p.id !== product.id));
+        ctx.setPinProducts((prev: any[]) =>
+          prev.filter((p: any) => p.id !== product.id)
+        );
         ctx.addToast?.({
           title: "Đã xoá thành phẩm",
           message: `${product.name} (xóa ${qty}) và hủy ${relatedOrders.length} lệnh sản xuất liên quan`,
@@ -746,8 +753,8 @@ export function createProductionService(
           stock: remaining,
         } as PinProduct);
         if (ok) {
-          ctx.setPinProducts((prev) =>
-            prev.map((p) =>
+          ctx.setPinProducts((prev: any[]) =>
+            prev.map((p: any) =>
               p.id === product.id ? { ...p, stock: remaining } : p
             )
           );

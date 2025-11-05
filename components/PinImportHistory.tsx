@@ -46,7 +46,7 @@ const PinImportHistory: React.FC = () => {
     setError(null);
     try {
       const { data, error } = await supabase
-        .from("pincorp_material_history")
+        .from("pin_material_history")
         .select("*")
         .order("import_date", { ascending: false })
         .limit(1000);
@@ -77,7 +77,7 @@ const PinImportHistory: React.FC = () => {
       setIsLoading(true);
       setError(null);
       const { error: delErr } = await supabase
-        .from("pincorp_material_history")
+        .from("pin_material_history")
         .delete()
         .eq("id", row.id);
       if (delErr) throw delErr;
@@ -85,8 +85,8 @@ const PinImportHistory: React.FC = () => {
       await fetchRows();
     } catch (e: any) {
       setError(
-        (e?.message || String(e)) +
-          " — cần quyền DELETE/RLS policy cho pincorp_material_history"
+      (e?.message || String(e)) +
+      " — cần quyền DELETE/RLS policy cho pin_material_history"
       );
     } finally {
       setIsLoading(false);
@@ -209,14 +209,14 @@ const PinImportHistory: React.FC = () => {
                 setError(null);
                 // Xóa toàn bộ lịch sử (phụ thuộc policy RLS cho DELETE)
                 const { error: delErr } = await supabase
-                  .from("pincorp_material_history")
+                  .from("pin_material_history")
                   .delete()
                   .gte("import_date", "0001-01-01");
                 if (delErr) throw delErr;
               } catch (e: any) {
                 setError(
                   (e?.message || String(e)) +
-                    " — cần quyền DELETE/RLS policy cho pincorp_material_history"
+                    " — cần quyền DELETE/RLS policy cho pin_material_history"
                 );
               } finally {
                 await fetchRows();
