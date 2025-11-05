@@ -90,7 +90,7 @@ export const PinTopNav: React.FC<{
     // 2. PRODUCTION - Sáº£n xuáº¥t (gá»™p Materials + BOMs + Repairs)
     { to: "/materials", icon: <CubeIcon />, label: "Váº­t liá»‡u" },
     { to: "/boms", icon: <BeakerIcon />, label: "Sáº£n xuáº¥t" },
-    { to: "/repairs", icon: <WrenchScrewdriverIcon />, label: "Sá»­a chá»¯a" },
+    { to: "/repairs", icon: <WrenchScrewdriverIcon />, label: "Sửa chữa" },
 
     // 3. FINANCIAL & ANALYTICS - TÃ i chÃ­nh & BÃ¡o cÃ¡o (gá»™p táº¥t cáº£ bÃ¡o cÃ¡o)
     { to: "/financial", icon: <BanknotesIcon />, label: "TÃ i chÃ­nh" },
@@ -150,7 +150,7 @@ export const PinTopNav: React.FC<{
                         className="w-full text-left flex items-center gap-3 p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 text-sm"
                       >
                         <WrenchScrewdriverIcon className="w-4 h-4" />
-                        Sá»­a chá»¯a
+                        Sửa chữa
                       </NavLink>
 
                       <NavLink
@@ -179,7 +179,7 @@ export const PinTopNav: React.FC<{
                         className="w-full text-left flex items-center gap-3 p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 text-sm"
                       >
                         <CogIcon className="w-5 h-5" />
-                        Danh báº¡
+                        Danh bạ¡
                       </NavLink>
 
                       <button
@@ -274,7 +274,7 @@ export const PinMobileNav: React.FC = () => {
     {
       to: "/repairs",
       icon: <WrenchScrewdriverIcon className="w-6 h-6" />,
-      label: "Sá»­a chá»¯a",
+      label: "Sửa chữa",
     },
     {
       to: "/reports",
