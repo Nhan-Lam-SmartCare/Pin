@@ -1,6 +1,6 @@
 import type { PinCustomer } from "../../types";
 import { supabase, IS_OFFLINE_MODE } from "../../supabaseClient";
-import type { PinContextType } from "../../../contexts/pincorp/types";
+import type { PinContextType } from "../../contexts/types";
 
 export interface CustomersService {
   upsertPinCustomer: (customer: PinCustomer) => Promise<void>;
@@ -11,8 +11,8 @@ export function createCustomersService(ctx: PinContextType): CustomersService {
     upsertPinCustomer: async (customer) => {
       // Optimistic/offline-first
       if (IS_OFFLINE_MODE) {
-        ctx.setPinCustomers((prev) => {
-          const idx = prev.findIndex((c) => c.id === customer.id);
+        ctx.setPinCustomers((prev: any[]) => {
+          const idx = prev.findIndex((c: any) => c.id === customer.id);
           if (idx > -1) {
             const next = [...prev];
             next[idx] = customer;
@@ -32,9 +32,7 @@ export function createCustomersService(ctx: PinContextType): CustomersService {
           address: customer.address ?? null,
           notes: customer.notes ?? null,
         };
-        const { error } = await supabase
-          .from("pincorp_customers")
-          .upsert(payload);
+        const { error } = await supabase.from("pin_customers").upsert(payload);
         if (error) {
           ctx.addToast?.({
             title: "Lỗi lưu khách hàng",
@@ -43,10 +41,10 @@ export function createCustomersService(ctx: PinContextType): CustomersService {
           });
           return;
         }
-        ctx.setPinCustomers((prev) => {
-          const idx = prev.findIndex((c) => c.id === customer.id);
+        ctx.setPinCustomers((prev: any[]) => {
+          const idx = prev.findIndex((c: any) => c.id === customer.id);
           if (idx > -1)
-            return prev.map((c) => (c.id === customer.id ? customer : c));
+            return prev.map((c: any) => (c.id === customer.id ? customer : c));
           return [customer, ...prev];
         });
         ctx.addToast?.({
@@ -55,7 +53,7 @@ export function createCustomersService(ctx: PinContextType): CustomersService {
           type: "success",
         });
       } catch (e: any) {
-        console.error("Exception upserting pincorp_customer:", e);
+        console.error("Exception upserting pin_customer:", e);
         ctx.addToast?.({
           title: "Lỗi lưu khách hàng",
           message: e?.message || String(e),

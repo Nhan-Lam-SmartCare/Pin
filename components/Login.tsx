@@ -26,9 +26,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     try {
       const { error: loginError } = await onLogin(email, password);
       if (loginError) {
-        // Check for specific error types
         const errorMsg = loginError?.message || "";
-
         if (
           errorMsg.includes("CONNECTION") ||
           errorMsg.includes("TIMED_OUT") ||
@@ -36,15 +34,15 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           errorMsg.includes("ERR_NETWORK")
         ) {
           setError(
-            "KhÃ´ng thá»ƒ káº¿t ná»‘i Ä‘áº¿n server. Vui lÃ²ng kiá»ƒm tra káº¿t ná»‘i internet vÃ  thá»­ láº¡i."
+            "Không thể kết nối đến server. Vui lòng kiểm tra kết nối internet và thử lại."
           );
         } else if (errorMsg.includes("Invalid login credentials")) {
-          setError("Email hoáº·c máº­t kháº©u khÃ´ng Ä‘Ãºng. Vui lÃ²ng thá»­ láº¡i.");
+          setError("Email hoặc mật khẩu không đúng. Vui lòng thử lại.");
         } else if (errorMsg.includes("Email not confirmed")) {
-          setError("Email chÆ°a Ä‘Æ°á»£c xÃ¡c thá»±c. Vui lÃ²ng kiá»ƒm tra email.");
+          setError("Email chưa được xác thực. Vui lòng kiểm tra email.");
         } else {
           setError(
-            "KhÃ´ng thá»ƒ Ä‘Äƒng nháº­p. Vui lÃ²ng kiá»ƒm tra thÃ´ng tin vÃ  thá»­ láº¡i."
+            "Không thể đăng nhập. Vui lòng kiểm tra thông tin và thử lại."
           );
         }
       }
@@ -56,13 +54,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         errorMsg.includes("net::ERR")
       ) {
         setError(
-          "âŒ Lá»—i káº¿t ná»‘i máº¡ng. Vui lÃ²ng kiá»ƒm tra:\n" +
-            "â€¢ Káº¿t ná»‘i internet\n" +
-            "â€¢ Firewall/VPN\n" +
-            "â€¢ Thá»­ refresh trang (F5)"
+          "❌ Lỗi kết nối mạng. Vui lòng kiểm tra:\n" +
+            "• Kết nối internet\n" +
+            "• Firewall/VPN\n" +
+            "• Thử refresh trang (F5)"
         );
       } else {
-        setError("ÄÃ£ xáº£y ra lá»—i khÃ´ng mong Ä‘á»£i. Vui lÃ²ng thá»­ láº¡i.");
+        setError("Đã xảy ra lỗi không mong đợi. Vui lòng thử lại.");
       }
     }
     setLoading(false);
@@ -76,22 +74,21 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       const formatted = formatDiagnosticResults(results);
       console.log(formatted);
 
-      // Check if any diagnostics failed
       const hasErrors = results.some((r) => r.status === "error");
       if (hasErrors) {
         const failedChecks = results.filter((r) => r.status === "error");
         setError(
-          "âš ï¸ PhÃ¡t hiá»‡n váº¥n Ä‘á» káº¿t ná»‘i:\n\n" +
-            failedChecks.map((r) => `â€¢ ${r.check}: ${r.message}`).join("\n") +
-            "\n\nVui lÃ²ng xem Console (F12) Ä‘á»ƒ biáº¿t chi tiáº¿t."
+          "⚠️ Phát hiện vấn đề kết nối:\n\n" +
+            failedChecks.map((r) => `• ${r.check}: ${r.message}`).join("\n") +
+            "\n\nVui lòng xem Console (F12) để biết chi tiết."
         );
       } else {
         setError(
-          "âœ… Táº¥t cáº£ kiá»ƒm tra Ä‘á»u OK!\n\nNáº¿u váº«n khÃ´ng Ä‘Äƒng nháº­p Ä‘Æ°á»£c, vui lÃ²ng:\nâ€¢ Kiá»ƒm tra email/máº­t kháº©u\nâ€¢ XÃ³a cache browser (Ctrl+Shift+Del)\nâ€¢ Thá»­ browser khÃ¡c"
+          "✅ Tất cả kiểm tra đều OK!\n\nNếu vẫn không đăng nhập được, vui lòng:\n• Kiểm tra email/mật khẩu\n• Xóa cache trình duyệt (Ctrl+Shift+Del)\n• Thử trình duyệt khác"
         );
       }
     } catch (e: any) {
-      setError("KhÃ´ng thá»ƒ cháº¡y diagnostics: " + e.message);
+      setError("Không thể chạy diagnostics: " + e.message);
     }
     setDiagnosing(false);
   };
@@ -102,16 +99,17 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         <div className="flex flex-col items-center">
           <Logo size={56} className="mb-3" rounded />
           <div className="bg-sky-600 p-3 rounded-full mb-4 sm:hidden">
-            {/* Keep the icon on very small screens as an accent */}
+            {/* Accent icon on very small screens */}
             <WrenchScrewdriverIcon className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100">
             PinCorp
           </h1>
           <p className="text-slate-500 dark:text-slate-400 mt-2">
-            ÄÄƒng nháº­p vÃ o tÃ i khoáº£n cá»§a báº¡n
+            Đăng nhập vào tài khoản của bạn
           </p>
         </div>
+
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label
@@ -130,12 +128,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               autoFocus
             />
           </div>
+
           <div>
             <label
               htmlFor="password"
               className="block text-sm font-medium text-slate-700 dark:text-slate-300"
             >
-              Máº­t kháº©u
+              Mật khẩu
             </label>
             <input
               id="password"
@@ -163,7 +162,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             disabled={loading}
             className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-sky-600 hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 transition-colors disabled:bg-sky-400"
           >
-            {loading ? "Äang Ä‘Äƒng nháº­p..." : "ÄÄƒng nháº­p"}
+            {loading ? "Đang đăng nhập..." : "Đăng nhập"}
           </button>
 
           <button
@@ -185,7 +184,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"
               />
             </svg>
-            {diagnosing ? "Äang kiá»ƒm tra..." : "Kiá»ƒm tra káº¿t ná»‘i"}
+            {diagnosing ? "Đang kiểm tra..." : "Kiểm tra kết nối"}
           </button>
         </form>
       </div>

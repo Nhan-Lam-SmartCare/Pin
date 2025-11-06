@@ -33,24 +33,24 @@ export const generateFormattedId = async (prefix: string): Promise<string> => {
       console.warn('RPC not available, using fallback method:', rpcError);
     }
 
-    // 3. Fallback: Query existing IDs for today and increment
+    // 3. Fallback: Query pin_sales.code for today and increment
     const todayPrefix = `${prefix}-${datePart}`;
-    const { data: existingIds, error: queryError } = await supabase
-      .from('motocare_workorders')
-      .select('id')
-      .ilike('id', `${todayPrefix}%`)
-      .order('id', { ascending: false })
+    const { data: existingCodes, error: queryError } = await supabase
+      .from('pin_sales')
+      .select('code')
+      .ilike('code', `${todayPrefix}%`)
+      .order('code', { ascending: false })
       .limit(1);
 
-    if (!queryError && existingIds && existingIds.length > 0) {
-      // Extract the sequence number from the last ID
-      const lastId = existingIds[0].id;
-      const match = lastId.match(/-(\d{4})$/);
+    if (!queryError && existingCodes && existingCodes.length > 0) {
+      // Extract the sequence number from the last code
+      const lastCode = (existingCodes[0] as any).code as string;
+      const match = lastCode?.match(/-(\d{4})$/);
       if (match) {
         const lastSeq = parseInt(match[1], 10);
         const nextSeq = (lastSeq + 1).toString().padStart(4, '0');
         const formattedId = `${prefix}-${datePart}-${nextSeq}`;
-        console.log('✅ Generated ID via query:', formattedId);
+        console.log('✅ Generated ID via pin_sales query:', formattedId);
         return formattedId;
       }
     }

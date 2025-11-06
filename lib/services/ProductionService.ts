@@ -39,31 +39,18 @@ export function createProductionService(
       });
       return true;
     }
-    // Minimal payload to fit current schema; avoid retailprice/wholesaleprice which may not exist
+    // Minimal payload to fit current schema (snake_case)
     let payload: any = {
       id: (product as any).id,
       name: (product as any).name,
       sku: (product as any).sku,
       stock: Number((product as any).stock ?? 0),
-      costprice: Number((product as any).costPrice ?? 0),
-      // keep sellingprice if exists for legacy UIs, remove if column missing
-      sellingprice: (product as any).sellingPrice ?? null,
+      cost_price: Number((product as any).costPrice ?? 0),
+      retail_price:
+        (product as any).retailPrice ?? (product as any).sellingPrice ?? null,
+      wholesale_price: (product as any).wholesalePrice ?? null,
     };
-    let { error } = await supabase.from("pincorp_products").upsert(payload);
-    if (error) {
-      // Retry if sellingprice column is missing
-      if (
-        /sellingprice/i.test(error.message || "") &&
-        /column|not exist|schema cache/i.test(error.message || "")
-      ) {
-        const retryPayload = { ...payload } as any;
-        delete retryPayload.sellingprice;
-        const retry = await supabase
-          .from("pincorp_products")
-          .upsert(retryPayload);
-        error = retry.error as any;
-      }
-    }
+    let { error } = await supabase.from("pin_products").upsert(payload);
     if (error) {
       ctx.addToast?.({
         title: "Lỗi lưu sản phẩm",
@@ -100,22 +87,67 @@ export function createProductionService(
         return;
       }
 
-      // Online: persist to DB (pincorp_boms) and update state
-      const payload: any = {
-        id: (bom as any).id,
-        productname: (bom as any).productName,
-        productsku: (bom as any).productSku,
+      // Online: persist to DB (pin_boms) and update state
+      const isUUID = (v: string | undefined) =>
+        !!v &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+          v
+        );
+
+      const basePayload: any = {
+        product_name: (bom as any).productName,
+        product_sku: (bom as any).productSku,
         materials: (bom as any).materials || [],
         notes: (bom as any).notes || null,
       };
-      const { error } = await supabase.from("pincorp_boms").upsert(payload);
-      if (error) {
+
+      // If bom.id is not a valid UUID, insert without id so DB generates one
+      if (!isUUID((bom as any).id)) {
+        const { data, error } = await supabase
+          .from("pin_boms")
+          .insert(basePayload)
+          .select()
+          .single();
+        if (error) {
+          ctx.addToast?.({
+            title: "Lỗi lưu BOM",
+            message: error.message || String(error),
+            type: "error",
+          });
+          return;
+        }
+        const newBom = { ...(bom as any), id: data.id } as any;
+        ctx.setBoms((prev: any[]) => {
+          const idx = prev.findIndex((b: any) => b.id === (bom as any).id);
+          if (idx > -1) {
+            const next = [...prev];
+            next[idx] = newBom;
+            return next;
+          }
+          return [newBom, ...prev];
+        });
         ctx.addToast?.({
-          title: "Lỗi lưu BOM",
-          message: error.message || String(error),
-          type: "error",
+          title: "Đã lưu BOM",
+          message: `BOM cho sản phẩm \"${
+            (bom as any).productName
+          }\" đã được lưu`,
+          type: "success",
         });
         return;
+      }
+
+      // Existing UUID: safe upsert with id
+      const payload: any = { id: (bom as any).id, ...basePayload };
+      {
+        const { error } = await supabase.from("pin_boms").upsert(payload);
+        if (error) {
+          ctx.addToast?.({
+            title: "Lỗi lưu BOM",
+            message: error.message || String(error),
+            type: "error",
+          });
+          return;
+        }
       }
       ctx.setBoms((prev: any[]) => {
         const idx = prev.findIndex((b: any) => b.id === (bom as any).id);
@@ -138,7 +170,7 @@ export function createProductionService(
         return;
       }
       const { error } = await supabase
-        .from("pincorp_boms")
+        .from("pin_boms")
         .delete()
         .eq("id", bomId);
       if (error) {
@@ -165,17 +197,16 @@ export function createProductionService(
       }
       const payload: any = {
         id: order.id,
-        productname: order.productName,
-        bomid: order.bomId,
-        quantityproduced: Number(order.quantityProduced || 0),
-        materialscost: Number(order.materialsCost || 0),
-        totalcost: Number(order.totalCost || 0),
+        product_name: order.productName,
+        bom_id: order.bomId,
+        quantity_produced: Number(order.quantityProduced || 0),
+        materials_cost: Number(order.materialsCost || 0),
+        total_cost: Number(order.totalCost || 0),
         status,
         notes: order.notes || null,
       };
-      // Note: pincorp_productionorders currently has no created_by column; do not include it
       const { error } = await supabase
-        .from("pincorp_productionorders")
+        .from("pin_production_orders")
         .upsert(payload);
       if (error) {
         ctx.addToast?.({
@@ -185,7 +216,7 @@ export function createProductionService(
         });
         return;
       }
-  ctx.setProductionOrders((prev: any[]) => [order, ...prev]);
+      ctx.setProductionOrders((prev: any[]) => [order, ...prev]);
       ctx.addToast?.({
         title: "Đã tạo lệnh sản xuất",
         message: `${order.productName} - SL: ${order.quantityProduced}`,
@@ -200,7 +231,7 @@ export function createProductionService(
         return;
       }
       const { error } = await supabase
-        .from("pincorp_productionorders")
+        .from("pin_production_orders")
         .update({ status })
         .eq("id", orderId);
       if (error) {
@@ -301,7 +332,7 @@ export function createProductionService(
       }
 
       // Online path - persist changes
-  const order = ctx.productionOrders.find((o: any) => o.id === orderId);
+      const order = ctx.productionOrders.find((o: any) => o.id === orderId);
       if (!order) {
         ctx.addToast?.({
           title: "Không tìm thấy lệnh sản xuất",
@@ -318,7 +349,7 @@ export function createProductionService(
         });
         return;
       }
-  const bom = ctx.pinBOMs.find((b: any) => b.id === order.bomId);
+      const bom = ctx.pinBOMs.find((b: any) => b.id === order.bomId);
       if (!bom) {
         ctx.addToast?.({
           title: "Không tìm thấy BOM",
@@ -358,7 +389,7 @@ export function createProductionService(
         try {
           if (!IS_OFFLINE_MODE) {
             await supabase
-              .from("pincorp_materials")
+              .from("pin_materials")
               .update({ stock: newStock })
               .eq("id", material.id);
           }
@@ -391,7 +422,7 @@ export function createProductionService(
 
       // 2) Mark order as completed in DB
       const { error: updateError } = await supabase
-        .from("pincorp_productionorders")
+        .from("pin_production_orders")
         .update({ status: "Hoàn thành" })
         .eq("id", orderId);
       if (updateError) {
@@ -487,11 +518,11 @@ export function createProductionService(
       }
 
       const productMap = new Map<string, PinProduct>();
-  ctx.pinProducts.forEach((p: any) => productMap.set(p.sku, p));
+      ctx.pinProducts.forEach((p: any) => productMap.set(p.sku, p));
 
       let syncedCount = 0;
       for (const order of completedOrders) {
-  const bom = ctx.pinBOMs.find((b: any) => b.id === order.bomId);
+        const bom = ctx.pinBOMs.find((b: any) => b.id === order.bomId);
         if (!bom) continue;
 
         const producedQty = Number(order.quantityProduced || 0);
@@ -512,10 +543,10 @@ export function createProductionService(
           effectiveSku = generateProductSKU(existingSkuList);
           // Try to persist new SKU; non-blocking on error
           try {
-            await supabase.from("pincorp_boms").upsert({
+            await supabase.from("pin_boms").upsert({
               id: (bom as any).id,
-              productname: (bom as any).productName,
-              productsku: effectiveSku,
+              product_name: (bom as any).productName,
+              product_sku: effectiveSku,
               materials: (bom as any).materials || [],
               notes: (bom as any).notes || null,
             });
@@ -578,7 +609,7 @@ export function createProductionService(
             // Update order status in DB and state
             try {
               const { error: statusErr } = await supabase
-                .from("pincorp_productionorders")
+                .from("pin_production_orders")
                 .update({ status: "Đã nhập kho" })
                 .eq("id", order.id);
               if (!statusErr) {
@@ -646,7 +677,7 @@ export function createProductionService(
           return;
         }
         const returnMap = new Map<string, number>();
-  (bom.materials || []).forEach((m: any) => {
+        (bom.materials || []).forEach((m: any) => {
           const q = (m.quantity || 0) * qtyToReturn;
           if (q > 0)
             returnMap.set(m.materialId, (returnMap.get(m.materialId) || 0) + q);
@@ -671,7 +702,7 @@ export function createProductionService(
             if (mat) {
               try {
                 await supabase
-                  .from("pincorp_materials")
+                  .from("pin_materials")
                   .update({ stock: (mat.stock || 0) + delta })
                   .eq("id", materialId);
               } catch {}
@@ -714,10 +745,10 @@ export function createProductionService(
 
         for (const order of relatedOrders) {
           const { error: orderErr } = await supabase
-            .from("pincorp_productionorders")
+            .from("pin_production_orders")
             .update({ status: "Đã hủy" })
             .eq("id", order.id);
-            if (!orderErr) {
+          if (!orderErr) {
             ctx.setProductionOrders((prev: any[]) =>
               prev.map((o: any) =>
                 o.id === order.id ? { ...o, status: "Đã hủy" } : o
@@ -727,7 +758,7 @@ export function createProductionService(
         }
 
         const { error: delErr } = await supabase
-          .from("pincorp_products")
+          .from("pin_products")
           .delete()
           .eq("id", product.id);
         if (delErr) {

@@ -93,6 +93,7 @@ interface ProductionOrderCardProps {
   onViewDetails: (order: ProductionOrder) => void;
   currentUser?: User | null;
   isDragging?: boolean;
+  isCompleting?: boolean;
 }
 
 const ProductionOrderCard: React.FC<ProductionOrderCardProps> = ({
@@ -101,6 +102,7 @@ const ProductionOrderCard: React.FC<ProductionOrderCardProps> = ({
   onViewDetails,
   currentUser,
   isDragging = false,
+  isCompleting = false,
 }) => {
   const getStatusInfo = (status: ProductionOrder["status"]) => {
     switch (status) {
@@ -223,11 +225,18 @@ const ProductionOrderCard: React.FC<ProductionOrderCardProps> = ({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                handleQuickMove("Hoàn thành");
+                if (!isCompleting) {
+                  handleQuickMove("Hoàn thành");
+                }
               }}
-              className="flex-1 bg-green-500 hover:bg-green-600 text-white text-xs py-1 px-2 rounded transition-colors"
+              className={`flex-1 text-white text-xs py-1 px-2 rounded transition-colors ${
+                isCompleting
+                  ? "bg-green-300 cursor-not-allowed"
+                  : "bg-green-500 hover:bg-green-600"
+              }`}
+              disabled={isCompleting}
             >
-              Hoàn thành
+              {isCompleting ? "Đang lưu..." : "Hoàn thành"}
             </button>
           )}
           <button
@@ -255,6 +264,7 @@ interface KanbanColumnProps {
   icon: React.ReactNode;
   bgColor: string;
   textColor: string;
+  completingOrderId?: string | null;
 }
 
 const KanbanColumn: React.FC<KanbanColumnProps> = ({
@@ -267,6 +277,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
   icon,
   bgColor,
   textColor,
+  completingOrderId,
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
 
@@ -352,6 +363,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
                 onMove={onMove}
                 onViewDetails={onViewDetails}
                 currentUser={currentUser}
+                isCompleting={completingOrderId === order.id}
               />
             </div>
           ))
@@ -369,6 +381,7 @@ interface ProductionDashboardProps {
   boms?: PinBOM[];
   onCreateOrder?: () => void;
   onManageBOMs?: () => void;
+  completeOrder?: (orderId: string) => Promise<void>;
 }
 
 const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
@@ -379,11 +392,15 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
   boms = [],
   onCreateOrder,
   onManageBOMs,
+  completeOrder,
 }) => {
   const [selectedOrder, setSelectedOrder] = useState<ProductionOrder | null>(
     null
   );
   const [searchTerm, setSearchTerm] = useState("");
+  const [completingOrderId, setCompletingOrderId] = useState<string | null>(
+    null
+  );
 
   // Filter orders based on search
   const filteredOrders = useMemo(() => {
@@ -439,6 +456,27 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
       return bom;
     },
     [boms]
+  );
+
+  // Intercept moves to "Hoàn thành" to run completion flow with stock deduction
+  const handleMove = useCallback(
+    async (orderId: string, newStatus: ProductionOrder["status"]) => {
+      if (newStatus === "Hoàn thành" && completeOrder) {
+        try {
+          setCompletingOrderId(orderId);
+          await completeOrder(orderId);
+        } catch (e) {
+          // Errors are handled upstream; keep UI responsive
+          console.error("Error completing order via Kanban:", e);
+        } finally {
+          setCompletingOrderId(null);
+        }
+      } else {
+        // For other transitions, keep the lightweight status update
+        updateOrder(orderId, newStatus);
+      }
+    },
+    [completeOrder, updateOrder]
   );
 
   return (
@@ -549,36 +587,39 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
             title="Đang chờ"
             status="Đang chờ"
             orders={ordersByStatus["Đang chờ"]}
-            onMove={updateOrder}
+            onMove={handleMove}
             onViewDetails={handleViewDetails}
             currentUser={currentUser}
             icon={<ClockIcon className="w-5 h-5" />}
             bgColor="bg-amber-500"
             textColor="text-white"
+            completingOrderId={completingOrderId}
           />
 
           <KanbanColumn
             title="Đang sản xuất"
             status="Đang sản xuất"
             orders={ordersByStatus["Đang sản xuất"]}
-            onMove={updateOrder}
+            onMove={handleMove}
             onViewDetails={handleViewDetails}
             currentUser={currentUser}
             icon={<ArrowPathIcon className="w-5 h-5" />}
             bgColor="bg-blue-500"
             textColor="text-white"
+            completingOrderId={completingOrderId}
           />
 
           <KanbanColumn
             title="Hoàn thành"
             status="Hoàn thành"
             orders={ordersByStatus["Hoàn thành"]}
-            onMove={updateOrder}
+            onMove={handleMove}
             onViewDetails={handleViewDetails}
             currentUser={currentUser}
             icon={<CheckCircleIcon className="w-5 h-5" />}
             bgColor="bg-green-500"
             textColor="text-white"
+            completingOrderId={completingOrderId}
           />
         </div>
       </div>

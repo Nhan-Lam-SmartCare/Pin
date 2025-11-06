@@ -117,6 +117,7 @@ const ProductionManagerWrapper: React.FC<ProductionManagerProps> = ({
         boms={boms}
         onCreateOrder={handleCreateOrderFromDashboard}
         onManageBOMs={handleManageBOMs}
+        completeOrder={completeOrder}
       />
 
       {showBOMModal && (

@@ -2359,7 +2359,7 @@ const SupplierPriceAnalysisModal: React.FC<{
     try {
       // Lấy lịch sử nhập hàng từ các nhà cung cấp
       const { data: materials, error } = await supabase
-        .from("pincorp_materials")
+        .from("pin_materials")
         .select("*")
         .ilike("name", `%${material.name}%`)
         .order("created_at", { ascending: false })
@@ -3016,8 +3016,8 @@ const MaterialManager: React.FC<{
         throw new Error("Chưa đăng nhập");
       }
 
-  // If creating new, let DB generate UUID
-  let materialId: string | null = editingMaterial?.id || null;
+      // If creating new, let DB generate UUID
+      let materialId: string | null = editingMaterial?.id || null;
       const sku = formData.sku || generateMaterialSKU(materials);
       const importId = `IMP${Date.now()}-${Math.random()
         .toString(36)
@@ -3257,7 +3257,7 @@ const MaterialManager: React.FC<{
 
     try {
       const { error } = await supabase
-        .from("pincorp_materials")
+        .from("pin_materials")
         .delete()
         .eq("id", id);
 
@@ -3310,7 +3310,7 @@ const MaterialManager: React.FC<{
 
     try {
       const deletePromises = Array.from(selectedItems).map((id) =>
-        supabase.from("pincorp_materials").delete().eq("id", id)
+        supabase.from("pin_materials").delete().eq("id", id)
       );
 
       await Promise.all(deletePromises);
@@ -3333,10 +3333,9 @@ const MaterialManager: React.FC<{
     try {
       const updatePromises = Array.from(selectedItems).map((id) =>
         supabase
-          .from("pincorp_materials")
+          .from("pin_materials")
           .update({
             supplier: bulkSupplier,
-            supplierphone: bulkSupplierPhone,
           })
           .eq("id", id)
       );
@@ -3430,7 +3429,7 @@ const MaterialManager: React.FC<{
       const createTableSQL = `
         CREATE TABLE IF NOT EXISTS pin_stock_history (
           id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-          material_id UUID NOT NULL REFERENCES pincorp_materials(id) ON DELETE CASCADE,
+          material_id UUID NOT NULL REFERENCES pin_materials(id) ON DELETE CASCADE,
           transaction_type VARCHAR(20) NOT NULL CHECK (transaction_type IN ('import', 'export', 'adjustment')),
           quantity_before INTEGER NOT NULL DEFAULT 0,
           quantity_change INTEGER NOT NULL,

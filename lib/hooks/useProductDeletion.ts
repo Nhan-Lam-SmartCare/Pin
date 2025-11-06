@@ -163,7 +163,7 @@ export function useProductDeletion() {
             (bom: PinBOM) =>
               bom.productSku === product.sku || bom.productName === product.name
           );
-          const bomIds = relatedBOMs.map((b) => b.id);
+          const bomIds = relatedBOMs.map((b: PinBOM) => b.id);
           const completedOrders = ctx.productionOrders.filter(
             (o: ProductionOrder) =>
               bomIds.includes(o.bomId) && o.status === "Hoàn thành"
@@ -171,12 +171,12 @@ export function useProductDeletion() {
           for (const order of completedOrders) {
             try {
               const { error } = await supabase
-                .from("pincorp_productionorders")
+                .from("pin_production_orders")
                 .update({ status: "Đã hủy" })
                 .eq("id", order.id);
               if (!error) {
-                ctx.setProductionOrders((prev) =>
-                  prev.map((o) =>
+                ctx.setProductionOrders((prev: ProductionOrder[]) =>
+                  prev.map((o: ProductionOrder) =>
                     o.id === order.id ? { ...o, status: "Đã hủy" } : o
                   )
                 );
@@ -185,12 +185,12 @@ export function useProductDeletion() {
           }
 
           if (IS_OFFLINE_MODE) {
-            ctx.setPinProducts((prev) =>
-              prev.filter((p) => p.id !== product.id)
+            ctx.setPinProducts((prev: PinProduct[]) =>
+              prev.filter((p: PinProduct) => p.id !== product.id)
             );
           } else {
             const { error: delErr } = await supabase
-              .from("pincorp_products")
+              .from("pin_products")
               .delete()
               .eq("id", product.id);
             if (delErr) {
@@ -199,21 +199,21 @@ export function useProductDeletion() {
                 message: delErr.message || String(delErr),
               };
             }
-            ctx.setPinProducts((prev) =>
-              prev.filter((p) => p.id !== product.id)
+            ctx.setPinProducts((prev: PinProduct[]) =>
+              prev.filter((p: PinProduct) => p.id !== product.id)
             );
           }
         } else {
           // Giảm tồn kho một phần, không hoàn NVL
           if (IS_OFFLINE_MODE) {
-            ctx.setPinProducts((prev) =>
-              prev.map((p) =>
+            ctx.setPinProducts((prev: PinProduct[]) =>
+              prev.map((p: PinProduct) =>
                 p.id === product.id ? { ...p, stock: remaining } : p
               )
             );
           } else {
             const { error: updErr } = await supabase
-              .from("pincorp_products")
+              .from("pin_products")
               .update({ stock: remaining })
               .eq("id", product.id);
             if (updErr) {
@@ -222,8 +222,8 @@ export function useProductDeletion() {
                 message: updErr.message || String(updErr),
               };
             }
-            ctx.setPinProducts((prev) =>
-              prev.map((p) =>
+            ctx.setPinProducts((prev: PinProduct[]) =>
+              prev.map((p: PinProduct) =>
                 p.id === product.id ? { ...p, stock: remaining } : p
               )
             );

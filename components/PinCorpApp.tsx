@@ -131,7 +131,12 @@ const PinCorpApp: React.FC<PinCorpAppProps> = ({ onSwitchApp }) => {
               />
               <Route
                 path="/reports"
-                element={<PinReportManager sales={appContext.pinSales} />}
+                element={
+                  <PinReportManager
+                    sales={appContext.pinSales}
+                    orders={appContext.productionOrders}
+                  />
+                }
               />
               <Route
                 path="/cost-analysis"

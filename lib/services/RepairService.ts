@@ -68,7 +68,7 @@ export function createRepairService(ctx: PinContextType): RepairService {
               return;
             }
             const { error: updErr } = await supabase
-              .from("pincorp_materials")
+              .from("pin_materials")
               .update({ stock: newStock })
               .eq("id", stockMaterial.id);
             if (updErr) {
@@ -101,37 +101,75 @@ export function createRepairService(ctx: PinContextType): RepairService {
           }
         }
 
-        // 2) Build payload for pincorp_repairorders (whitelisted keys)
-        const payload: any = {
+        // 2) Build payload for pin_repair_orders (snake_case)
+        const basePayload: any = {
           id: order.id,
-          creationdate: order.creationDate,
-          customername: order.customerName,
-          customerphone: order.customerPhone,
-          devicename: order.deviceName,
-          issuedescription: order.issueDescription,
-          technicianname: order.technicianName ?? null,
+          creation_date: order.creationDate,
+          customer_name: order.customerName,
+          customer_phone: order.customerPhone,
+          device_name: order.deviceName,
+          issue_description: order.issueDescription,
+          technician_name: order.technicianName ?? null,
           status: order.status,
-          materialsused:
-            order.materialsUsed !== undefined
-              ? JSON.stringify(order.materialsUsed)
-              : null,
-          laborcost: order.laborCost,
+          // Let Supabase map JSON automatically; avoid stringifying to reduce type issues
+          materials_used: order.materialsUsed ?? null,
+          labor_cost: order.laborCost,
           total: order.total,
           notes: order.notes ?? null,
-          paymentstatus: order.paymentStatus,
-          partialpaymentamount: order.partialPaymentAmount ?? null,
-          paymentmethod: order.paymentMethod ?? null,
-          paymentdate: order.paymentDate ?? null,
-          cashtransactionid: order.cashTransactionId ?? null,
+          payment_status: order.paymentStatus,
+          partial_payment_amount: order.partialPaymentAmount ?? null,
+          payment_method: order.paymentMethod ?? null,
+          payment_date: order.paymentDate ?? null,
+          cash_transaction_id: order.cashTransactionId ?? null,
         };
 
-        const { error: repErr } = await supabase
-          .from("pincorp_repairorders")
-          .upsert(payload);
-        if (repErr) {
+        // Resilient upsert: if DB is missing optional columns (e.g., cash_transaction_id),
+        // retry by removing the offending column up to 3 times.
+        const tryUpsert = async () => {
+          let attempt = 0;
+          let payload = { ...basePayload };
+          while (attempt < 3) {
+            const { error } = await supabase
+              .from("pin_repair_orders")
+              .upsert(payload);
+            if (!error) return { ok: true } as const;
+
+            const msg = (error as any)?.message || String(error);
+            // Detect missing column messages
+            const colMatch = msg.match(
+              /'([^']+)' column|column\s+"?([a-zA-Z0-9_]+)"?\s+does not exist/i
+            );
+            const missingCol = colMatch?.[1] || colMatch?.[2];
+            if (missingCol && missingCol in payload) {
+              // Remove the missing column and retry
+              delete (payload as any)[missingCol];
+              attempt += 1;
+              continue;
+            }
+            // Specific fallback for cash_transaction_id common in older schemas
+            if (
+              /cash_transaction_id/i.test(msg) &&
+              "cash_transaction_id" in payload
+            ) {
+              delete (payload as any)["cash_transaction_id"];
+              attempt += 1;
+              continue;
+            }
+            // Give up if we can't sanitize further
+            return { ok: false, error } as const;
+          }
+          return {
+            ok: false,
+            error: new Error("Exceeded retry attempts"),
+          } as const;
+        };
+
+        const result = await tryUpsert();
+        if (!result.ok) {
+          const repErr: any = (result as any).error;
           ctx.addToast?.({
             title: "Lỗi lưu repair order",
-            message: repErr.message || String(repErr),
+            message: repErr?.message || String(repErr),
             type: "error",
           });
           return;
@@ -182,7 +220,7 @@ export function createRepairService(ctx: PinContextType): RepairService {
       }
       try {
         const { error } = await supabase
-          .from("pincorp_repairorders")
+          .from("pin_repair_orders")
           .delete()
           .eq("id", orderId);
         if (error) {

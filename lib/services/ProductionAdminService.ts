@@ -1,5 +1,5 @@
 import { supabase, IS_OFFLINE_MODE } from "../../supabaseClient";
-import type { PinContextType } from "../../../contexts/pincorp/types";
+import type { PinContextType } from "../../contexts/types";
 
 export interface ProductionAdminService {
   resetProductionData: (options: Record<string, boolean>) => Promise<void>;
@@ -87,41 +87,41 @@ export function createProductionAdminService(
       };
 
       try {
-        // PIN tables
+        // PIN tables (standardized to pin_*)
         if (options.materials) {
-          await deleteAllFromTable("pincorp_materials");
+          await deleteAllFromTable("pin_materials");
           ctx.setPinMaterials([]);
         }
         if (options.boms) {
-          await deleteAllFromTable("pincorp_boms");
+          await deleteAllFromTable("pin_boms");
           ctx.setBoms([]);
         }
         if (options.productionOrders) {
-          await deleteAllFromTable("pincorp_productionorders");
+          await deleteAllFromTable("pin_production_orders");
           ctx.setProductionOrders([]);
         }
         if (options.products) {
-          await deleteAllFromTable("pincorp_products");
+          await deleteAllFromTable("pin_products");
           ctx.setPinProducts([]);
         }
         if (options.customers) {
-          await deleteAllFromTable("pincorp_customers");
+          await deleteAllFromTable("pin_customers");
           ctx.setPinCustomers([]);
         }
         if (options.sales) {
-          await deleteAllFromTable("pincorp_sales");
+          await deleteAllFromTable("pin_sales");
           ctx.setPinSales([]);
         }
         if (options.repairOrders) {
-          await deleteAllFromTable("pincorp_repairorders");
+          await deleteAllFromTable("pin_repair_orders");
           ctx.setRepairOrders([]);
         }
         if (options.fixedAssets) {
-          await deleteAllFromTable("pincorp_fixed_assets");
+          await deleteAllFromTable("pin_fixed_assets");
           ctx.setFixedAssets?.([]);
         }
         if (options.capitalInvestments) {
-          await deleteAllFromTable("pincorp_capital_investments");
+          await deleteAllFromTable("pin_capital_investments");
           ctx.setCapitalInvestments?.([]);
         }
         if (options.cashTransactions) {

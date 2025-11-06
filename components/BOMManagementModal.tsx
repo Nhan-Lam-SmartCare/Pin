@@ -21,8 +21,12 @@ const formatCurrency = (amount: number) =>
     amount
   );
 
-const generateUniqueId = (prefix = "BOM") =>
-  `${prefix}${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+const generateUuid = () =>
+  typeof crypto !== "undefined" && (crypto as any).randomUUID
+    ? (crypto as any).randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}-${Math.random()
+        .toString(36)
+        .slice(2, 10)}`;
 
 interface BOMManagementModalProps {
   isOpen: boolean;
@@ -74,7 +78,7 @@ const BOMManagementModal: React.FC<BOMManagementModalProps> = ({
     return boms.filter(
       (bom) =>
         bom.productName.toLowerCase().includes(term) ||
-        bom.description?.toLowerCase().includes(term)
+        bom.notes?.toLowerCase().includes(term)
     );
   }, [boms, searchTerm]);
 
@@ -92,7 +96,7 @@ const BOMManagementModal: React.FC<BOMManagementModalProps> = ({
   const handleCreateBOM = () => {
     setIsCreating(true);
     setBomForm({
-      id: generateUniqueId(),
+      id: generateUuid(),
       productName: "",
       productSku: "",
       notes: "",
@@ -200,7 +204,7 @@ const BOMManagementModal: React.FC<BOMManagementModalProps> = ({
     const totalCost = materialsCost + additionalCostsTotal;
 
     const order: ProductionOrder = {
-      id: generateUniqueId("ORDER"),
+      id: generateUuid(),
       creationDate: new Date().toLocaleDateString("vi-VN"),
       bomId: selectedBOM.id,
       productName: selectedBOM.productName,
@@ -331,9 +335,9 @@ const BOMManagementModal: React.FC<BOMManagementModalProps> = ({
                         <h4 className="font-medium text-slate-800 dark:text-slate-100">
                           {bom.productName}
                         </h4>
-                        {bom.description && (
+                        {bom.notes && (
                           <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                            {bom.description}
+                            {bom.notes}
                           </p>
                         )}
                       </div>
@@ -426,11 +430,11 @@ const BOMManagementModal: React.FC<BOMManagementModalProps> = ({
                       Mô tả
                     </label>
                     <textarea
-                      value={bomForm.description}
+                      value={bomForm.notes}
                       onChange={(e) =>
                         setBomForm((prev) => ({
                           ...prev,
-                          description: e.target.value,
+                          notes: e.target.value,
                         }))
                       }
                       className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100"
@@ -752,9 +756,9 @@ const BOMManagementModal: React.FC<BOMManagementModalProps> = ({
                     <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
                       {selectedBOM.productName}
                     </h3>
-                    {selectedBOM.description && (
+                    {selectedBOM.notes && (
                       <p className="text-slate-600 dark:text-slate-400 mt-1">
-                        {selectedBOM.description}
+                        {selectedBOM.notes}
                       </p>
                     )}
                   </div>

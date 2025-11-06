@@ -1,5 +1,5 @@
 ﻿import React, { useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import Logo from "./common/Logo";
 import {
   CubeIcon,
@@ -16,61 +16,58 @@ import {
   CogIcon,
   TrashIcon,
 } from "./common/Icons";
-import { ThemeToggle } from "./ThemeToggle";import type { User } from "../types";
+import { ThemeToggle } from "./ThemeToggle";
+import type { User } from "../types";
+import { supabase } from "../supabaseClient";
 
 // --- NAV ITEM FOR DESKTOP TOP NAV ---
-type NavColor =
-  | "rose"
-  | "amber"
-  | "sky"
-  | "indigo"
-  | "emerald"
-  | "violet"
-  | "teal";
-const navItemColors: NavColor[] = [
-  "rose",
-  "amber",
-  "sky",
-  "indigo",
-  "emerald",
-  "violet",
-  "teal",
-];
-
-// FIX: Change icon type to allow passing props like className via cloneElement.
+// Consistent, purge-safe classes (no dynamic color strings)
 const PinNavItem: React.FC<{
   to: string;
   icon: React.ReactElement<any>;
   label: string;
-  color: NavColor;
-}> = ({ to, icon, label, color }) => {
+}> = ({ to, icon, label }) => {
+  const baseItem =
+    "flex flex-col items-center justify-center text-center p-2 rounded-lg w-24 h-20 transition-colors duration-200";
   const activeClass = "bg-slate-100 dark:bg-slate-700";
   const inactiveClass = "hover:bg-slate-100 dark:hover:bg-slate-700";
-
-  const colorClasses = {
-    iconWrapper: `bg-${color}-100 dark:bg-${color}-500/20`,
-    icon: `text-${color}-600 dark:text-${color}-400`,
-  };
 
   return (
     <NavLink
       to={to}
       className={({ isActive }) =>
-        `flex flex-col items-center justify-center text-center p-2 rounded-lg w-24 h-20 transition-colors duration-200 ${
-          isActive ? activeClass : inactiveClass
-        }`
+        `${baseItem} ${isActive ? activeClass : inactiveClass}`
       }
     >
-      <div
-        className={`w-10 h-10 rounded-full flex items-center justify-center ${colorClasses.iconWrapper}`}
-      >
-        {React.cloneElement(icon, {
-          className: `w-6 h-6 ${colorClasses.icon}`,
-        })}
-      </div>
-      <span className="text-xs font-medium mt-1.5 text-slate-700 dark:text-slate-300 truncate w-full">
-        {label}
-      </span>
+      {({ isActive }) => (
+        <>
+          <div
+            className={
+              "w-10 h-10 rounded-full flex items-center justify-center ring-1 " +
+              (isActive
+                ? "bg-sky-50 dark:bg-sky-500/10 ring-sky-200/70 dark:ring-sky-500/40"
+                : "bg-white/60 dark:bg-white/10 ring-slate-200/60 dark:ring-slate-600/40")
+            }
+          >
+            {React.cloneElement(icon, {
+              className: `w-6 h-6 ${
+                isActive
+                  ? "text-sky-600 dark:text-sky-400"
+                  : "text-slate-600 dark:text-slate-300"
+              }`,
+            })}
+          </div>
+          <span
+            className={`text-xs font-medium mt-1.5 truncate w-full ${
+              isActive
+                ? "text-sky-700 dark:text-sky-300"
+                : "text-slate-700 dark:text-slate-300"
+            }`}
+          >
+            {label}
+          </span>
+        </>
+      )}
     </NavLink>
   );
 };
@@ -81,6 +78,7 @@ export const PinTopNav: React.FC<{
   onSwitchApp: () => void;
 }> = ({ currentUser, onSwitchApp }) => {
   const [showLogoMenu, setShowLogoMenu] = useState(false);
+  const navigate = useNavigate();
 
   const navLinks = [
     // 1. SALES & PRODUCTS - Bán hàng & Sản phẩm
@@ -204,6 +202,36 @@ export const PinTopNav: React.FC<{
                         </svg>
                         Chuyển ứng dụng
                       </button>
+
+                      <div className="border-t border-slate-200 dark:border-slate-600 my-2"></div>
+
+                      {/* Logout */}
+                      <button
+                        onClick={async () => {
+                          try {
+                            await supabase.auth.signOut();
+                          } finally {
+                            setShowLogoMenu(false);
+                            navigate("/login");
+                          }
+                        }}
+                        className="w-full text-left flex items-center gap-3 p-2 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 text-sm text-red-600 dark:text-red-400"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5m0 0l-5-5m5 5H3"
+                          />
+                        </svg>
+                        Đăng xuất
+                      </button>
                     </div>
                   </div>
                 </>
@@ -222,7 +250,6 @@ export const PinTopNav: React.FC<{
                   to={link.to}
                   icon={link.icon}
                   label={link.label}
-                  color={navItemColors[index % navItemColors.length]}
                 />
               ))}
             </nav>
@@ -307,14 +334,40 @@ export const PinMobileNav: React.FC = () => {
 export const FloatingNavButtons: React.FC<{ onSwitchApp: () => void }> = ({
   onSwitchApp,
 }) => {
+  const navigate = useNavigate();
   return (
-    <div className="md:hidden fixed top-4 right-4 z-50">
+    <div className="md:hidden fixed top-4 right-4 z-50 flex flex-col gap-3">
       <button
         onClick={onSwitchApp}
         className="w-12 h-12 flex items-center justify-center rounded-full bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm shadow-lg hover:bg-white/80 dark:hover:bg-slate-700/80 text-slate-700 dark:text-slate-200 transition-colors"
         title="Chuyển ứng dụng"
       >
         <HomeIcon className="w-6 h-6" />
+      </button>
+      <button
+        onClick={async () => {
+          try {
+            await supabase.auth.signOut();
+          } finally {
+            navigate("/login");
+          }
+        }}
+        className="w-12 h-12 flex items-center justify-center rounded-full bg-red-50/80 dark:bg-red-900/30 backdrop-blur-sm shadow-lg hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 transition-colors"
+        title="Đăng xuất"
+      >
+        <svg
+          className="w-6 h-6"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5m0 0l-5-5m5 5H3"
+          />
+        </svg>
       </button>
     </div>
   );

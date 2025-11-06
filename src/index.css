@@ -4,7 +4,9 @@
 
 /* Custom global styles */
 :root {
-  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* Prioritize Be Vietnam Pro for Vietnamese, then Inter, then system */
+  --font-sans: "Be Vietnam Pro", Inter, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 body {

@@ -5,11 +5,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import {
-  supabase,
-  IS_OFFLINE_MODE,
-  DEV_AUTH_BYPASS,
-} from "../supabaseClient";
+import { supabase, IS_OFFLINE_MODE, DEV_AUTH_BYPASS } from "../supabaseClient";
 import type { PinContextType } from "./types";
 import type {
   CashTransaction,
@@ -123,15 +119,27 @@ export const PinProviderStandalone: React.FC<{ children: React.ReactNode }> = ({
     }
 
     try {
-      // Normalize minimal payload (stringify contact if object)
-      const payload: any = { ...tx } as any;
-      if (payload.contact && typeof payload.contact !== "string") {
-        try {
-          payload.contact = JSON.stringify(payload.contact);
-        } catch {}
+      // Build snake_case payload for DB
+      let contactTxt: string | null = null;
+      try {
+        contactTxt = tx.contact ? JSON.stringify(tx.contact) : null;
+      } catch {
+        contactTxt = null;
       }
-      // No created_by for this table in our schema
-      delete payload.created_by;
+      const payload: any = {
+        id: tx.id,
+        type: tx.type,
+        date: tx.date,
+        amount: tx.amount,
+        contact: contactTxt,
+        notes: tx.notes ?? null,
+        category: tx.category ?? null,
+        payment_source_id: tx.paymentSourceId ?? null,
+        branch_id: tx.branchId ?? null,
+        sale_id: tx.saleId ?? null,
+        work_order_id: tx.workOrderId ?? null,
+        created_at: tx.created_at ?? new Date().toISOString(),
+      };
 
       const { error } = await supabase.from("cashtransactions").upsert(payload);
       if (error) {
@@ -140,7 +148,7 @@ export const PinProviderStandalone: React.FC<{ children: React.ReactNode }> = ({
           /category/i.test(error.message || "") &&
           /(column|not exist|schema cache)/i.test(error.message || "")
         ) {
-          const retryPayload = { ...payload };
+          const retryPayload = { ...payload } as any;
           delete (retryPayload as any).category;
           const { error: retryErr } = await supabase
             .from("cashtransactions")
@@ -213,22 +221,39 @@ export const PinProviderStandalone: React.FC<{ children: React.ReactNode }> = ({
     const fetchPinFinance = async () => {
       if (IS_OFFLINE_MODE || !currentUser) return;
       try {
-        const [fa, ci, ct, bomsRes, matsRes, prodsRes, ordersRes] =
-          await Promise.all([
-            supabase.from("pincorp_fixed_assets").select("*"),
-            supabase.from("pincorp_capital_investments").select("*"),
-            supabase
-              .from("cashtransactions")
-              .select("*")
-              .order("date", { ascending: false }),
-            supabase.from("pin_boms").select("*"),
-            supabase.from("pin_materials").select("*"),
-            supabase.from("pin_products").select("*"),
-            supabase
-              .from("pin_production_orders")
-              .select("*")
-              .order("created_at", { ascending: false }),
-          ]);
+        const [
+          fa,
+          ci,
+          ct,
+          bomsRes,
+          matsRes,
+          prodsRes,
+          ordersRes,
+          repairsRes,
+          salesRes,
+        ] = await Promise.all([
+          supabase.from("pin_fixed_assets").select("*"),
+          supabase.from("pin_capital_investments").select("*"),
+          supabase
+            .from("cashtransactions")
+            .select("*")
+            .order("date", { ascending: false }),
+          supabase.from("pin_boms").select("*"),
+          supabase.from("pin_materials").select("*"),
+          supabase.from("pin_products").select("*"),
+          supabase
+            .from("pin_production_orders")
+            .select("*")
+            .order("created_at", { ascending: false }),
+          supabase
+            .from("pin_repair_orders")
+            .select("*")
+            .order("creation_date", { ascending: false }),
+          supabase
+            .from("pin_sales")
+            .select("*")
+            .order("date", { ascending: false }),
+        ]);
         if (!fa.error) setFixedAssets((fa.data as any[]) || []);
         if (!ci.error) setCapitalInvestments((ci.data as any[]) || []);
         if (!ct.error) {
@@ -354,6 +379,89 @@ export const PinProviderStandalone: React.FC<{ children: React.ReactNode }> = ({
           setProductionOrders(
             ((ordersRes.data as any[]) || []).map(mapDbOrderToUi)
           );
+        }
+
+        // Repair orders initial load
+        if (!repairsRes.error) {
+          const mapDbRepairToUi = (row: any) => ({
+            id: row.id,
+            creationDate:
+              row.creationdate ||
+              row.creation_date ||
+              row.created_at ||
+              new Date().toISOString(),
+            customerName:
+              row.customername || row.customer_name || row.customerName,
+            customerPhone:
+              row.customerphone || row.customer_phone || row.customerPhone,
+            deviceName: row.devicename || row.device_name || row.deviceName,
+            issueDescription:
+              row.issuedescription ||
+              row.issue_description ||
+              row.issueDescription,
+            technicianName:
+              row.technicianname || row.technician_name || row.technicianName,
+            status: row.status,
+            materialsUsed: Array.isArray(row.materials_used)
+              ? row.materials_used
+              : Array.isArray(row.materialsused)
+              ? row.materialsused
+              : [],
+            laborCost: Number(row.labor_cost ?? row.laborcost ?? 0),
+            total: Number(row.total ?? 0),
+            notes: row.notes || "",
+            paymentStatus: row.payment_status || row.paymentstatus || "unpaid",
+            partialPaymentAmount:
+              row.partial_payment_amount ??
+              row.partialpaymentamount ??
+              undefined,
+            paymentMethod: row.payment_method || row.paymentmethod || undefined,
+            paymentDate: row.payment_date || row.paymentdate || undefined,
+            cashTransactionId:
+              row.cash_transaction_id || row.cashtransactionid || undefined,
+          });
+          setRepairOrders(
+            ((repairsRes.data as any[]) || []).map(mapDbRepairToUi)
+          );
+        }
+
+        // Sales initial load (for Reports)
+        if (!salesRes.error) {
+          const mapDbSaleToUi = (row: any) => {
+            let items = row.items;
+            if (typeof items === "string") {
+              try {
+                items = JSON.parse(items);
+              } catch {}
+            }
+            let customer = row.customer;
+            if (typeof customer === "string") {
+              try {
+                customer = JSON.parse(customer);
+              } catch {}
+            }
+            return {
+              id: row.id,
+              code: row.code,
+              date: String(
+                row.date || row.created_at || new Date().toISOString()
+              ),
+              items: Array.isArray(items) ? items : [],
+              subtotal: Number(row.subtotal ?? 0),
+              discount: Number(row.discount ?? 0),
+              total: Number(row.total ?? 0),
+              customer: customer || { name: "Khách lẻ" },
+              paymentMethod: row.payment_method || row.paymentMethod || "cash",
+              userId: row.user_id || row.userid || row.userId || "",
+              userName: row.user_name || row.username || row.userName || "",
+              created_at: row.created_at || row.createdat || undefined,
+              paymentStatus:
+                row.payment_status || row.paymentstatus || undefined,
+              paidAmount: row.paid_amount ?? row.paidamount ?? undefined,
+              dueDate: row.due_date || row.duedate || undefined,
+            } as any;
+          };
+          setPinSales(((salesRes.data as any[]) || []).map(mapDbSaleToUi));
         }
       } catch (e) {
         // ignore

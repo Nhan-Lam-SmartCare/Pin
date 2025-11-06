@@ -613,6 +613,8 @@ export interface PinSale {
   subtotal: number;
   discount: number;
   total: number;
+  // Human-readable sale code like "LTN-BH-YYYYMMDD-####" (stored in DB column `code`)
+  code?: string;
   customer: {
     id?: string;
     name: string;

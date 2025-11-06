@@ -158,11 +158,22 @@ export function getTableDisplayName(tableName: string): string {
     motocare_parts: "Phụ tùng",
     cashtransactions: "Giao dịch tiền",
     profiles: "Người dùng",
+    // Legacy mappings
     pincorp_materials: "Nguyên liệu",
     pincorp_productionbatches: "Đợt sản xuất",
     pincorp_products: "Sản phẩm",
     pincorp_variants: "Biến thể",
     pincorp_repairs: "Sửa chữa",
+    // Current pin_* schema
+    pin_materials: "Nguyên liệu",
+    pin_boms: "Công thức sản xuất",
+    pin_products: "Sản phẩm",
+    pin_production_orders: "Lệnh sản xuất",
+    pin_customers: "Khách hàng",
+    pin_sales: "Hóa đơn bán hàng",
+    pin_repair_orders: "Đơn sửa chữa",
+    pin_fixed_assets: "Tài sản cố định",
+    pin_capital_investments: "Vốn đầu tư",
   };
   return tableNames[tableName] || tableName;
 }

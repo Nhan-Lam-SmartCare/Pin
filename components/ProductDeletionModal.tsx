@@ -5,7 +5,7 @@
 
 import React, { useMemo, useState } from "react";
 import { X, AlertTriangle, CheckCircle, XCircle, Info } from "lucide-react";
-import { PinProduct } from "../types";
+import { PinProduct, PinBOM } from "../types";
 import {
   useProductDeletion,
   ProductDeletionImpact,
@@ -37,33 +37,45 @@ const ProductDeletionModal: React.FC<ProductDeletionModalProps> = ({
   const [quantity, setQuantity] = useState<number>(product?.stock || 1);
   const [forceAck, setForceAck] = useState<boolean>(false);
 
-  if (!product) return null;
-
-  const preview = getProductDeletionPreview(product);
-  const { title, impact, recommendedAction } = preview;
-
+  // IMPORTANT: Hooks must run on every render (even when product is null)
   const returnPreview = useMemo(() => {
     if (!product || !options.returnMaterials || !ctx) return null;
     const bom = ctx.pinBOMs.find(
-      (b) => b.productSku === product.sku || b.productName === product.name
+      (b: PinBOM) =>
+        b.productSku === product.sku || b.productName === product.name
     );
     if (!bom || !Array.isArray(bom.materials) || bom.materials.length === 0)
       return { items: [], total: 0, hasBOM: false } as const;
     const items = bom.materials
-      .map((m: any) => {
-        const mat = ctx.pinMaterials.find((x) => x.id === m.materialId);
-        const qty = (m.quantity || 0) * (quantity || 0);
-        return {
-          id: m.materialId,
-          name: mat?.name || m.materialName || m.materialId,
-          qty,
-          unit: mat?.unit || m.unit || "",
-        };
-      })
-      .filter((x) => x.qty > 0);
-    const total = items.reduce((s, it) => s + it.qty, 0);
+      .map(
+        (m: {
+          materialId: string;
+          quantity: number;
+          materialName?: string;
+          unit?: string;
+        }) => {
+          const mat = ctx.pinMaterials.find((x: any) => x.id === m.materialId);
+          const qty = (m.quantity || 0) * (quantity || 0);
+          return {
+            id: m.materialId,
+            name: mat?.name || m.materialName || m.materialId,
+            qty,
+            unit: mat?.unit || m.unit || "",
+          };
+        }
+      )
+      .filter((x: { qty: number }) => x.qty > 0);
+    const total = items.reduce(
+      (s: number, it: { qty: number }) => s + it.qty,
+      0
+    );
     return { items, total, hasBOM: true } as const;
   }, [product, options.returnMaterials, quantity, ctx]);
+
+  if (!product) return null;
+
+  const preview = getProductDeletionPreview(product);
+  const { title, impact, recommendedAction } = preview;
 
   const handleConfirm = async () => {
     setLoading(true);

@@ -95,12 +95,14 @@ export const PinProvider: React.FC<{ children: ReactNode }> = ({
 };
 
 export const usePinContext = (): PinContextType => {
-  // Prefer standalone provider when available, then PinProvider, then fallback to AppContext
+  // Always call hooks in a consistent order to satisfy React Hook rules
   const standalone = useContext(PinStandaloneContext);
-  if (standalone) return standalone;
-  const ctx = useContext(PinContext);
-  if (ctx) return ctx;
-  return useAppContext() as unknown as PinContextType;
+  const pin = useContext(PinContext);
+  if (standalone) return standalone as PinContextType;
+  if (pin) return pin as PinContextType;
+  throw new Error(
+    "Pin context not found. Ensure PinProviderStandalone or PinProvider is mounted."
+  );
 };
 
 export type {};

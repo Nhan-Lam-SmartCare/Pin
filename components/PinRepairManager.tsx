@@ -50,7 +50,8 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
   initialOrder,
   currentUser,
 }) => {
-  const { pinMaterials } = usePinContext(); // Get materials list for autocomplete
+  const { pinMaterials, pinCustomers } = usePinContext(); // Get materials + customers list for autocomplete
+  const DRAFT_KEY = "repair_order_draft_v1";
 
   const [formData, setFormData] = useState<Partial<PinRepairOrder>>({
     customerName: "",
@@ -58,7 +59,7 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
     deviceName: "",
     issueDescription: "",
     technicianName: currentUser?.name || "",
-    status: "Ti?p nh?n",
+    status: "Tiếp nhận",
     materialsUsed: [],
     laborCost: 0,
     notes: "",
@@ -74,6 +75,9 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
 
   const [materialSearch, setMaterialSearch] = useState("");
   const [showMaterialDropdown, setShowMaterialDropdown] = useState(false);
+  // Customer autocomplete
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -83,14 +87,14 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
     const search = materialSearch.toLowerCase();
     return (pinMaterials || [])
       .filter(
-        (m) =>
+        (m: any) =>
           m.name.toLowerCase().includes(search) ||
           m.sku?.toLowerCase().includes(search)
       )
       .slice(0, 10);
   }, [pinMaterials, materialSearch]);
 
-  // Load form data khi modal m?
+  // Load form data khi modal mở
   useEffect(() => {
     if (isOpen) {
       if (initialOrder) {
@@ -99,47 +103,108 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
           materialsUsed: initialOrder.materialsUsed || [],
         });
       } else {
-        setFormData({
-          customerName: "",
-          customerPhone: "",
-          deviceName: "",
-          issueDescription: "",
-          technicianName: currentUser?.name || "",
-          status: "Ti?p nh?n",
-          materialsUsed: [],
-          laborCost: 0,
-          notes: "",
-          paymentStatus: "unpaid",
-          partialPaymentAmount: 0,
-        });
+        // Thử khôi phục bản nháp nếu có
+        try {
+          const saved = localStorage.getItem(DRAFT_KEY);
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            console.log("[RepairOrderModal] Khôi phục draft:", parsed);
+            setFormData({
+              customerName: parsed.customerName || "",
+              customerPhone: parsed.customerPhone || "",
+              deviceName: parsed.deviceName || "",
+              issueDescription: parsed.issueDescription || "",
+              technicianName: parsed.technicianName || currentUser?.name || "",
+              status: parsed.status || "Tiếp nhận",
+              materialsUsed: Array.isArray(parsed.materialsUsed)
+                ? parsed.materialsUsed
+                : [],
+              laborCost: Number(parsed.laborCost) || 0,
+              notes: parsed.notes || "",
+              paymentStatus: parsed.paymentStatus || "unpaid",
+              partialPaymentAmount: Number(parsed.partialPaymentAmount) || 0,
+              paymentMethod: parsed.paymentMethod,
+              paymentDate: parsed.paymentDate,
+              cashTransactionId: parsed.cashTransactionId,
+            });
+          } else {
+            console.log("[RepairOrderModal] Không có draft, dùng mặc định");
+            setFormData({
+              customerName: "",
+              customerPhone: "",
+              deviceName: "",
+              issueDescription: "",
+              technicianName: currentUser?.name || "",
+              status: "Tiếp nhận",
+              materialsUsed: [],
+              laborCost: 0,
+              notes: "",
+              paymentStatus: "unpaid",
+              partialPaymentAmount: 0,
+            });
+          }
+        } catch (e) {
+          console.error("[RepairOrderModal] Lỗi đọc draft:", e);
+          setFormData({
+            customerName: "",
+            customerPhone: "",
+            deviceName: "",
+            issueDescription: "",
+            technicianName: currentUser?.name || "",
+            status: "Tiếp nhận",
+            materialsUsed: [],
+            laborCost: 0,
+            notes: "",
+            paymentStatus: "unpaid",
+            partialPaymentAmount: 0,
+          });
+        }
       }
       setMaterialInput({ materialName: "", quantity: 1, price: 0 });
+      setCustomerSearch("");
+      setShowCustomerDropdown(false);
     }
   }, [isOpen, initialOrder, currentUser]);
 
-  // ��ng modal khi chuy?n tab ho?c reload
+  // Tự động lưu bản nháp khi đang mở modal và form thay đổi
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || initialOrder) return; // chỉ lưu khi tạo mới
+    try {
+      const draft = {
+        customerName: formData.customerName || "",
+        customerPhone: formData.customerPhone || "",
+        deviceName: formData.deviceName || "",
+        issueDescription: formData.issueDescription || "",
+        technicianName: formData.technicianName || currentUser?.name || "",
+        status: formData.status || "Tiếp nhận",
+        materialsUsed: formData.materialsUsed || [],
+        laborCost: Number(formData.laborCost) || 0,
+        notes: formData.notes || "",
+        paymentStatus: formData.paymentStatus || "unpaid",
+        partialPaymentAmount: Number(formData.partialPaymentAmount) || 0,
+        paymentMethod: formData.paymentMethod,
+        paymentDate: formData.paymentDate,
+        cashTransactionId: formData.cashTransactionId,
+      };
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+      console.log("[RepairOrderModal] Lưu draft:", draft);
+    } catch (e) {
+      console.error("[RepairOrderModal] Lỗi lưu draft:", e);
+    }
+  }, [isOpen, formData, initialOrder, currentUser]);
 
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        // Ngu?i d�ng chuy?n sang tab kh�c ho?c minimize
-        onClose();
-      }
-    };
-
+  // Lưu draft trước khi rời/trang reload
+  useEffect(() => {
+    if (!isOpen || initialOrder) return;
     const handleBeforeUnload = () => {
-      onClose();
+      try {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(formData));
+        console.log("[RepairOrderModal] beforeunload: đã lưu draft");
+      } catch {}
     };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
     window.addEventListener("beforeunload", handleBeforeUnload);
-
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
-  }, [isOpen, onClose]);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isOpen, initialOrder, formData]);
 
   const handleInputChange = (
     e: React.ChangeEvent<
@@ -151,15 +216,19 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
       ...prev,
       [name]: name === "laborCost" ? parseCurrencyInput(value) : value,
     }));
+    if (name === "customerName") {
+      setCustomerSearch(value);
+      setShowCustomerDropdown(!!value.trim());
+    }
   };
 
   const handleAddMaterial = () => {
     if (!materialInput.materialName.trim()) {
-      alert("Vui l�ng nh?p t�n v?t li?u");
+      alert("Vui lòng nhập tên vật liệu");
       return;
     }
     if (materialInput.quantity <= 0) {
-      alert("S? lu?ng ph?i l?n hon 0");
+      alert("Số lượng phải lớn hơn 0");
       return;
     }
 
@@ -199,22 +268,22 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
     e.preventDefault();
 
     if (!currentUser) {
-      alert("Vui l�ng dang nh?p");
+      alert("Vui lòng đăng nhập");
       return;
     }
 
     if (!formData.customerName?.trim()) {
-      alert("Vui l�ng nh?p t�n kh�ch h�ng");
+      alert("Vui lòng nhập tên khách hàng");
       return;
     }
 
     if (!formData.customerPhone?.trim()) {
-      alert("Vui l�ng nh?p s? di?n tho?i");
+      alert("Vui lòng nhập số điện thoại");
       return;
     }
 
     if (!formData.issueDescription?.trim()) {
-      alert("Vui l�ng m� t? s? c?");
+      alert("Vui lòng mô tả sự cố");
       return;
     }
 
@@ -226,12 +295,14 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
       if (formData.paymentStatus === "partial") {
         const amt = Number(formData.partialPaymentAmount || 0);
         if (amt <= 0) {
-          alert("Vui l�ng nh?p s? ti?n thanh to�n cho thanh to�n m?t ph?n.");
+          alert(
+            "Vui lòng nhập số tiền thanh toán cho hình thức thanh toán một phần."
+          );
           setIsSubmitting(false);
           return;
         }
         if (amt >= total) {
-          alert("S? ti?n thanh to�n m?t ph?n ph?i nh? hon t?ng s? ti?n.");
+          alert("Số tiền thanh toán một phần phải nhỏ hơn tổng số tiền.");
           setIsSubmitting(false);
           return;
         }
@@ -245,7 +316,7 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
         deviceName: formData.deviceName?.trim() || "",
         issueDescription: formData.issueDescription.trim(),
         technicianName: formData.technicianName?.trim() || currentUser.name,
-        status: (formData.status as any) || "pending",
+        status: (formData.status as any) || "Tiếp nhận",
         materialsUsed: formData.materialsUsed || [],
         laborCost: formData.laborCost || 0,
         total,
@@ -260,22 +331,26 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
         cashTransactionId: formData.cashTransactionId,
       };
 
-      console.log("?? [PinRepairManager] Saving order:", orderToSave);
-      console.log("?? [PinRepairManager] deviceName:", orderToSave.deviceName);
+      console.log("[PinRepairManager] Saving order:", orderToSave);
+      console.log("[PinRepairManager] deviceName:", orderToSave.deviceName);
       console.log(
-        "?? [PinRepairManager] issueDescription:",
+        "[PinRepairManager] issueDescription:",
         orderToSave.issueDescription
       );
       console.log(
-        "?? [PinRepairManager] materialsUsed:",
+        "[PinRepairManager] materialsUsed:",
         orderToSave.materialsUsed
       );
-      console.log("?? [PinRepairManager] total:", orderToSave.total);
+      console.log("[PinRepairManager] total:", orderToSave.total);
 
       await onSave(orderToSave);
+      // Xoá draft sau khi lưu thành công
+      try {
+        localStorage.removeItem(DRAFT_KEY);
+      } catch {}
       onClose();
     } catch (error) {
-      alert("L?i: " + (error as Error).message);
+      alert("Lỗi: " + (error as Error).message);
     } finally {
       setIsSubmitting(false);
     }
@@ -288,7 +363,7 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
       <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         <div className="px-6 py-4 bg-gradient-to-r from-sky-600 to-blue-600 flex justify-between items-center">
           <h2 className="text-2xl font-bold text-white">
-            {initialOrder ? "?? C?p nh?t phi?u" : "? T?o phi?u m?i"}
+            {initialOrder ? "Cập nhật phiếu" : "Tạo phiếu mới"}
           </h2>
           <button
             onClick={onClose}
@@ -305,7 +380,7 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
         >
           <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3">
             <h3 className="text-base font-semibold mb-2 flex items-center gap-2">
-              ?? Th�ng tin kh�ch h�ng
+              Thông tin khách hàng
             </h3>
             <div className="grid md:grid-cols-2 gap-3">
               <input
@@ -314,7 +389,12 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
                 value={formData.customerName || ""}
                 onChange={handleInputChange}
                 className="px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
-                placeholder="T�n kh�ch h�ng *"
+                placeholder="Tên khách hàng *"
+                onFocus={() =>
+                  setShowCustomerDropdown(
+                    Boolean((formData.customerName || "").trim())
+                  )
+                }
                 required
               />
               <input
@@ -323,15 +403,71 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
                 value={formData.customerPhone || ""}
                 onChange={handleInputChange}
                 className="px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
-                placeholder="S? di?n tho?i *"
+                placeholder="Số điện thoại *"
                 required
               />
             </div>
+            {showCustomerDropdown && (
+              <div className="relative mt-2">
+                <div className="absolute z-20 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+                  {(() => {
+                    const q = (customerSearch || formData.customerName || "")
+                      .toLowerCase()
+                      .trim();
+                    const results = q
+                      ? (pinCustomers || [])
+                          .filter(
+                            (c: any) =>
+                              (c.name || "").toLowerCase().includes(q) ||
+                              (c.phone || "").includes(q)
+                          )
+                          .slice(0, 8)
+                      : [];
+                    if (results.length === 0)
+                      return (
+                        <div className="px-3 py-2 text-sm text-slate-500">
+                          Không tìm thấy khách hàng
+                        </div>
+                      );
+                    return (
+                      <>
+                        {results.map((c: any) => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => {
+                              setFormData((prev) => ({
+                                ...prev,
+                                customerName: c.name,
+                                customerPhone:
+                                  c.phone || prev.customerPhone || "",
+                              }));
+                              setCustomerSearch("");
+                              setShowCustomerDropdown(false);
+                            }}
+                            className="w-full text-left px-3 py-2 hover:bg-sky-50 dark:hover:bg-sky-900/30 border-b dark:border-slate-700 last:border-0"
+                          >
+                            <div className="font-medium text-slate-900 dark:text-slate-100">
+                              {c.name}
+                            </div>
+                            {c.phone && (
+                              <div className="text-xs text-slate-500 dark:text-slate-400">
+                                {c.phone}
+                              </div>
+                            )}
+                          </button>
+                        ))}
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3">
             <h3 className="text-base font-semibold mb-2 flex items-center gap-2">
-              ?? Thi?t b? & S? c?
+              Thiết bị & Sự cố
             </h3>
             <div className="space-y-2">
               <input
@@ -340,7 +476,7 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
                 value={formData.deviceName || ""}
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
-                placeholder="T�n thi?t b? (VD: iPhone 13...)"
+                placeholder="Tên thiết bị (VD: iPhone 13...)"
               />
               <textarea
                 name="issueDescription"
@@ -348,7 +484,7 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
                 onChange={handleInputChange}
                 rows={2}
                 className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 resize-none bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
-                placeholder="M� t? s? c? *"
+                placeholder="Mô tả sự cố *"
                 required
               />
             </div>
@@ -356,28 +492,28 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
 
           <div className="relative">
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              ????? K? thu?t vi�n
+              Kỹ thuật viên
             </label>
             <input
               name="technicianName"
               type="text"
               value={formData.technicianName || ""}
               onChange={handleInputChange}
-              placeholder="Nh?p t�n k? thu?t vi�n"
+              placeholder="Nhập tên kỹ thuật viên"
               className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
             />
           </div>
 
           <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-4 border border-amber-200">
             <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-              ?? V?t li?u
+              Vật liệu
             </h3>
             <div className="bg-white dark:bg-slate-800 rounded-lg p-3 mb-3 space-y-2">
               <div className="grid md:grid-cols-3 gap-2">
                 <div className="relative">
                   <input
                     type="text"
-                    placeholder="T�n v?t li?u (g� d? t�m)"
+                    placeholder="Tên vật liệu (gõ để tìm)"
                     value={materialSearch}
                     onChange={(e) => {
                       setMaterialSearch(e.target.value);
@@ -388,7 +524,7 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
                   />
                   {showMaterialDropdown && filteredMaterials.length > 0 && (
                     <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-xl max-h-60 overflow-y-auto">
-                      {filteredMaterials.map((material) => (
+                      {filteredMaterials.map((material: any) => (
                         <button
                           key={material.id}
                           type="button"
@@ -426,7 +562,7 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
                 </div>
                 <input
                   type="number"
-                  placeholder="S? lu?ng"
+                  placeholder="Số lượng"
                   value={materialInput.quantity}
                   min="1"
                   onChange={(e) =>
@@ -439,7 +575,7 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
                 />
                 <input
                   type="text"
-                  placeholder="Gi� (VND)"
+                  placeholder="Giá (VND)"
                   value={
                     materialInput.price
                       ? formatCurrencyInput(materialInput.price)
@@ -459,7 +595,7 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
                 onClick={handleAddMaterial}
                 className="w-full py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg font-semibold flex items-center justify-center gap-2"
               >
-                <PlusIcon className="w-5 h-5" /> Th�m v?t li?u
+                <PlusIcon className="w-5 h-5" /> Thêm vật liệu
               </button>
             </div>
             {(formData.materialsUsed || []).length > 0 ? (
@@ -474,7 +610,7 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
                         {m.materialName}
                       </div>
                       <div className="text-xs text-slate-500 dark:text-slate-400">
-                        {m.quantity} � {formatCurrency(m.price)} ={" "}
+                        {m.quantity} × {formatCurrency(m.price)} ={" "}
                         {formatCurrency(m.quantity * m.price)}
                       </div>
                     </div>
@@ -490,7 +626,7 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
               </div>
             ) : (
               <div className="text-center text-slate-500 py-3 text-sm">
-                Chua c� v?t li?u
+                Chưa có vật liệu
               </div>
             )}
           </div>
@@ -499,7 +635,7 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
             <input
               type="text"
               name="laborCost"
-              placeholder="?? Ti?n c�ng (VND)"
+              placeholder="Tiền công (VND)"
               value={
                 formData.laborCost
                   ? formatCurrencyInput(formData.laborCost)
@@ -510,28 +646,28 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
             />
             <select
               name="status"
-              value={formData.status || "Ti?p nh?n"}
+              value={formData.status || "Tiếp nhận"}
               onChange={handleInputChange}
               className="px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
             >
-              <option value="Ti?p nh?n">? Ti?p nh?n</option>
-              <option value="�ang s?a">?? �ang s?a</option>
-              <option value="�� s?a xong">? �� s?a xong</option>
-              <option value="Tr? m�y">?? Tr? m�y</option>
+              <option value="Tiếp nhận">Tiếp nhận</option>
+              <option value="Đang sửa">Đang sửa</option>
+              <option value="Đã sửa xong">Đã sửa xong</option>
+              <option value="Trả máy">Trả máy</option>
             </select>
           </div>
 
-          {/* Thanh to�n - d?ng b? phong c�ch v?i phi?u nh?p kho */}
+          {/* Thanh toán */}
           <div className="bg-gradient-to-br from-orange-50 to-yellow-50 dark:from-orange-900/20 dark:to-yellow-900/20 p-4 rounded-xl border-2 border-orange-200 dark:border-orange-700 shadow-sm">
             <h4 className="text-base font-bold text-orange-800 dark:text-orange-200 mb-3 flex items-center gap-2">
-              <span className="text-xl">??</span>
-              <span>Thanh to�n</span>
+              <span className="text-xl">💳</span>
+              <span>Thanh toán</span>
             </h4>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="bg-white dark:bg-slate-800 p-2.5 rounded-lg border border-orange-200 dark:border-orange-700">
                 <label className="block text-xs font-semibold mb-1 text-slate-600 dark:text-slate-300 uppercase tracking-wide">
-                  Tr?ng th�i
+                  Trạng thái
                 </label>
                 <select
                   name="paymentStatus"
@@ -539,15 +675,15 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
                   onChange={handleInputChange}
                   className="w-full p-2 border-0 bg-slate-50 dark:bg-slate-700 rounded-md text-sm text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 transition-all"
                 >
-                  <option value="unpaid">? Chua thanh to�n</option>
-                  <option value="paid">? �� thanh to�n</option>
-                  <option value="partial">?? Thanh to�n 1 ph?n</option>
+                  <option value="unpaid">Chưa thanh toán</option>
+                  <option value="paid">Đã thanh toán</option>
+                  <option value="partial">Thanh toán 1 phần</option>
                 </select>
               </div>
 
               <div className="bg-white dark:bg-slate-800 p-2.5 rounded-lg border border-orange-200 dark:border-orange-700">
                 <label className="block text-xs font-semibold mb-1 text-slate-600 dark:text-slate-300 uppercase tracking-wide">
-                  Phuong th?c
+                  Phương thức
                 </label>
                 <select
                   name="paymentMethod"
@@ -555,8 +691,8 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
                   onChange={handleInputChange}
                   className="w-full p-2 border-0 bg-slate-50 dark:bg-slate-700 rounded-md text-sm text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 transition-all"
                 >
-                  <option value="cash">?? Ti?n m?t</option>
-                  <option value="bank">?? Chuy?n kho?n</option>
+                  <option value="cash">Tiền mặt</option>
+                  <option value="bank">Chuyển khoản</option>
                 </select>
               </div>
             </div>
@@ -565,7 +701,7 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
               <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div className="md:col-span-2 bg-white dark:bg-slate-800 p-2.5 rounded-lg border border-orange-200 dark:border-orange-700">
                   <label className="block text-xs font-semibold mb-1 text-slate-600 dark:text-slate-300 uppercase tracking-wide">
-                    S? ti?n thanh to�n tru?c
+                    Số tiền thanh toán trước
                   </label>
                   <input
                     type="text"
@@ -583,13 +719,13 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
                         ),
                       }))
                     }
-                    placeholder="Nh?p s? ti?n thanh to�n..."
+                    placeholder="Nhập số tiền thanh toán..."
                     className="w-full p-2.5 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400"
                   />
                 </div>
                 <div className="bg-white dark:bg-slate-800 p-3 rounded-lg border border-orange-200 dark:border-orange-700 flex items-center justify-between">
                   <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
-                    C�n l?i
+                    Còn lại
                   </span>
                   <span className="text-base font-bold text-orange-600 dark:text-orange-400">
                     {formatCurrency(
@@ -607,7 +743,7 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
 
           <textarea
             name="notes"
-            placeholder="?? Ghi ch�..."
+            placeholder="Ghi chú..."
             value={formData.notes || ""}
             onChange={handleInputChange}
             rows={2}
@@ -617,7 +753,7 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
           <div className="bg-gradient-to-r from-blue-50 to-sky-50 dark:from-blue-900/20 dark:to-sky-900/20 rounded-lg p-4 border-2 border-blue-200 dark:border-blue-800">
             <div className="flex justify-between items-center">
               <span className="text-base font-semibold text-slate-800 dark:text-slate-200">
-                ?? T?ng c?ng:
+                Tổng cộng:
               </span>
               <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                 {formatCurrency(calculateTotal())}
@@ -633,7 +769,7 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
             disabled={isSubmitting}
             className="px-6 py-2.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 rounded-lg font-semibold text-slate-800 dark:text-slate-200"
           >
-            H?y
+            Hủy
           </button>
           <button
             onClick={handleSubmit}
@@ -642,10 +778,10 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
           >
             {isSubmitting ? (
               <>
-                <span className="animate-spin">?</span>�ang luu...
+                <span className="animate-spin">⏳</span>Đang lưu...
               </>
             ) : (
-              <>{initialOrder ? "?? C?p nh?t" : "? T?o"}</>
+              <>{initialOrder ? "Cập nhật" : "Tạo"}</>
             )}
           </button>
         </div>
@@ -661,6 +797,7 @@ export const PinRepairManager: React.FC = () => {
     deletePinRepairOrder,
     currentUser,
     storeSettings,
+    addToast,
   } = usePinContext();
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -669,6 +806,7 @@ export const PinRepairManager: React.FC = () => {
   );
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const DRAFT_KEY = "repair_order_draft_v1";
 
   const currentBranchId = storeSettings?.branches?.[0]?.id || "main";
 
@@ -677,8 +815,26 @@ export const PinRepairManager: React.FC = () => {
     setModalOpen(true);
   };
 
+  // Tự động mở modal nếu phát hiện bản nháp sau khi reload trang
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(DRAFT_KEY);
+      if (saved && !modalOpen && !selectedOrder) {
+        setModalOpen(true);
+        // thông báo nhẹ nhàng
+        addToast?.({
+          title: "Khôi phục bản nháp",
+          message: "Đã khôi phục nội dung phiếu chưa lưu.",
+          type: "info",
+        });
+      }
+    } catch {}
+    // chỉ chạy một lần khi mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleSaveOrder = async (order: PinRepairOrder) => {
-    // T? d?ng t?o CashTransaction n?u d� thanh to�n ho?c thanh to�n m?t ph?n
+    // T? d?ng t?o CashTransaction n?u d� thanh to�n ho?c thanh to�n m?t ph?n
     let cashTx: CashTransaction | undefined;
 
     if (order.paymentStatus === "paid" && order.total > 0) {
@@ -704,7 +860,7 @@ export const PinRepairManager: React.FC = () => {
       order.paymentStatus === "partial" &&
       (order.partialPaymentAmount || 0) > 0
     ) {
-      // T?o CashTransaction cho thanh to�n m?t ph?n (d?t c?c)
+      // T?o CashTransaction cho thanh to�n m?t ph?n (d?t c?c)
       const depositAmount = Number(order.partialPaymentAmount || 0);
       cashTx = {
         id: generateUniqueId("TX"),
@@ -715,7 +871,7 @@ export const PinRepairManager: React.FC = () => {
           id: order.id,
           name: order.customerName,
         },
-        notes: `�?t c?c s?a ch?a ${order.deviceName || "thi?t b?"} - ${
+        notes: `�?t c?c s?a ch?a ${order.deviceName || "thi?t b?"} - ${
           order.issueDescription || "S?a ch?a"
         } (${depositAmount.toLocaleString()}/${order.total.toLocaleString()})`,
         paymentSourceId: order.paymentMethod || "cash",
@@ -730,14 +886,14 @@ export const PinRepairManager: React.FC = () => {
   };
 
   const handleDeleteOrder = async (id: string) => {
-    if (window.confirm("X�a phi?u n�y?")) {
+    if (window.confirm("X�a phi?u n�y?")) {
       await deletePinRepairOrder(id);
     }
   };
 
   const handlePrint = (order: PinRepairOrder) => {
     const w = window.open("", "_blank");
-    if (!w) return alert("Cho ph�p pop-up");
+    if (!w) return alert("Cho phép pop-up");
 
     const mats = (order.materialsUsed || [])
       .map(
@@ -751,19 +907,19 @@ export const PinRepairManager: React.FC = () => {
       .join("");
 
     w.document.write(
-      `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Phi?u</title><style>body{font-family:Arial;margin:20px}table{width:100%;border-collapse:collapse;margin:20px 0}th,td{border:1px solid #ddd;padding:8px}th{background:#f0f0f0}.total{text-align:right;margin-top:20px;font-weight:bold}</style></head><body><h1 style="text-align:center">PHI?U S?A CH?A</h1><p><strong>KH:</strong> ${
+      `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Phiếu</title><style>body{font-family:Arial;margin:20px}table{width:100%;border-collapse:collapse;margin:20px 0}th,td{border:1px solid #ddd;padding:8px}th{background:#f0f0f0}.total{text-align:right;margin-top:20px;font-weight:bold}</style></head><body><h1 style="text-align:center">PHIẾU SỬA CHỮA</h1><p><strong>KH:</strong> ${
         order.customerName
-      } | <strong>S�T:</strong> ${
+      } | <strong>SĐT:</strong> ${
         order.customerPhone
-      }</p><p><strong>Thi?t b?:</strong> ${
+      }</p><p><strong>Thiết bị:</strong> ${
         order.deviceName
-      } | <strong>Ng�y:</strong> ${new Date(
+      } | <strong>Ngày:</strong> ${new Date(
         order.creationDate
-      ).toLocaleDateString("vi-VN")}</p><p><strong>S? c?:</strong> ${
+      ).toLocaleDateString("vi-VN")}</p><p><strong>Sự cố:</strong> ${
         order.issueDescription
-      }</p><table><thead><tr><th>V?t li?u</th><th>SL</th><th>Gi�</th><th>Th�nh ti?n</th></tr></thead><tbody>${mats}</tbody></table><div class="total"><p>Ti?n c�ng: ${formatCurrency(
+      }</p><table><thead><tr><th>Vật liệu</th><th>SL</th><th>Giá</th><th>Thành tiền</th></tr></thead><tbody>${mats}</tbody></table><div class="total"><p>Tiền công: ${formatCurrency(
         order.laborCost
-      )}</p><p style="border-top:2px solid;padding-top:10px">T?ng: ${formatCurrency(
+      )}</p><p style="border-top:2px solid;padding-top:10px">Tổng: ${formatCurrency(
         order.total
       )}</p></div></body></html>`
     );
@@ -800,13 +956,13 @@ export const PinRepairManager: React.FC = () => {
         {/* Header with title and action button */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100">
-            ?? Qu?n l� S?a ch?a
+            Quản lý Sửa chữa
           </h1>
           <button
             onClick={() => handleOpenModal()}
             className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-700 hover:to-blue-700 text-white rounded-lg font-semibold shadow-lg transition-all"
           >
-            <PlusIcon className="w-5 h-5" /> Phi?u m?i
+            <PlusIcon className="w-5 h-5" /> Phiếu mới
           </button>
         </div>
 
@@ -816,25 +972,25 @@ export const PinRepairManager: React.FC = () => {
               <thead className="bg-gradient-to-r from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 border-b-2 border-slate-300 dark:border-slate-600">
                 <tr>
                   <th className="px-4 py-3 text-left text-sm font-semibold">
-                    M� phi?u
+                    Mã phiếu
                   </th>
                   <th className="px-4 py-3 text-left text-sm font-semibold">
-                    Kh�ch h�ng
+                    Khách hàng
                   </th>
                   <th className="px-4 py-3 text-left text-sm font-semibold">
-                    Thi?t b? & S? c?
+                    Thiết bị & Sự cố
                   </th>
                   <th className="px-4 py-3 text-left text-sm font-semibold">
-                    Ng�y
+                    Ngày
                   </th>
                   <th className="px-4 py-3 text-left text-sm font-semibold">
-                    Tr?ng th�i
+                    Trạng thái
                   </th>
                   <th className="px-4 py-3 text-right text-sm font-semibold">
-                    T?ng ti?n
+                    Tổng tiền
                   </th>
                   <th className="px-4 py-3 text-center text-sm font-semibold">
-                    Thao t�c
+                    Thao tác
                   </th>
                 </tr>
               </thead>
@@ -845,7 +1001,7 @@ export const PinRepairManager: React.FC = () => {
                       colSpan={7}
                       className="px-4 py-12 text-center text-slate-500"
                     >
-                      ?? Chua c� phi?u s?a ch?a
+                      Chưa có phiếu sửa chữa
                     </td>
                   </tr>
                 ) : (
@@ -864,11 +1020,11 @@ export const PinRepairManager: React.FC = () => {
                       <td className="px-4 py-3 text-sm">
                         {o.deviceName && (
                           <div className="font-medium mb-1">
-                            ?? {o.deviceName}
+                            🛠 {o.deviceName}
                           </div>
                         )}
                         <div className="text-slate-600 dark:text-slate-400 line-clamp-2 text-xs">
-                          {o.issueDescription || "Chua c� m� t?"}
+                          {o.issueDescription || "Chưa có mô tả"}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-sm">
@@ -877,18 +1033,18 @@ export const PinRepairManager: React.FC = () => {
                       <td className="px-4 py-3 text-sm">
                         <span
                           className={`px-2 py-1 rounded text-xs font-semibold ${
-                            o.status === "�� s?a xong" || o.status === "Tr? m�y"
+                            o.status === "Đã sửa xong" || o.status === "Trả máy"
                               ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                              : o.status === "�ang s?a"
+                              : o.status === "Đang sửa"
                               ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
                               : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
                           }`}
                         >
-                          {o.status === "�� s?a xong" || o.status === "Tr? m�y"
-                            ? "? Xong"
-                            : o.status === "�ang s?a"
-                            ? "?? �ang s?a"
-                            : "? Ch?"}
+                          {o.status === "Đã sửa xong" || o.status === "Trả máy"
+                            ? "✅ Xong"
+                            : o.status === "Đang sửa"
+                            ? "🔧 Đang sửa"
+                            : "⏳ Chờ"}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-sm text-right font-bold text-blue-600 dark:text-blue-400">
@@ -899,9 +1055,9 @@ export const PinRepairManager: React.FC = () => {
                           <button
                             onClick={() => handleOpenModal(o)}
                             className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
-                            title="S?a"
+                            title="Sửa"
                           >
-                            ?
+                            ✏️
                           </button>
                           <button
                             onClick={() => handlePrint(o)}
@@ -913,7 +1069,7 @@ export const PinRepairManager: React.FC = () => {
                           <button
                             onClick={() => handleDeleteOrder(o.id)}
                             className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
-                            title="X�a"
+                            title="Xóa"
                           >
                             <TrashIcon className="w-4 h-4" />
                           </button>

@@ -1,4 +1,4 @@
-import type { PinContextType } from "../../../contexts/pincorp/types";
+import type { PinContextType } from "../../contexts/types";
 import type { FixedAsset, CapitalInvestment } from "../../types";
 import { supabase, IS_OFFLINE_MODE } from "../../supabaseClient";
 
@@ -62,7 +62,7 @@ export function createFinanceService(
           created_at: asset.created_at ?? new Date().toISOString(),
         };
         const { error } = await supabase
-          .from("pincorp_fixed_assets")
+          .from("pin_fixed_assets")
           .upsert([payload]);
         if (error) {
           ctx.addToast?.({
@@ -109,7 +109,7 @@ export function createFinanceService(
       }
       try {
         const { error } = await supabase
-          .from("pincorp_fixed_assets")
+          .from("pin_fixed_assets")
           .delete()
           .eq("id", assetId);
         if (error) {
@@ -170,7 +170,7 @@ export function createFinanceService(
           created_at: investment.created_at || new Date().toISOString(),
         };
         const { error } = await supabase
-          .from("pincorp_capital_investments")
+          .from("pin_capital_investments")
           .upsert([payload]);
         if (error) {
           ctx.addToast?.({
@@ -219,7 +219,7 @@ export function createFinanceService(
 
       try {
         const { error } = await supabase
-          .from("pincorp_capital_investments")
+          .from("pin_capital_investments")
           .delete()
           .eq("id", investmentId);
         if (error) {
