@@ -118,6 +118,7 @@ export function createRepairService(ctx: PinContextType): RepairService {
           notes: order.notes ?? null,
           payment_status: order.paymentStatus,
           partial_payment_amount: order.partialPaymentAmount ?? null,
+          deposit_amount: order.depositAmount ?? null,
           payment_method: order.paymentMethod ?? null,
           payment_date: order.paymentDate ?? null,
           cash_transaction_id: order.cashTransactionId ?? null,

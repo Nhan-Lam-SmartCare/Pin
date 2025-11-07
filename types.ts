@@ -646,13 +646,14 @@ export interface PinRepairOrder {
   deviceName: string;
   issueDescription: string;
   technicianName?: string;
-  status: "Tiếp nhận" | "Đang sửa" | "Đã sửa xong" | "Trả máy";
+  status: "Tiếp nhận" | "Đang sửa" | "Đá sửa xong" | "Trả máy";
   materialsUsed?: PinRepairMaterial[];
   laborCost: number;
   total: number;
   notes?: string;
   paymentStatus: "paid" | "unpaid" | "partial";
   partialPaymentAmount?: number; // Số tiền khách thanh toán trước nếu thanh toán 1 phần
+  depositAmount?: number; // Số tiền đặt cọc
   paymentMethod?: "cash" | "bank";
   paymentDate?: string;
   cashTransactionId?: string;

@@ -48,7 +48,7 @@ const PinSettings: React.FC = () => {
     }
 
     const newCustomer: PinCustomer = {
-      id: `CUST-${Date.now()}`,
+      id: crypto.randomUUID(),
       name: customerForm.name.trim(),
       phone: customerForm.phone.trim(),
       address: customerForm.address.trim(),
@@ -56,8 +56,6 @@ const PinSettings: React.FC = () => {
 
     try {
       await upsertPinCustomer(newCustomer);
-      setPinCustomers([newCustomer, ...pinCustomers]);
-      alert("Thêm khách hàng thành công");
       setShowCustomerModal(false);
       setCustomerForm({ name: "", phone: "", address: "" });
     } catch (error) {
@@ -81,12 +79,6 @@ const PinSettings: React.FC = () => {
 
     try {
       await upsertPinCustomer(updatedCustomer);
-      setPinCustomers(
-        pinCustomers.map((c: PinCustomer) =>
-          c.id === editingCustomer.id ? updatedCustomer : c
-        )
-      );
-      alert("Cập nhật khách hàng thành công");
       setShowCustomerModal(false);
       setEditingCustomer(null);
       setCustomerForm({ name: "", phone: "", address: "" });
@@ -110,7 +102,7 @@ const PinSettings: React.FC = () => {
     }
 
     const newSupplier: Supplier = {
-      id: `SUP-${Date.now()}`,
+      id: crypto.randomUUID(),
       name: supplierForm.name.trim(),
       phone: supplierForm.phone.trim(),
       address: supplierForm.address.trim(),
@@ -118,8 +110,6 @@ const PinSettings: React.FC = () => {
 
     try {
       await upsertSupplier(newSupplier);
-      setSuppliers([newSupplier, ...suppliers]);
-      alert("Thêm nhà cung cấp thành công");
       setShowSupplierModal(false);
       setSupplierForm({ name: "", phone: "", address: "" });
     } catch (error) {
@@ -143,12 +133,6 @@ const PinSettings: React.FC = () => {
 
     try {
       await upsertSupplier(updatedSupplier);
-      setSuppliers(
-        suppliers.map((s: Supplier) =>
-          s.id === editingSupplier.id ? updatedSupplier : s
-        )
-      );
-      alert("Cập nhật nhà cung cấp thành công");
       setShowSupplierModal(false);
       setEditingSupplier(null);
       setSupplierForm({ name: "", phone: "", address: "" });

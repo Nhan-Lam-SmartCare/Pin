@@ -26,11 +26,12 @@ const PinNavItem: React.FC<{
   to: string;
   icon: React.ReactElement<any>;
   label: string;
-}> = ({ to, icon, label }) => {
+  color?: string;
+}> = ({ to, icon, label, color = "text-sky-600 dark:text-sky-400" }) => {
   const baseItem =
     "flex flex-col items-center justify-center text-center p-2 rounded-lg w-24 h-20 transition-colors duration-200";
-  const activeClass = "bg-slate-100 dark:bg-slate-700";
-  const inactiveClass = "hover:bg-slate-100 dark:hover:bg-slate-700";
+  const activeClass = "bg-slate-800 dark:bg-slate-700";
+  const inactiveClass = "hover:bg-slate-800/50 dark:hover:bg-slate-700/50";
 
   return (
     <NavLink
@@ -43,25 +44,21 @@ const PinNavItem: React.FC<{
         <>
           <div
             className={
-              "w-10 h-10 rounded-full flex items-center justify-center ring-1 " +
+              "w-10 h-10 rounded-full flex items-center justify-center " +
               (isActive
-                ? "bg-sky-50 dark:bg-sky-500/10 ring-sky-200/70 dark:ring-sky-500/40"
-                : "bg-white/60 dark:bg-white/10 ring-slate-200/60 dark:ring-slate-600/40")
+                ? "bg-slate-700 dark:bg-slate-600"
+                : "bg-slate-900/50 dark:bg-slate-800/50")
             }
           >
             {React.cloneElement(icon, {
-              className: `w-6 h-6 ${
-                isActive
-                  ? "text-sky-600 dark:text-sky-400"
-                  : "text-slate-600 dark:text-slate-300"
-              }`,
+              className: `w-6 h-6 ${color}`,
             })}
           </div>
           <span
             className={`text-xs font-medium mt-1.5 truncate w-full ${
               isActive
-                ? "text-sky-700 dark:text-sky-300"
-                : "text-slate-700 dark:text-slate-300"
+                ? "text-white dark:text-slate-100"
+                : "text-slate-300 dark:text-slate-400"
             }`}
           >
             {label}
@@ -82,18 +79,58 @@ export const PinTopNav: React.FC<{
 
   const navLinks = [
     // 1. SALES & PRODUCTS - Bán hàng & Sản phẩm
-    { to: "/sales", icon: <ShoppingCartIcon />, label: "Bán hàng" },
-    { to: "/products", icon: <TagIcon />, label: "Sản phẩm" },
+    {
+      to: "/sales",
+      icon: <ShoppingCartIcon />,
+      label: "Bán hàng",
+      color: "text-emerald-400",
+    },
+    {
+      to: "/products",
+      icon: <TagIcon />,
+      label: "Sản phẩm",
+      color: "text-amber-400",
+    },
 
     // 2. PRODUCTION - Sản xuất (gộp Materials + BOMs + Repairs)
-    { to: "/materials", icon: <CubeIcon />, label: "Vật liệu" },
-    { to: "/boms", icon: <BeakerIcon />, label: "Sản xuất" },
-    { to: "/repairs", icon: <WrenchScrewdriverIcon />, label: "Sửa chữa" },
+    {
+      to: "/materials",
+      icon: <CubeIcon />,
+      label: "Vật liệu",
+      color: "text-teal-400",
+    },
+    {
+      to: "/boms",
+      icon: <BeakerIcon />,
+      label: "Sản xuất",
+      color: "text-rose-400",
+    },
+    {
+      to: "/repairs",
+      icon: <WrenchScrewdriverIcon />,
+      label: "Sửa chữa",
+      color: "text-pink-400",
+    },
 
     // 3. FINANCIAL & ANALYTICS - Tài chính & Báo cáo (gộp tất cả báo cáo)
-    { to: "/financial", icon: <BanknotesIcon />, label: "Tài chính" },
-    { to: "/receivables", icon: <BanknotesIcon />, label: "Công Nợ" },
-    { to: "/reports", icon: <ChartBarIcon />, label: "Báo cáo" },
+    {
+      to: "/financial",
+      icon: <BanknotesIcon />,
+      label: "Tài chính",
+      color: "text-cyan-400",
+    },
+    {
+      to: "/receivables",
+      icon: <BanknotesIcon />,
+      label: "Công Nợ",
+      color: "text-amber-400",
+    },
+    {
+      to: "/reports",
+      icon: <ChartBarIcon />,
+      label: "Báo cáo",
+      color: "text-violet-400",
+    },
   ];
 
   return (
@@ -251,6 +288,7 @@ export const PinTopNav: React.FC<{
                   to={link.to}
                   icon={link.icon}
                   label={link.label}
+                  color={link.color}
                 />
               ))}
             </nav>
@@ -268,21 +306,30 @@ export const PinTopNav: React.FC<{
 // --- MOBILE BOTTOM NAV ---
 const MobileNavItem: React.FC<{
   to: string;
-  icon: React.ReactNode;
+  icon: React.ReactElement<any>;
   label: string;
-}> = ({ to, icon, label }) => (
+  color?: string;
+}> = ({ to, icon, label, color = "text-sky-400" }) => (
   <NavLink
     to={to}
-    className={({ isActive }) =>
-      `flex flex-col items-center justify-center text-center w-full pt-2 pb-1 transition-colors duration-200 ${
-        isActive
-          ? "text-sky-600 dark:text-sky-400"
-          : "text-slate-500 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-400"
-      }`
-    }
+    className="flex flex-col items-center justify-center text-center w-full pt-2 pb-1 transition-colors duration-200"
   >
-    {icon}
-    <span className="text-xs font-medium mt-1">{label}</span>
+    {({ isActive }) => (
+      <>
+        {React.cloneElement(icon, {
+          className: `w-6 h-6 ${
+            isActive ? color : "text-slate-500 dark:text-slate-400"
+          }`,
+        })}
+        <span
+          className={`text-xs font-medium mt-1 ${
+            isActive ? color : "text-slate-500 dark:text-slate-400"
+          }`}
+        >
+          {label}
+        </span>
+      </>
+    )}
   </NavLink>
 );
 
@@ -292,36 +339,43 @@ export const PinMobileNav: React.FC = () => {
       to: "/sales",
       icon: <ShoppingCartIcon className="w-6 h-6" />,
       label: "Bán hàng",
+      color: "text-emerald-400",
     },
     {
       to: "/materials",
       icon: <CubeIcon className="w-6 h-6" />,
       label: "Vật tư",
+      color: "text-teal-400",
     },
     {
       to: "/boms",
       icon: <BeakerIcon className="w-6 h-6" />,
       label: "Sản xuất",
+      color: "text-rose-400",
     },
     {
       to: "/repairs",
       icon: <WrenchScrewdriverIcon className="w-6 h-6" />,
       label: "Sửa chữa",
+      color: "text-pink-400",
     },
     {
       to: "/reports",
       icon: <ChartBarIcon className="w-6 h-6" />,
       label: "Báo cáo",
+      color: "text-violet-400",
     },
     {
       to: "/financial",
       icon: <BanknotesIcon className="w-6 h-6" />,
       label: "Tài chính",
+      color: "text-cyan-400",
     },
     {
       to: "/receivables",
       icon: <BanknotesIcon className="w-6 h-6" />,
       label: "Công Nợ",
+      color: "text-amber-400",
     },
   ];
 

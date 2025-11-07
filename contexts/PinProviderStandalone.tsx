@@ -231,6 +231,8 @@ export const PinProviderStandalone: React.FC<{ children: React.ReactNode }> = ({
           ordersRes,
           repairsRes,
           salesRes,
+          customersRes,
+          suppliersRes,
         ] = await Promise.all([
           supabase.from("pin_fixed_assets").select("*"),
           supabase.from("pin_capital_investments").select("*"),
@@ -253,6 +255,8 @@ export const PinProviderStandalone: React.FC<{ children: React.ReactNode }> = ({
             .from("pin_sales")
             .select("*")
             .order("date", { ascending: false }),
+          supabase.from("pin_customers").select("*"),
+          supabase.from("pin_suppliers").select("*"),
         ]);
         if (!fa.error) setFixedAssets((fa.data as any[]) || []);
         if (!ci.error) setCapitalInvestments((ci.data as any[]) || []);
@@ -415,6 +419,7 @@ export const PinProviderStandalone: React.FC<{ children: React.ReactNode }> = ({
               row.partial_payment_amount ??
               row.partialpaymentamount ??
               undefined,
+            depositAmount: row.deposit_amount ?? row.depositamount ?? undefined,
             paymentMethod: row.payment_method || row.paymentmethod || undefined,
             paymentDate: row.payment_date || row.paymentdate || undefined,
             cashTransactionId:
@@ -462,6 +467,38 @@ export const PinProviderStandalone: React.FC<{ children: React.ReactNode }> = ({
             } as any;
           };
           setPinSales(((salesRes.data as any[]) || []).map(mapDbSaleToUi));
+        }
+
+        // Map customers
+        if (!customersRes.error) {
+          const mapDbCustomerToUi = (row: any) => ({
+            id: row.id,
+            name: row.name || "",
+            phone: row.phone || "",
+            address: row.address || "",
+            email: row.email || "",
+            notes: row.notes || "",
+            created_at: row.created_at || row.createdat || undefined,
+          });
+          setPinCustomers(
+            ((customersRes.data as any[]) || []).map(mapDbCustomerToUi)
+          );
+        }
+
+        // Map suppliers
+        if (!suppliersRes.error) {
+          const mapDbSupplierToUi = (row: any) => ({
+            id: row.id,
+            name: row.name || "",
+            phone: row.phone || "",
+            address: row.address || "",
+            email: row.email || "",
+            notes: row.notes || "",
+            created_at: row.created_at || row.createdat || undefined,
+          });
+          setSuppliers(
+            ((suppliersRes.data as any[]) || []).map(mapDbSupplierToUi)
+          );
         }
       } catch (e) {
         // ignore

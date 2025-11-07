@@ -50,7 +50,7 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
   initialOrder,
   currentUser,
 }) => {
-  const { pinMaterials, pinCustomers } = usePinContext(); // Get materials + customers list for autocomplete
+  const { pinMaterials, pinCustomers, upsertPinCustomer } = usePinContext(); // Get materials + customers list for autocomplete
   const DRAFT_KEY = "repair_order_draft_v1";
 
   const [formData, setFormData] = useState<Partial<PinRepairOrder>>({
@@ -65,6 +65,7 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
     notes: "",
     paymentStatus: "unpaid",
     partialPaymentAmount: 0,
+    depositAmount: 0,
   });
 
   const [materialInput, setMaterialInput] = useState({
@@ -123,6 +124,7 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
               notes: parsed.notes || "",
               paymentStatus: parsed.paymentStatus || "unpaid",
               partialPaymentAmount: Number(parsed.partialPaymentAmount) || 0,
+              depositAmount: Number(parsed.depositAmount) || 0,
               paymentMethod: parsed.paymentMethod,
               paymentDate: parsed.paymentDate,
               cashTransactionId: parsed.cashTransactionId,
@@ -141,6 +143,7 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
               notes: "",
               paymentStatus: "unpaid",
               partialPaymentAmount: 0,
+              depositAmount: 0,
             });
           }
         } catch (e) {
@@ -157,6 +160,7 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
             notes: "",
             paymentStatus: "unpaid",
             partialPaymentAmount: 0,
+            depositAmount: 0,
           });
         }
       }
@@ -182,6 +186,7 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
         notes: formData.notes || "",
         paymentStatus: formData.paymentStatus || "unpaid",
         partialPaymentAmount: Number(formData.partialPaymentAmount) || 0,
+        depositAmount: Number(formData.depositAmount) || 0,
         paymentMethod: formData.paymentMethod,
         paymentDate: formData.paymentDate,
         cashTransactionId: formData.cashTransactionId,
@@ -214,7 +219,10 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: name === "laborCost" ? parseCurrencyInput(value) : value,
+      [name]:
+        name === "laborCost" || name === "depositAmount"
+          ? parseCurrencyInput(value)
+          : value,
     }));
     if (name === "customerName") {
       setCustomerSearch(value);
@@ -264,6 +272,12 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
     return materialsTotal + (formData.laborCost || 0);
   };
 
+  const calculateRemaining = () => {
+    const total = calculateTotal();
+    const deposit = formData.depositAmount || 0;
+    return Math.max(0, total - deposit);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -290,6 +304,27 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
     setIsSubmitting(true);
 
     try {
+      // Check if customer exists, if not create new
+      const existingCustomer = (pinCustomers || []).find(
+        (c: any) =>
+          c.name?.toLowerCase() === formData.customerName?.toLowerCase() ||
+          c.phone === formData.customerPhone
+      );
+
+      if (!existingCustomer && upsertPinCustomer && formData.customerName) {
+        // Auto-create new customer
+        const newCustomer = {
+          id: crypto.randomUUID(),
+          name: formData.customerName.trim(),
+          phone: formData.customerPhone?.trim() || "",
+          email: "",
+          address: "",
+          notes: "Tự động tạo từ phiếu sửa chữa",
+        };
+        await upsertPinCustomer(newCustomer);
+        console.log("[RepairOrderModal] Đã tạo khách hàng mới:", newCustomer);
+      }
+
       const total = calculateTotal();
       // Validate partial payment if selected
       if (formData.paymentStatus === "partial") {
@@ -326,6 +361,7 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
           formData.paymentStatus === "partial"
             ? Number(formData.partialPaymentAmount || 0)
             : undefined,
+        depositAmount: formData.depositAmount || 0,
         paymentMethod: formData.paymentMethod,
         paymentDate: formData.paymentDate,
         cashTransactionId: formData.cashTransactionId,
@@ -423,12 +459,7 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
                           )
                           .slice(0, 8)
                       : [];
-                    if (results.length === 0)
-                      return (
-                        <div className="px-3 py-2 text-sm text-slate-500">
-                          Không tìm thấy khách hàng
-                        </div>
-                      );
+
                     return (
                       <>
                         {results.map((c: any) => (
@@ -445,7 +476,7 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
                               setCustomerSearch("");
                               setShowCustomerDropdown(false);
                             }}
-                            className="w-full text-left px-3 py-2 hover:bg-sky-50 dark:hover:bg-sky-900/30 border-b dark:border-slate-700 last:border-0"
+                            className="w-full text-left px-3 py-2 hover:bg-sky-50 dark:hover:bg-sky-900/30 border-b dark:border-slate-700"
                           >
                             <div className="font-medium text-slate-900 dark:text-slate-100">
                               {c.name}
@@ -457,6 +488,18 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
                             )}
                           </button>
                         ))}
+                        {results.length === 0 && q && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              // Keep the entered name and close dropdown
+                              setShowCustomerDropdown(false);
+                            }}
+                            className="w-full text-left px-3 py-2 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-medium"
+                          >
+                            + Thêm khách hàng mới: "{formData.customerName}"
+                          </button>
+                        )}
                       </>
                     );
                   })()}
@@ -490,27 +533,111 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
             </div>
           </div>
 
-          <div className="relative">
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Kỹ thuật viên
-            </label>
-            <input
-              name="technicianName"
-              type="text"
-              value={formData.technicianName || ""}
-              onChange={handleInputChange}
-              placeholder="Nhập tên kỹ thuật viên"
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
-            />
+          {/* Phí dịch vụ (công thợ) */}
+          <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
+            <div className="grid md:grid-cols-2 gap-3 mb-3">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Trạng thái
+                </label>
+                <select
+                  name="status"
+                  value={formData.status || "Tiếp nhận"}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                >
+                  <option value="Tiếp nhận">Tiếp nhận</option>
+                  <option value="Đang sửa">Đang sửa</option>
+                  <option value="Đã sửa xong">Đã sửa xong</option>
+                  <option value="Trả máy">Trả máy</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Kỹ thuật viên
+                </label>
+                <input
+                  name="technicianName"
+                  type="text"
+                  value={formData.technicianName || ""}
+                  onChange={handleInputChange}
+                  placeholder="-- Chọn kỹ thuật viên --"
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                />
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-3 mb-3">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Phí dịch vụ (công thợ)
+                </label>
+                <input
+                  type="text"
+                  name="laborCost"
+                  placeholder="100.000"
+                  value={
+                    formData.laborCost
+                      ? formatCurrencyInput(formData.laborCost)
+                      : ""
+                  }
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Đặt cọc
+                </label>
+                <input
+                  type="text"
+                  name="depositAmount"
+                  placeholder="0"
+                  value={
+                    formData.depositAmount
+                      ? formatCurrencyInput(formData.depositAmount)
+                      : ""
+                  }
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                />
+                {formData.depositAmount > 0 && (
+                  <div className="mt-2 text-sm">
+                    <span className="text-slate-600 dark:text-slate-400">
+                      Còn lại:{" "}
+                    </span>
+                    <span className="font-bold text-orange-600 dark:text-orange-400">
+                      {formatCurrency(calculateRemaining())}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                Ghi chú nội bộ
+              </label>
+              <textarea
+                name="notes"
+                placeholder="VD: Khách yêu cầu kiểm tra thêm hệ thống điện"
+                value={formData.notes || ""}
+                onChange={handleInputChange}
+                rows={2}
+                className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 resize-none bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+              />
+            </div>
           </div>
 
           <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-4 border border-amber-200">
             <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
               Vật liệu
             </h3>
-            <div className="bg-white dark:bg-slate-800 rounded-lg p-3 mb-3 space-y-2">
-              <div className="grid md:grid-cols-3 gap-2">
-                <div className="relative">
+            <div className="bg-white dark:bg-slate-800 rounded-lg p-3 mb-3">
+              <div className="flex gap-2">
+                <div className="relative flex-1">
                   <input
                     type="text"
                     placeholder="Tên vật liệu (gõ để tìm)"
@@ -571,7 +698,7 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
                       quantity: parseInt(e.target.value) || 1,
                     }))
                   }
-                  className="px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                  className="w-24 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
                 />
                 <input
                   type="text"
@@ -587,16 +714,16 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
                       price: parseCurrencyInput(e.target.value),
                     }))
                   }
-                  className="px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                  className="w-32 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
                 />
+                <button
+                  type="button"
+                  onClick={handleAddMaterial}
+                  className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg font-semibold flex items-center justify-center gap-2 whitespace-nowrap"
+                >
+                  <PlusIcon className="w-5 h-5" /> Thêm vật liệu
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={handleAddMaterial}
-                className="w-full py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg font-semibold flex items-center justify-center gap-2"
-              >
-                <PlusIcon className="w-5 h-5" /> Thêm vật liệu
-              </button>
             </div>
             {(formData.materialsUsed || []).length > 0 ? (
               <div className="space-y-2">
@@ -629,32 +756,6 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
                 Chưa có vật liệu
               </div>
             )}
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-3">
-            <input
-              type="text"
-              name="laborCost"
-              placeholder="Tiền công (VND)"
-              value={
-                formData.laborCost
-                  ? formatCurrencyInput(formData.laborCost)
-                  : ""
-              }
-              onChange={handleInputChange}
-              className="px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
-            />
-            <select
-              name="status"
-              value={formData.status || "Tiếp nhận"}
-              onChange={handleInputChange}
-              className="px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
-            >
-              <option value="Tiếp nhận">Tiếp nhận</option>
-              <option value="Đang sửa">Đang sửa</option>
-              <option value="Đã sửa xong">Đã sửa xong</option>
-              <option value="Trả máy">Trả máy</option>
-            </select>
           </div>
 
           {/* Thanh toán */}
@@ -741,23 +842,41 @@ const RepairOrderModal: React.FC<RepairOrderModalProps> = ({
             )}
           </div>
 
-          <textarea
-            name="notes"
-            placeholder="Ghi chú..."
-            value={formData.notes || ""}
-            onChange={handleInputChange}
-            rows={2}
-            className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 resize-none bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
-          />
-
           <div className="bg-gradient-to-r from-blue-50 to-sky-50 dark:from-blue-900/20 dark:to-sky-900/20 rounded-lg p-4 border-2 border-blue-200 dark:border-blue-800">
-            <div className="flex justify-between items-center">
-              <span className="text-base font-semibold text-slate-800 dark:text-slate-200">
-                Tổng cộng:
-              </span>
-              <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                {formatCurrency(calculateTotal())}
-              </span>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
+                  Tổng tiền:
+                </span>
+                <span className="text-lg font-semibold text-slate-800 dark:text-slate-200">
+                  {formatCurrency(calculateTotal())}
+                </span>
+              </div>
+              {formData.depositAmount > 0 && (
+                <>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-slate-600 dark:text-slate-400">
+                      Đã đặt cọc:
+                    </span>
+                    <span className="font-medium text-green-600 dark:text-green-400">
+                      - {formatCurrency(formData.depositAmount)}
+                    </span>
+                  </div>
+                  <div className="border-t border-blue-200 dark:border-blue-700 pt-2"></div>
+                </>
+              )}
+              <div className="flex justify-between items-center">
+                <span className="text-base font-bold text-slate-800 dark:text-slate-200">
+                  {formData.depositAmount > 0 ? "Còn phải thu:" : "Tổng cộng:"}
+                </span>
+                <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                  {formatCurrency(
+                    formData.depositAmount > 0
+                      ? calculateRemaining()
+                      : calculateTotal()
+                  )}
+                </span>
+              </div>
             </div>
           </div>
         </form>
@@ -989,6 +1108,9 @@ export const PinRepairManager: React.FC = () => {
                   <th className="px-4 py-3 text-right text-sm font-semibold">
                     Tổng tiền
                   </th>
+                  <th className="px-4 py-3 text-right text-sm font-semibold">
+                    Đặt cọc
+                  </th>
                   <th className="px-4 py-3 text-center text-sm font-semibold">
                     Thao tác
                   </th>
@@ -998,7 +1120,7 @@ export const PinRepairManager: React.FC = () => {
                 {paginatedOrders.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={7}
+                      colSpan={8}
                       className="px-4 py-12 text-center text-slate-500"
                     >
                       Chưa có phiếu sửa chữa
@@ -1049,6 +1171,17 @@ export const PinRepairManager: React.FC = () => {
                       </td>
                       <td className="px-4 py-3 text-sm text-right font-bold text-blue-600 dark:text-blue-400">
                         {formatCurrency(o.total)}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-right">
+                        {o.depositAmount && o.depositAmount > 0 ? (
+                          <span className="font-semibold text-green-600 dark:text-green-400">
+                            {formatCurrency(o.depositAmount)}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 dark:text-slate-600">
+                            —
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-center">
                         <div className="flex justify-center gap-2">
