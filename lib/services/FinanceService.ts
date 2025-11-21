@@ -45,8 +45,12 @@ export function createFinanceService(
       }
 
       try {
+        // Validate UUID format
+        const uuidRegex =
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const isValidUUID = uuidRegex.test(asset.id);
+
         const payload: any = {
-          id: asset.id,
           name: asset.name,
           category: asset.category,
           purchase_price: asset.purchasePrice,
@@ -58,9 +62,15 @@ export function createFinanceService(
           location: asset.location ?? null,
           description: asset.description ?? null,
           status: asset.status ?? "active",
-          // created_by handled by RLS default/trigger if needed
+          branch_id: (asset as any).branchId || null,
           created_at: asset.created_at ?? new Date().toISOString(),
         };
+
+        // Only include id if valid UUID
+        if (isValidUUID) {
+          payload.id = asset.id;
+        }
+
         const { error } = await supabase
           .from("pin_fixed_assets")
           .upsert([payload]);
@@ -160,15 +170,26 @@ export function createFinanceService(
         return;
       }
       try {
+        // Validate UUID format
+        const uuidRegex =
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const isValidUUID = uuidRegex.test(investment.id);
+
         const payload: any = {
-          id: investment.id,
-          type: (investment as any).type || "other",
           amount: investment.amount,
           description: investment.description || null,
+          source: investment.source,
           date: investment.date,
-          notes: (investment as any).notes || null,
+          interest_rate: investment.interestRate ?? null,
+          branch_id: (investment as any).branchId || null,
           created_at: investment.created_at || new Date().toISOString(),
         };
+
+        // Only include id if valid UUID
+        if (isValidUUID) {
+          payload.id = investment.id;
+        }
+
         const { error } = await supabase
           .from("pin_capital_investments")
           .upsert([payload]);

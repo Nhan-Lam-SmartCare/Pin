@@ -89,10 +89,10 @@ const ProductionOrderCard: React.FC<ProductionOrderCardProps> = ({
   return (
     <div
       className={`
-        bg-white dark:bg-slate-800 rounded-lg shadow-sm border-2 
+        bg-white dark:bg-slate-800 rounded-2xl shadow-lg border-2 
         ${statusInfo.borderColor} ${statusInfo.bgColor}
-        p-4 cursor-pointer transition-all duration-200 hover:shadow-md
-        ${isDragging ? "opacity-50 rotate-2 scale-105" : ""}
+        p-5 cursor-pointer transition-all duration-300 hover:shadow-2xl hover:-translate-y-1
+        ${isDragging ? "opacity-50 rotate-2 scale-105 shadow-2xl" : ""}
       `}
       onClick={() => onViewDetails(order)}
     >
@@ -155,7 +155,7 @@ const ProductionOrderCard: React.FC<ProductionOrderCardProps> = ({
                 e.stopPropagation();
                 handleQuickMove("Đang sản xuất");
               }}
-              className="flex-1 bg-blue-500 hover:bg-blue-600 text-white text-xs py-1 px-2 rounded transition-colors"
+              className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-xs font-semibold py-2 px-3 rounded-lg shadow-md shadow-blue-500/30 hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5"
             >
               Bắt đầu
             </button>
@@ -164,29 +164,14 @@ const ProductionOrderCard: React.FC<ProductionOrderCardProps> = ({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                if (!isCompleting) {
-                  handleQuickMove("Hoàn thành");
-                }
+                handleQuickMove("Hoàn thành");
               }}
-              className={`flex-1 text-white text-xs py-1 px-2 rounded transition-colors ${
-                isCompleting
-                  ? "bg-green-300 cursor-not-allowed"
-                  : "bg-green-500 hover:bg-green-600"
-              }`}
-              disabled={isCompleting}
+              disabled={!currentUser || isCompleting}
+              className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white text-xs font-semibold py-2 px-3 rounded-lg shadow-md shadow-green-500/30 hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isCompleting ? "Đang lưu..." : "Hoàn thành"}
+              {isCompleting ? "Đang hoàn thành..." : "Hoàn thành"}
             </button>
           )}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onViewDetails(order);
-            }}
-            className="flex-1 bg-slate-500 hover:bg-slate-600 text-white text-xs py-1 px-2 rounded transition-colors"
-          >
-            Chi tiết
-          </button>
         </div>
       </div>
     </div>
@@ -203,7 +188,7 @@ interface KanbanColumnProps {
   icon: React.ReactNode;
   bgColor: string;
   textColor: string;
-  completingOrderId?: string | null;
+  completingOrderId: string | null;
 }
 
 const KanbanColumn: React.FC<KanbanColumnProps> = ({
@@ -220,57 +205,38 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
+  const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(true);
-  }, []);
+  };
 
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
+  const handleDragLeave = () => {
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
-  }, []);
-
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      setIsDragOver(false);
-
-      const orderId = e.dataTransfer.getData("text/plain");
-      if (orderId && currentUser) {
-        onMove(orderId, status);
-      }
-    },
-    [onMove, status, currentUser]
-  );
-
-  const totalCost = useMemo(
-    () => orders.reduce((sum, order) => sum + order.totalCost, 0),
-    [orders]
-  );
+    const orderId = e.dataTransfer.getData("orderId");
+    if (orderId) {
+      onMove(orderId, status);
+    }
+  };
 
   return (
     <div className="flex-1 min-w-80">
-      {/* Column Header */}
-      <div className={`${bgColor} ${textColor} rounded-lg p-4 mb-4`}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            {icon}
-            <h2 className="font-semibold">{title}</h2>
-            <span className="bg-white/20 text-sm px-2 py-1 rounded-full">
-              {orders.length}
-            </span>
-          </div>
-          <div className="text-right text-sm opacity-90">
-            <p>Tổng giá trị</p>
-            <p className="font-semibold">{formatCurrency(totalCost)}</p>
-          </div>
-        </div>
+      <div
+        className={`${bgColor} ${textColor} rounded-t-lg p-3 flex items-center space-x-2`}
+      >
+        {icon}
+        <h3 className="font-bold text-lg">{title}</h3>
+        <span className="bg-white/20 px-2 py-1 rounded-full text-sm font-semibold">
+          {orders.length}
+        </span>
       </div>
-
-      {/* Drop Zone */}
       <div
         className={`
-          min-h-96 space-y-3 p-2 rounded-lg border-2 border-dashed transition-colors
+          min-h-96 space-y-3 p-2 rounded-b-lg border-2 border-dashed transition-colors
           ${
             isDragOver
               ? "border-blue-400 bg-blue-50 dark:bg-blue-900/20"
@@ -283,18 +249,15 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
       >
         {orders.length === 0 ? (
           <div className="flex items-center justify-center h-32 text-slate-400 dark:text-slate-500">
-            <div className="text-center">
-              <ClipboardDocumentCheckIcon className="w-8 h-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">Không có lệnh sản xuất</p>
-            </div>
+            <p className="text-sm">Không có đơn hàng</p>
           </div>
         ) : (
           orders.map((order) => (
             <div
               key={order.id}
-              draggable={currentUser ? true : false}
+              draggable
               onDragStart={(e) => {
-                e.dataTransfer.setData("text/plain", order.id);
+                e.dataTransfer.setData("orderId", order.id);
               }}
             >
               <ProductionOrderCard
@@ -422,12 +385,12 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
     <>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center space-y-4 lg:space-y-0">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center space-y-4 lg:space-y-0 animate-fadeIn">
           <div>
-            <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
+            <h1 className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               📊 Production Dashboard
             </h1>
-            <p className="text-slate-600 dark:text-slate-400 mt-1">
+            <p className="text-slate-600 dark:text-slate-400 mt-2 text-lg">
               Quản lý trực quan quy trình sản xuất với Kanban Board
             </p>
           </div>
@@ -435,16 +398,20 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
           <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
             <input
               type="text"
-              placeholder="Tìm kiếm lệnh sản xuất..."
+              placeholder="🔍 Tìm kiếm lệnh sản xuất..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-5 py-4 border-2 border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 text-base font-medium focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all duration-200 shadow-sm"
             />
 
             <button
               onClick={onCreateOrder}
               disabled={!currentUser}
-              className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:cursor-not-allowed"
+              className={`flex items-center gap-2 px-6 py-4 font-semibold rounded-xl shadow-lg transition-all duration-200 transform ${
+                currentUser
+                  ? "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-blue-500/30 hover:shadow-xl hover:-translate-y-0.5"
+                  : "bg-blue-300 text-white/80 cursor-not-allowed opacity-50"
+              }`}
               title={
                 !currentUser
                   ? "Vui lòng đăng nhập để tạo lệnh sản xuất"
@@ -457,64 +424,80 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
           </div>
         </div>
 
-        {/* Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
-            <div className="flex items-center space-x-3">
-              <ClockIcon className="w-8 h-8 text-amber-600" />
+        {/* Stats Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-fadeIn">
+          {/* Pending Orders */}
+          <div className="relative bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 p-6 rounded-2xl border-2 border-amber-200 dark:border-amber-800 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-amber-400/20 to-orange-400/20 rounded-full blur-2xl -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
+            <div className="relative flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold text-amber-800 dark:text-amber-300">
-                  {ordersByStatus["Đang chờ"].length}
-                </p>
-                <p className="text-sm text-amber-600 dark:text-amber-400">
+                <p className="text-sm text-amber-700 dark:text-amber-300 mb-2 font-medium uppercase tracking-wide">
                   Đang chờ
                 </p>
+                <p className="text-3xl font-extrabold text-amber-600 dark:text-amber-400">
+                  {ordersByStatus["Đang chờ"].length}
+                </p>
+              </div>
+              <div className="w-14 h-14 bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl flex items-center justify-center shadow-lg shadow-amber-500/30">
+                <ClockIcon className="w-7 h-7 text-white" />
               </div>
             </div>
           </div>
 
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-            <div className="flex items-center space-x-3">
-              <ArrowPathIcon className="w-8 h-8 text-blue-600" />
+          {/* In Progress Orders */}
+          <div className="relative bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 p-6 rounded-2xl border-2 border-blue-200 dark:border-blue-800 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400/20 to-cyan-400/20 rounded-full blur-2xl -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
+            <div className="relative flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold text-blue-800 dark:text-blue-300">
-                  {ordersByStatus["Đang sản xuất"].length}
-                </p>
-                <p className="text-sm text-blue-600 dark:text-blue-400">
+                <p className="text-sm text-blue-700 dark:text-blue-300 mb-2 font-medium uppercase tracking-wide">
                   Đang sản xuất
                 </p>
+                <p className="text-3xl font-extrabold text-blue-600 dark:text-blue-400">
+                  {ordersByStatus["Đang sản xuất"].length}
+                </p>
+              </div>
+              <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/30">
+                <BeakerIcon className="w-7 h-7 text-white" />
               </div>
             </div>
           </div>
 
-          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-            <div className="flex items-center space-x-3">
-              <CheckCircleIcon className="w-8 h-8 text-green-600" />
+          {/* Completed Orders */}
+          <div className="relative bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 p-6 rounded-2xl border-2 border-green-200 dark:border-green-800 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-400/20 to-emerald-400/20 rounded-full blur-2xl -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
+            <div className="relative flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold text-green-800 dark:text-green-300">
-                  {ordersByStatus["Hoàn thành"].length}
-                </p>
-                <p className="text-sm text-green-600 dark:text-green-400">
+                <p className="text-sm text-green-700 dark:text-green-300 mb-2 font-medium uppercase tracking-wide">
                   Hoàn thành
                 </p>
+                <p className="text-3xl font-extrabold text-green-600 dark:text-green-400">
+                  {ordersByStatus["Hoàn thành"].length}
+                </p>
+              </div>
+              <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center shadow-lg shadow-green-500/30">
+                <CheckCircleIcon className="w-7 h-7 text-white" />
               </div>
             </div>
           </div>
 
-          <div className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4">
-            <div className="flex items-center space-x-3">
-              <CurrencyDollarIcon className="w-8 h-8 text-slate-600" />
+          {/* Total Value */}
+          <div className="relative bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 p-6 rounded-2xl border-2 border-purple-200 dark:border-purple-800 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-full blur-2xl -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
+            <div className="relative flex items-center justify-between">
               <div>
-                <p className="text-xl font-bold text-slate-800 dark:text-slate-100">
+                <p className="text-sm text-purple-700 dark:text-purple-300 mb-2 font-medium uppercase tracking-wide">
+                  Tổng giá trị
+                </p>
+                <p className="text-2xl font-extrabold text-purple-600 dark:text-purple-400">
                   {formatCurrency(
                     Object.values(ordersByStatus)
                       .flat()
                       .reduce((sum, order) => sum + order.totalCost, 0)
                   )}
                 </p>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  Tổng giá trị
-                </p>
+              </div>
+              <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg shadow-purple-500/30">
+                <CurrencyDollarIcon className="w-7 h-7 text-white" />
               </div>
             </div>
           </div>

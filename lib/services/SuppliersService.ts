@@ -23,7 +23,18 @@ export function createSuppliersService(ctx: PinContextType): SuppliersService {
       }
 
       try {
+        // Validate UUID format before sending
+        const uuidRegex =
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const isValidUUID = uuidRegex.test(supplier.id);
+
         const payload: any = { ...supplier };
+
+        // Only include id if it's a valid UUID, let DB generate otherwise
+        if (!isValidUUID) {
+          delete payload.id;
+        }
+
         const { error } = await supabase.from("pin_suppliers").upsert(payload);
         if (error) {
           ctx.addToast?.({

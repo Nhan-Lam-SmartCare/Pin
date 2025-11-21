@@ -24,14 +24,24 @@ export function createCustomersService(ctx: PinContextType): CustomersService {
       }
 
       try {
+        // Validate UUID format before sending
+        const uuidRegex =
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const isValidUUID = uuidRegex.test(customer.id);
+
         // Minimal normalization for DB
         const payload: any = {
-          id: customer.id,
           name: customer.name,
           phone: customer.phone,
           address: customer.address ?? null,
           notes: customer.notes ?? null,
         };
+
+        // Only include id if it's a valid UUID
+        if (isValidUUID) {
+          payload.id = customer.id;
+        }
+
         const { error } = await supabase.from("pin_customers").upsert(payload);
         if (error) {
           ctx.addToast?.({

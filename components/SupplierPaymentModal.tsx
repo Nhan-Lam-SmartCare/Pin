@@ -37,7 +37,7 @@ export default function SupplierPaymentModal({ open, onClose }: Props) {
       (s: any) => s.id === selectedSupplierId
     );
     const tx: CashTransaction = {
-      id: `CT-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      id: crypto.randomUUID(),
       type: "expense",
       date: new Date().toISOString(),
       amount: Number(amount),

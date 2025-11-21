@@ -9,6 +9,7 @@ import PinSalesManager from "./PinSalesManager";
 import PinReportManager from "./PinReportManager";
 import PinRepairManager from "./PinRepairManager";
 import PinGoodsReceipt from "./PinGoodsReceipt";
+import PinGoodsReceiptNew from "./PinGoodsReceiptNew";
 import CostReportDashboard from "./CostReportDashboard";
 import PredictiveDashboard from "./PredictiveDashboard";
 import PinFinancialManager from "./PinFinancialManager";
@@ -80,6 +81,16 @@ const PinCorpApp: React.FC<PinCorpAppProps> = ({ onSwitchApp }) => {
               />
               <Route
                 path="/materials/goods-receipt/new"
+                element={
+                  <PinGoodsReceiptNew
+                    suppliers={appContext.suppliers}
+                    setSuppliers={appContext.setSuppliers}
+                    currentUser={appContext.currentUser!}
+                  />
+                }
+              />
+              <Route
+                path="/materials/goods-receipt/old"
                 element={
                   <PinGoodsReceipt
                     materials={appContext.pinMaterials}

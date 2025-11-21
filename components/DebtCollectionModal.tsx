@@ -36,7 +36,7 @@ export default function DebtCollectionModal({ open, onClose }: Props) {
     }
 
     const tx: CashTransaction = {
-      id: `CT-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      id: crypto.randomUUID(),
       type: "income",
       date: new Date().toISOString(),
       amount: Number(amount),

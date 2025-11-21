@@ -23,7 +23,6 @@ const formatCurrency = (amount: number) =>
   new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
     amount
   );
-const generateUniqueId = (prefix = "PINCUST-") => `${prefix}${Date.now()}`;
 
 // --- New Customer Modal ---
 const NewPinCustomerModal: React.FC<{
@@ -53,7 +52,7 @@ const NewPinCustomerModal: React.FC<{
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const finalCustomer: PinCustomer = {
-      id: generateUniqueId(),
+      id: crypto.randomUUID(), // Generate proper UUID
       ...formData,
     };
     if (!currentUser) {

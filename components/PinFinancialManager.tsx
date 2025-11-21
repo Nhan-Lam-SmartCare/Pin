@@ -87,11 +87,11 @@ const PinFinancialManager: React.FC = () => {
     description: "",
   });
   const [newCapital, setNewCapital] = useState({
-    type: "equipment" as const,
+    source: "Vốn chủ sở hữu" as "Vốn chủ sở hữu" | "Vay ngân hàng",
     amount: 0,
     description: "",
     date: new Date().toISOString().split("T")[0],
-    notes: "",
+    interestRate: undefined as number | undefined,
   });
 
   const [showAddTransaction, setShowAddTransaction] = useState(false);
@@ -209,9 +209,7 @@ const PinFinancialManager: React.FC = () => {
 
     const isEditing = !!editingAsset;
     const asset = {
-      id:
-        editingAsset?.id ||
-        `asset_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: editingAsset?.id || crypto.randomUUID(),
       name: newAsset.name.trim(),
       category: newAsset.category,
       purchasePrice: newAsset.purchasePrice,
@@ -275,14 +273,13 @@ const PinFinancialManager: React.FC = () => {
 
     const isEditing = !!editingInvestment;
     const investment = {
-      id:
-        editingInvestment?.id ||
-        `capital_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      type: newCapital.type,
+      id: editingInvestment?.id || crypto.randomUUID(),
+      source: newCapital.source,
       amount: newCapital.amount,
       description: newCapital.description,
       date: newCapital.date,
-      notes: newCapital.notes,
+      interestRate: newCapital.interestRate,
+      branchId: "main",
       createdBy: (editingInvestment as any)?.createdBy || currentUser.id,
       createdAt:
         (editingInvestment as any)?.createdAt || new Date().toISOString(),
@@ -304,11 +301,11 @@ const PinFinancialManager: React.FC = () => {
 
       // Reset form
       setNewCapital({
-        type: "equipment",
+        source: "Vốn chủ sở hữu",
         amount: 0,
         description: "",
         date: new Date().toISOString().split("T")[0],
-        notes: "",
+        interestRate: undefined,
       });
       setEditingInvestment(null);
       setShowAddCapital(false);
@@ -1480,23 +1477,20 @@ const PinFinancialManager: React.FC = () => {
             <div className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Loại đầu tư
+                  Nguồn vốn *
                 </label>
                 <select
-                  value={newCapital.type}
+                  value={newCapital.source}
                   onChange={(e) =>
                     setNewCapital({
                       ...newCapital,
-                      type: e.target.value as any,
+                      source: e.target.value as any,
                     })
                   }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
-                  <option value="equipment">Thiết bị</option>
-                  <option value="expansion">Mở rộng</option>
-                  <option value="technology">Công nghệ</option>
-                  <option value="working_capital">Vốn lưu động</option>
-                  <option value="other">Khác</option>
+                  <option value="Vốn chủ sở hữu">Vốn chủ sở hữu</option>
+                  <option value="Vay ngân hàng">Vay ngân hàng</option>
                 </select>
               </div>
               <div>
@@ -1530,6 +1524,29 @@ const PinFinancialManager: React.FC = () => {
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 />
               </div>
+              {newCapital.source === "Vay ngân hàng" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Lãi suất (% năm)
+                  </label>
+                  <input
+                    type="number"
+                    value={newCapital.interestRate || ""}
+                    onChange={(e) =>
+                      setNewCapital({
+                        ...newCapital,
+                        interestRate: e.target.value
+                          ? Number(e.target.value)
+                          : undefined,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    placeholder="0"
+                    min="0"
+                    step="0.1"
+                  />
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Mô tả
@@ -1547,22 +1564,9 @@ const PinFinancialManager: React.FC = () => {
                   placeholder="Mô tả đầu tư"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Ghi chú
-                </label>
-                <textarea
-                  value={newCapital.notes}
-                  onChange={(e) =>
-                    setNewCapital({ ...newCapital, notes: e.target.value })
-                  }
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder="Ghi chú thêm"
-                />
-              </div>
             </div>
             <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3">
+              \n{" "}
               <button
                 onClick={() => {
                   setShowAddCapital(false);

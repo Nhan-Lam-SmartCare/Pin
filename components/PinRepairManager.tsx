@@ -8,6 +8,7 @@ import type {
 import { usePinContext } from "../contexts/PinContext";
 import { PlusIcon, TrashIcon, PrinterIcon, XMarkIcon } from "./common/Icons";
 import Pagination from "./common/Pagination";
+import { PinRepairModalNew } from "./PinRepairModalNew";
 
 const generateUniqueId = (prefix = "") => {
   const now = new Date();
@@ -1284,7 +1285,7 @@ export const PinRepairManager: React.FC = () => {
         )}
       </div>
 
-      <RepairOrderModal
+      <PinRepairModalNew
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         onSave={handleSaveOrder}

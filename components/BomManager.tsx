@@ -25,8 +25,6 @@ const formatCurrency = (amount: number) =>
   new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
     amount
   );
-const generateUniqueId = (prefix = "BOM") =>
-  `${prefix}${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
 // --- Production Order Modal (Moved from ProductionManager) ---
 const ProductionOrderModal: React.FC<{
@@ -117,7 +115,7 @@ const ProductionOrderModal: React.FC<{
       return;
     }
     const newOrder: ProductionOrder = {
-      id: order?.id || generateUniqueId("PO-"),
+      id: order?.id || crypto.randomUUID(),
       creationDate:
         order?.creationDate || new Date().toISOString().split("T")[0],
       bomId: selectedBomId!,
@@ -456,7 +454,7 @@ const BomModal: React.FC<{
       return null;
     }
     return {
-      id: formData.id || generateUniqueId(),
+      id: formData.id || crypto.randomUUID(),
       productName: formData.productName,
       productSku: formData.productSku || "",
       materials: formData.materials,
@@ -762,165 +760,170 @@ const BomManager: React.FC<BomManagerProps> = (props) => {
         currentUser={props.currentUser}
       />
 
-      <div className="border-b border-slate-200 dark:border-slate-700">
-        <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+      <div className="flex items-center justify-between gap-4 flex-shrink-0 sticky top-0 z-20 pb-4 bg-gradient-to-b from-slate-100 via-slate-100 to-transparent dark:from-slate-900 dark:via-slate-900 backdrop-blur-md animate-fadeIn">
+        <div className="flex gap-2">
           <button
             onClick={() => setActiveTab("boms")}
-            className={`flex items-center gap-2 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
+            className={`px-6 py-3 font-semibold rounded-xl transition-all duration-200 transform ${
               activeTab === "boms"
-                ? "border-sky-500 text-sky-600 dark:text-sky-400"
-                : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30 scale-105"
+                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/70 dark:hover:bg-slate-700/50"
             }`}
           >
-            <BeakerIcon className="w-5 h-5" /> Công thức (BOM)
+            <BeakerIcon className="w-5 h-5 inline-block mr-2" /> Công thức (BOM)
           </button>
           <button
             onClick={() => setActiveTab("history")}
-            className={`flex items-center gap-2 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
+            className={`px-6 py-3 font-semibold rounded-xl transition-all duration-200 transform ${
               activeTab === "history"
-                ? "border-sky-500 text-sky-600 dark:text-sky-400"
-                : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30 scale-105"
+                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/70 dark:hover:bg-slate-700/50"
             }`}
           >
-            <ClipboardDocumentCheckIcon className="w-5 h-5" /> Lịch sử Sản xuất
+            <ClipboardDocumentCheckIcon className="w-5 h-5 inline-block mr-2" />{" "}
+            Lịch sử Sản xuất
           </button>
-        </nav>
+        </div>
       </div>
 
       {activeTab === "boms" && (
         <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-            <input
-              type="text"
-              placeholder="Tìm theo tên hoặc SKU thành phẩm..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full sm:w-72 p-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
-            />
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setIsProductionModalOpen(true)}
-                disabled={!props.currentUser}
-                title={
-                  !props.currentUser
-                    ? "Bạn phải đăng nhập để tạo lệnh"
-                    : undefined
-                }
-                className={`flex items-center gap-2 font-semibold py-2 px-4 rounded-lg shadow-sm ${
-                  props.currentUser
-                    ? "bg-green-600 text-white hover:bg-green-700"
-                    : "bg-green-300 text-white/80 cursor-not-allowed"
-                }`}
-              >
-                <BeakerIcon className="w-5 h-5" /> Tạo Lệnh
-              </button>
-              <button
-                onClick={() => {
-                  setEditingBom(null);
-                  setIsBomModalOpen(true);
-                }}
-                disabled={!props.currentUser}
-                title={
-                  !props.currentUser
-                    ? "Bạn phải đăng nhập để thêm công thức"
-                    : undefined
-                }
-                className={`flex items-center gap-2 font-semibold py-2 px-4 rounded-lg shadow-sm ${
-                  props.currentUser
-                    ? "bg-sky-600 text-white hover:bg-sky-700"
-                    : "bg-sky-300 text-white/80 cursor-not-allowed"
-                }`}
-              >
-                <PlusIcon /> Thêm Công thức
-              </button>
+          <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-xl border-2 border-slate-200 dark:border-slate-700 animate-fadeIn">
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+              <input
+                type="text"
+                placeholder="🔍 Tìm theo tên hoặc SKU thành phẩm..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="flex-1 px-5 py-4 border-2 border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 text-base font-medium focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all duration-200 shadow-sm"
+              />
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setIsProductionModalOpen(true)}
+                  disabled={!props.currentUser}
+                  title={
+                    !props.currentUser
+                      ? "Bạn phải đăng nhập để tạo lệnh"
+                      : undefined
+                  }
+                  className={`flex items-center gap-2 px-6 py-3 font-semibold rounded-xl shadow-lg transition-all duration-200 transform ${
+                    props.currentUser
+                      ? "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-green-500/30 hover:shadow-xl hover:-translate-y-0.5"
+                      : "bg-green-300 text-white/80 cursor-not-allowed opacity-50"
+                  }`}
+                >
+                  <BeakerIcon className="w-5 h-5" /> Tạo Lệnh
+                </button>
+                <button
+                  onClick={() => {
+                    setEditingBom(null);
+                    setIsBomModalOpen(true);
+                  }}
+                  disabled={!props.currentUser}
+                  title={
+                    !props.currentUser
+                      ? "Bạn phải đăng nhập để thêm công thức"
+                      : undefined
+                  }
+                  className={`flex items-center gap-2 px-6 py-3 font-semibold rounded-xl shadow-lg transition-all duration-200 transform ${
+                    props.currentUser
+                      ? "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-blue-500/30 hover:shadow-xl hover:-translate-y-0.5"
+                      : "bg-blue-300 text-white/80 cursor-not-allowed opacity-50"
+                  }`}
+                >
+                  <PlusIcon /> Thêm Công thức
+                </button>
+              </div>
             </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200/60 dark:border-slate-700 overflow-x-auto">
-            <table className="w-full text-left min-w-max">
-              <thead className="border-b dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50">
-                <tr>
-                  <th className="p-3 font-semibold text-slate-600 dark:text-slate-300">
-                    Tên Thành phẩm
-                  </th>
-                  <th className="p-3 font-semibold text-slate-600 dark:text-slate-300">
-                    SKU
-                  </th>
-                  <th className="p-3 font-semibold text-slate-600 dark:text-slate-300">
-                    Số NVL
-                  </th>
-                  <th className="p-3 font-semibold text-slate-600 dark:text-slate-300 text-right">
-                    Giá vốn ước tính
-                  </th>
-                  <th className="p-3"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedBoms.map((bom) => (
-                  <tr
-                    key={bom.id}
-                    className="border-t dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50"
-                  >
-                    <td className="p-3 font-medium text-slate-800 dark:text-slate-200">
-                      {bom.productName}
-                    </td>
-                    <td className="p-3 text-slate-600 dark:text-slate-300">
-                      {bom.productSku}
-                    </td>
-                    <td className="p-3 text-slate-700 dark:text-slate-300">
-                      {bom.materials.length}
-                    </td>
-                    <td className="p-3 text-right font-semibold text-sky-600 dark:text-sky-400">
-                      {formatCurrency(calculateBomCost(bom))}
-                    </td>
-                    <td className="p-3">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => {
-                            setEditingBom(bom);
-                            setIsBomModalOpen(true);
-                          }}
-                          disabled={!props.currentUser}
-                          title={
-                            !props.currentUser
-                              ? "Bạn phải đăng nhập để chỉnh sửa"
-                              : undefined
-                          }
-                          className={`${
-                            props.currentUser
-                              ? "p-1 text-sky-600 dark:text-sky-400"
-                              : "p-1 text-slate-400 cursor-not-allowed"
-                          }`}
-                        >
-                          <PencilSquareIcon className="w-5 h-5" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteBom(bom.id)}
-                          disabled={!props.currentUser}
-                          title={
-                            !props.currentUser
-                              ? "Bạn phải đăng nhập để xóa"
-                              : undefined
-                          }
-                          className={`${
-                            props.currentUser
-                              ? "p-1 text-red-500"
-                              : "p-1 text-red-300 cursor-not-allowed"
-                          }`}
-                        >
-                          <TrashIcon className="w-5 h-5" />
-                        </button>
-                      </div>
-                    </td>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl border-2 border-slate-200 dark:border-slate-700 overflow-hidden animate-fadeIn">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left min-w-max">
+                <thead className="border-b-2 dark:border-slate-600 bg-gradient-to-r from-blue-50 via-purple-50 to-blue-50 dark:from-slate-700 dark:via-slate-800 dark:to-slate-700">
+                  <tr>
+                    <th className="p-5 font-bold text-slate-800 dark:text-slate-200">
+                      Tên Thành phẩm
+                    </th>
+                    <th className="p-3 font-semibold text-slate-600 dark:text-slate-300">
+                      SKU
+                    </th>
+                    <th className="p-3 font-semibold text-slate-600 dark:text-slate-300">
+                      Số NVL
+                    </th>
+                    <th className="p-3 font-semibold text-slate-600 dark:text-slate-300 text-right">
+                      Giá vốn ước tính
+                    </th>
+                    <th className="p-3"></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-            {filteredBoms.length === 0 && (
-              <div className="text-center p-8 text-slate-500 dark:text-slate-400">
-                Chưa có công thức nào được tạo.
-              </div>
-            )}
+                </thead>
+                <tbody>
+                  {paginatedBoms.map((bom) => (
+                    <tr
+                      key={bom.id}
+                      className="border-t dark:border-slate-700 hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-purple-50/50 dark:hover:from-slate-700/50 dark:hover:to-slate-600/50 transition-all duration-200"
+                    >
+                      <td className="p-3 font-medium text-slate-800 dark:text-slate-200">
+                        {bom.productName}
+                      </td>
+                      <td className="p-3 text-slate-600 dark:text-slate-300">
+                        {bom.productSku}
+                      </td>
+                      <td className="p-3 text-slate-700 dark:text-slate-300">
+                        {bom.materials.length}
+                      </td>
+                      <td className="p-3 text-right font-semibold text-sky-600 dark:text-sky-400">
+                        {formatCurrency(calculateBomCost(bom))}
+                      </td>
+                      <td className="p-3">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              setEditingBom(bom);
+                              setIsBomModalOpen(true);
+                            }}
+                            disabled={!props.currentUser}
+                            title={
+                              !props.currentUser
+                                ? "Bạn phải đăng nhập để chỉnh sửa"
+                                : undefined
+                            }
+                            className={`${
+                              props.currentUser
+                                ? "p-1 text-sky-600 dark:text-sky-400"
+                                : "p-1 text-slate-400 cursor-not-allowed"
+                            }`}
+                          >
+                            <PencilSquareIcon className="w-5 h-5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteBom(bom.id)}
+                            disabled={!props.currentUser}
+                            title={
+                              !props.currentUser
+                                ? "Bạn phải đăng nhập để xóa"
+                                : undefined
+                            }
+                            className={`${
+                              props.currentUser
+                                ? "p-1 text-red-500"
+                                : "p-1 text-red-300 cursor-not-allowed"
+                            }`}
+                          >
+                            <TrashIcon className="w-5 h-5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {filteredBoms.length === 0 && (
+                <div className="text-center p-8 text-slate-500 dark:text-slate-400">
+                  Chưa có công thức nào được tạo.
+                </div>
+              )}
+            </div>
           </div>
 
           {totalPages > 1 && (

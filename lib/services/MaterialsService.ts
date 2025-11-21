@@ -30,7 +30,6 @@ export function createMaterialsService(ctx: PinContextType): MaterialsService {
         }
 
         const payload: any = {
-          id: material.id,
           name: material.name,
           sku: material.sku,
           unit: material.unit,
@@ -43,6 +42,16 @@ export function createMaterialsService(ctx: PinContextType): MaterialsService {
           description: material.description || null,
           updated_at: new Date().toISOString(),
         };
+
+        // Only include id if it's a valid UUID (for updates)
+        if (
+          material.id &&
+          material.id.match(
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+          )
+        ) {
+          payload.id = material.id;
+        }
 
         const { error } = await supabase.from("pin_materials").upsert(payload);
         if (error) throw error;
