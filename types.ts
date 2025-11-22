@@ -654,8 +654,9 @@ export interface PinRepairOrder {
   paymentStatus: "paid" | "unpaid" | "partial";
   partialPaymentAmount?: number; // Số tiền khách thanh toán trước nếu thanh toán 1 phần
   depositAmount?: number; // Số tiền đặt cọc
-  paymentMethod?: "cash" | "bank";
+  paymentMethod?: "cash" | "transfer" | "card"; // Phương thức thanh toán (dùng chung cho cọc và thanh toán)
   paymentDate?: string;
+  dueDate?: string; // Thời gian hẹn trả - để nhắc nợ
   cashTransactionId?: string;
   created_at?: string;
 }

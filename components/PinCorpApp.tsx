@@ -6,8 +6,8 @@ import MaterialManager from "./MaterialManager";
 import ProductionManagerWrapper from "./ProductionManagerWrapper";
 import PinProductManager from "./PinProductManager";
 import PinSalesManager from "./PinSalesManager";
-import PinReportManager from "./PinReportManager";
-import PinRepairManager from "./PinRepairManager";
+import PinReportManager from "./PinReportManagerNew";
+import PinRepairManager from "./PinRepairManagerNew";
 import PinGoodsReceipt from "./PinGoodsReceipt";
 import PinGoodsReceiptNew from "./PinGoodsReceiptNew";
 import CostReportDashboard from "./CostReportDashboard";
@@ -15,7 +15,7 @@ import PredictiveDashboard from "./PredictiveDashboard";
 import PinFinancialManager from "./PinFinancialManager";
 import PinProductionReset from "./PinProductionReset";
 import PinSettings from "./PinSettings";
-import Receivables from "./Receivables";
+import ReceivablesNew from "./ReceivablesNew";
 import { CashTransaction, PinSale } from "../types";
 
 interface PinCorpAppProps {
@@ -170,7 +170,7 @@ const PinCorpApp: React.FC<PinCorpAppProps> = ({ onSwitchApp }) => {
                 }
               />
               <Route path="/financial" element={<PinFinancialManager />} />
-              <Route path="/receivables" element={<Receivables />} />
+              <Route path="/receivables" element={<ReceivablesNew />} />
               <Route path="/settings" element={<PinSettings />} />
               <Route
                 path="/production-reset"

@@ -59,6 +59,8 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
     paymentStatus: "unpaid",
     partialPaymentAmount: 0,
     depositAmount: 0,
+    paymentMethod: undefined,
+    dueDate: undefined,
   });
 
   const [materialInput, setMaterialInput] = useState({
@@ -110,6 +112,7 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
         partialPaymentAmount: initialOrder.partialPaymentAmount || 0,
         depositAmount: initialOrder.depositAmount || 0,
         paymentMethod: initialOrder.paymentMethod,
+        dueDate: initialOrder.dueDate,
       });
     } else if (isOpen && !initialOrder) {
       setFormData({
@@ -125,6 +128,8 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
         paymentStatus: "unpaid",
         partialPaymentAmount: 0,
         depositAmount: 0,
+        paymentMethod: undefined,
+        dueDate: undefined,
       });
     }
   }, [isOpen, initialOrder, currentUser]);
@@ -199,6 +204,10 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
       [name]:
         name === "laborCost" || name === "depositAmount"
           ? parseCurrencyInput(value)
+          : name === "dueDate"
+          ? value
+            ? new Date(value).toISOString()
+            : undefined
           : value,
     }));
     if (name === "customerName") {
@@ -218,6 +227,28 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
     if (materialInput.quantity <= 0) {
       alert("Số lượng phải lớn hơn 0");
       return;
+    }
+
+    // Check stock availability
+    const material = (pinMaterials || []).find(
+      (m: any) => m.name.toLowerCase() === materialName.toLowerCase()
+    );
+    if (material) {
+      const currentStock = material.quantity || 0;
+      const alreadyUsed =
+        (formData.materialsUsed || [])
+          .filter(
+            (m) => m.materialName.toLowerCase() === materialName.toLowerCase()
+          )
+          .reduce((sum, m) => sum + m.quantity, 0) || 0;
+      const availableStock = currentStock - alreadyUsed;
+
+      if (materialInput.quantity > availableStock) {
+        alert(
+          `Không đủ tồn kho!\nTồn kho hiện tại: ${currentStock}\nĐã dùng: ${alreadyUsed}\nCòn lại: ${availableStock}\nBạn đang thêm: ${materialInput.quantity}`
+        );
+        return;
+      }
     }
 
     const newMaterial: PinRepairMaterial = {
@@ -310,6 +341,19 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
         return;
       }
 
+      // Validate payment method when deposit > 0 OR payment status is paid/partial
+      const depositAmt = Number(formData.depositAmount || 0);
+      const needsPaymentMethod =
+        depositAmt > 0 ||
+        formData.paymentStatus === "paid" ||
+        formData.paymentStatus === "partial";
+
+      if (needsPaymentMethod && !formData.paymentMethod) {
+        alert("Vui lòng chọn phương thức thanh toán");
+        setIsSubmitting(false);
+        return;
+      }
+
       if (formData.paymentStatus === "partial") {
         const amt = Number(formData.partialPaymentAmount || 0);
         if (amt <= 0) {
@@ -347,6 +391,7 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
         depositAmount: formData.depositAmount || 0,
         paymentMethod: formData.paymentMethod,
         paymentDate: formData.paymentDate,
+        dueDate: formData.dueDate,
         cashTransactionId: formData.cashTransactionId,
       };
 
@@ -368,6 +413,49 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
     0
   );
 
+  // Determine button text based on action
+  const getButtonText = () => {
+    if (isSubmitting) return "Đang xử lý...";
+
+    if (!initialOrder) {
+      // Creating new order
+      const hasDeposit =
+        formData.depositAmount && Number(formData.depositAmount) > 0;
+      return hasDeposit ? "💰 Đặt cọc & Tạo phiếu" : "✅ Tạo phiếu";
+    }
+
+    // Updating existing order
+    const isReturning = formData.status === "Trả máy";
+    const needsPayment =
+      formData.paymentStatus === "unpaid" ||
+      formData.paymentStatus === "partial";
+
+    if (isReturning && needsPayment) {
+      return "💳 Thanh toán & Trả máy";
+    }
+
+    return "📝 Cập nhật";
+  };
+
+  const getHeaderTitle = () => {
+    if (!initialOrder) {
+      const hasDeposit =
+        formData.depositAmount && Number(formData.depositAmount) > 0;
+      return hasDeposit ? "Tạo phiếu & Đặt cọc" : "Tạo phiếu sửa chữa mới";
+    }
+
+    const isReturning = formData.status === "Trả máy";
+    const needsPayment =
+      formData.paymentStatus === "unpaid" ||
+      formData.paymentStatus === "partial";
+
+    if (isReturning && needsPayment) {
+      return "Thanh toán & Trả máy cho khách";
+    }
+
+    return "Cập nhật phiếu sửa chữa";
+  };
+
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-7xl my-4 overflow-hidden flex flex-col max-h-[95vh]">
@@ -375,7 +463,7 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
         <div className="px-4 sm:px-6 py-4 bg-gradient-to-r from-blue-600 via-sky-600 to-cyan-600 flex justify-between items-center flex-shrink-0">
           <div>
             <h2 className="text-xl sm:text-2xl font-bold text-white">
-              {initialOrder ? "Cập nhật phiếu" : "Tạo phiếu sửa chữa mới"}
+              {getHeaderTitle()}
             </h2>
             <p className="text-xs sm:text-sm text-blue-100 mt-1">
               Mã: {initialOrder?.id || "Tự động sinh"}
@@ -680,18 +768,32 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
                     />
                   </div>
                 </div>
-                <div className="mt-4">
-                  <label className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                    Ghi chú nội bộ
-                  </label>
-                  <textarea
-                    name="notes"
-                    placeholder="VD: Khách yêu cầu kiểm tra thêm..."
-                    value={formData.notes || ""}
-                    onChange={handleInputChange}
-                    rows={2}
-                    className="w-full px-4 py-2.5 border-2 border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-green-500 resize-none bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 transition-all"
-                  />
+                <div className="mt-4 grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                      Thời gian hẹn trả
+                    </label>
+                    <input
+                      type="datetime-local"
+                      name="dueDate"
+                      value={formData.dueDate?.slice(0, 16) || ""}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2.5 border-2 border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-green-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                      Ghi chú nội bộ
+                    </label>
+                    <textarea
+                      name="notes"
+                      placeholder="VD: Khách yêu cầu kiểm tra thêm..."
+                      value={formData.notes || ""}
+                      onChange={handleInputChange}
+                      rows={2}
+                      className="w-full px-4 py-2.5 border-2 border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-green-500 resize-none bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 transition-all"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -919,7 +1021,13 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
                     </div>
                     <div>
                       <label className="block text-xs sm:text-sm font-semibold text-emerald-800 dark:text-emerald-300 mb-2">
-                        Phương thức thanh toán
+                        Phương thức thanh toán{" "}
+                        {(formData.depositAmount &&
+                          Number(formData.depositAmount) > 0) ||
+                        formData.paymentStatus === "paid" ||
+                        formData.paymentStatus === "partial" ? (
+                          <span className="text-red-500">*</span>
+                        ) : null}
                       </label>
                       <select
                         name="paymentMethod"
@@ -1075,7 +1183,7 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
                         d="M5 13l4 4L19 7"
                       />
                     </svg>
-                    {initialOrder ? "Cập nhật" : "Tạo phiếu"}
+                    {getButtonText()}
                   </>
                 )}
               </button>

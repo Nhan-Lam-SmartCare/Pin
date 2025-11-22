@@ -1,0 +1,235 @@
+/* Responsive Optimization for PIN Corp App */
+
+/* Mobile First Breakpoints */
+/* sm: 640px, md: 768px, lg: 1024px, xl: 1280px, 2xl: 1536px */
+
+/* Mobile Optimization */
+@media (max-width: 767px) {
+  /* Reduce padding on mobile */
+  .mobile-compact {
+    padding: 1rem !important;
+  }
+
+  /* Stack cards vertically */
+  .mobile-stack {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Full width buttons on mobile */
+  .mobile-full-width {
+    width: 100% !important;
+  }
+
+  /* Smaller text on mobile */
+  .mobile-text-sm {
+    font-size: 0.875rem !important;
+  }
+
+  /* Hide on mobile */
+  .mobile-hidden {
+    display: none !important;
+  }
+
+  /* Optimize table for mobile */
+  .mobile-table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Reduce modal size on mobile */
+  .mobile-modal {
+    max-width: 95vw !important;
+    max-height: 90vh !important;
+  }
+}
+
+/* Tablet Optimization */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .tablet-grid-2 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .tablet-hidden {
+    display: none !important;
+  }
+}
+
+/* Desktop Optimization */
+@media (min-width: 1024px) {
+  .desktop-grid-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .desktop-grid-4 {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  /* Sidebar fixed on desktop */
+  .desktop-sidebar-fixed {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+
+  /* Main content with sidebar offset */
+  .desktop-with-sidebar {
+    margin-left: 16rem; /* 256px */
+  }
+}
+
+/* Touch-friendly tap targets */
+@media (hover: none) and (pointer: coarse) {
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Larger tap targets for mobile */
+  .touch-target {
+    padding: 0.75rem !important;
+  }
+}
+
+/* Landscape mobile optimization */
+@media (max-width: 767px) and (orientation: landscape) {
+  .landscape-compact {
+    padding: 0.5rem !important;
+  }
+
+  /* Reduce header height in landscape */
+  header {
+    height: 3rem !important;
+  }
+}
+
+/* High DPI screens */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  /* Optimize images for retina */
+  img {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+}
+
+/* Container queries support */
+@container (max-width: 500px) {
+  .container-compact {
+    padding: 0.5rem;
+  }
+}
+
+/* Safe area insets for notch devices */
+@supports (padding: env(safe-area-inset-top)) {
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .safe-area-left {
+    padding-left: env(safe-area-inset-left);
+  }
+
+  .safe-area-right {
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
+/* Optimized grid for different screen sizes */
+.responsive-grid {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+  .responsive-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1280px) {
+  .responsive-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Flex utilities for responsive layouts */
+.flex-responsive {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .flex-responsive {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+/* Responsive typography */
+.responsive-heading {
+  font-size: 1.5rem; /* 24px mobile */
+  line-height: 1.3;
+}
+
+@media (min-width: 768px) {
+  .responsive-heading {
+    font-size: 2rem; /* 32px tablet */
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-heading {
+    font-size: 2.5rem; /* 40px desktop */
+  }
+}
+
+/* Optimized spacing for different screens */
+.responsive-spacing {
+  padding: 1rem;
+}
+
+@media (min-width: 768px) {
+  .responsive-spacing {
+    padding: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-spacing {
+    padding: 2rem;
+  }
+}
+
+/* Performance: GPU acceleration for animations */
+.gpu-accelerated {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Performance: Optimize repaints */
+.optimize-repaint {
+  contain: layout style paint;
+}
+
+/* Performance: Content visibility for large lists */
+.optimize-list-item {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 100px;
+}
