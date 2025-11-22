@@ -4,7 +4,7 @@
  */
 
 import React, { useMemo, useState } from "react";
-import { X, AlertTriangle, CheckCircle, XCircle, Info } from "lucide-react";
+import { Icon, IconName, IconTone } from "./common/Icon";
 import { PinProduct, PinBOM } from "../types";
 import {
   useProductDeletion,
@@ -18,6 +18,16 @@ interface ProductDeletionModalProps {
   onClose: () => void;
   onConfirm: (product: PinProduct, options: DeletionOptions) => Promise<void>;
 }
+
+const RECOMMENDATION_ICON_MAP: Record<
+  "safe" | "warning" | "blocked" | "default",
+  { name: IconName; tone: IconTone }
+> = {
+  safe: { name: "success", tone: "success" },
+  warning: { name: "warning", tone: "warning" },
+  blocked: { name: "danger", tone: "danger" },
+  default: { name: "info", tone: "info" },
+};
 
 const ProductDeletionModal: React.FC<ProductDeletionModalProps> = ({
   product,
@@ -103,16 +113,12 @@ const ProductDeletionModal: React.FC<ProductDeletionModalProps> = ({
   };
 
   const getRecommendationIcon = () => {
-    switch (recommendedAction) {
-      case "safe":
-        return <CheckCircle className="h-5 w-5" />;
-      case "warning":
-        return <AlertTriangle className="h-5 w-5" />;
-      case "blocked":
-        return <XCircle className="h-5 w-5" />;
-      default:
-        return <Info className="h-5 w-5" />;
-    }
+    const key = (recommendedAction ??
+      "default") as keyof typeof RECOMMENDATION_ICON_MAP;
+    const iconMeta =
+      RECOMMENDATION_ICON_MAP[key] || RECOMMENDATION_ICON_MAP.default;
+
+    return <Icon name={iconMeta.name} tone={iconMeta.tone} size="md" />;
   };
 
   return (
@@ -128,7 +134,7 @@ const ProductDeletionModal: React.FC<ProductDeletionModalProps> = ({
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600 transition-colors"
             >
-              <X className="h-6 w-6" />
+              <Icon name="close" size="lg" className="text-current" />
             </button>
           </div>
 
@@ -153,7 +159,12 @@ const ProductDeletionModal: React.FC<ProductDeletionModalProps> = ({
             {impact.blockers.length > 0 && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                 <h4 className="font-medium text-red-800 mb-2 flex items-center">
-                  <XCircle className="h-4 w-4 mr-2" />
+                  <Icon
+                    name="danger"
+                    size="sm"
+                    tone="danger"
+                    className="mr-2"
+                  />
                   Vấn đề nghiêm trọng ({impact.blockers.length})
                 </h4>
                 <ul className="text-sm text-red-700 space-y-1">
@@ -168,7 +179,12 @@ const ProductDeletionModal: React.FC<ProductDeletionModalProps> = ({
             {impact.warnings.length > 0 && (
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                 <h4 className="font-medium text-yellow-800 mb-2 flex items-center">
-                  <AlertTriangle className="h-4 w-4 mr-2" />
+                  <Icon
+                    name="warning"
+                    size="sm"
+                    tone="warning"
+                    className="mr-2"
+                  />
                   Cảnh báo ({impact.warnings.length})
                 </h4>
                 <ul className="text-sm text-yellow-700 space-y-1">
@@ -182,7 +198,7 @@ const ProductDeletionModal: React.FC<ProductDeletionModalProps> = ({
             {/* Related Data */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <h4 className="font-medium text-blue-800 mb-2 flex items-center">
-                <Info className="h-4 w-4 mr-2" />
+                <Icon name="info" size="sm" tone="info" className="mr-2" />
                 Dữ liệu liên quan
               </h4>
               <div className="text-sm text-blue-700 space-y-1">

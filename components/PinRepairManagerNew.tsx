@@ -21,6 +21,8 @@ import {
   BanknotesIcon,
   CheckCircleIcon,
   ClockIcon,
+  ClipboardDocumentListIcon,
+  DocumentTextIcon,
 } from "./common/Icons";
 import { PinRepairModalNew } from "./PinRepairModalNew";
 
@@ -546,7 +548,7 @@ const PinRepairManagerNew: React.FC = () => {
               <StatsCard
                 title="Tổng phiếu"
                 value={stats.total}
-                icon={<WrenchScrewdriverIcon className="w-6 h-6" />}
+                icon={<ClipboardDocumentListIcon className="w-6 h-6" />}
                 variant="primary"
                 compact
               />

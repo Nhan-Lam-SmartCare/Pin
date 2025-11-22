@@ -6,20 +6,21 @@
 import React, { useState, useMemo } from "react";
 import { usePinContext } from "../contexts/PinContext";
 import { FinancialAnalyticsService } from "../lib/services/FinancialAnalyticsService";
-import {
-  TrendingUp,
-  TrendingDown,
-  DollarSign,
-  PieChart,
-  BarChart3,
-  Building,
-  Wallet,
-  Target,
-  AlertTriangle,
-  CheckCircle,
-  Calendar,
-  Calculator,
-} from "lucide-react";
+import { Icon, IconName } from "./common/Icon";
+
+type DashboardTab = "overview" | "assets" | "cashflow" | "ratios";
+type PeriodFilter = "month" | "quarter" | "year";
+
+const DASHBOARD_TABS: Array<{
+  key: DashboardTab;
+  label: string;
+  icon: IconName;
+}> = [
+  { key: "overview", label: "Tổng quan", icon: "overview" },
+  { key: "assets", label: "Tài sản", icon: "assets" },
+  { key: "cashflow", label: "Dòng tiền", icon: "cashflow" },
+  { key: "ratios", label: "Chỉ số tài chính", icon: "ratios" },
+];
 
 const FinancialDashboard: React.FC = () => {
   const { fixedAssets = [], currentUser, addToast } = usePinContext();
@@ -27,12 +28,8 @@ const FinancialDashboard: React.FC = () => {
   const cashFlows: any[] = [];
   const capitalStructure: any[] = [];
 
-  const [selectedPeriod, setSelectedPeriod] = useState<
-    "month" | "quarter" | "year"
-  >("month");
-  const [activeTab, setActiveTab] = useState<
-    "overview" | "assets" | "cashflow" | "ratios"
-  >("overview");
+  const [selectedPeriod, setSelectedPeriod] = useState<PeriodFilter>("month");
+  const [activeTab, setActiveTab] = useState<DashboardTab>("overview");
 
   // Calculate financial metrics
   const financialMetrics = useMemo(() => {
@@ -210,6 +207,9 @@ const FinancialDashboard: React.FC = () => {
     return "text-green-600 bg-green-50";
   };
 
+  const isWorkingCapitalPositive = financialMetrics.workingCapital >= 0;
+  const isNetCashPositive = financialMetrics.netCashFlow >= 0;
+
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -236,28 +236,24 @@ const FinancialDashboard: React.FC = () => {
       {/* Tab Navigation */}
       <div className="border-b border-gray-200">
         <nav className="flex space-x-8">
-          {[
-            { key: "overview", label: "Tổng quan", icon: PieChart },
-            { key: "assets", label: "Tài sản", icon: Building },
-            { key: "cashflow", label: "Dòng tiền", icon: Wallet },
-            { key: "ratios", label: "Chỉ số tài chính", icon: Calculator },
-          ].map((tab) => {
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key as any)}
-                className={`flex items-center space-x-2 py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === tab.key
-                    ? "border-blue-500 text-blue-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
+          {DASHBOARD_TABS.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`flex items-center space-x-2 py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === tab.key
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              <Icon
+                name={tab.icon}
+                size="sm"
+                tone={activeTab === tab.key ? "primary" : "muted"}
+              />
+              <span>{tab.label}</span>
+            </button>
+          ))}
         </nav>
       </div>
 
@@ -277,7 +273,7 @@ const FinancialDashboard: React.FC = () => {
                   </p>
                 </div>
                 <div className="p-3 bg-blue-50 rounded-full">
-                  <Building className="w-6 h-6 text-blue-600" />
+                  <Icon name="assets" size="lg" tone="primary" />
                 </div>
               </div>
               <div className="mt-4 flex items-center space-x-2 text-sm">
@@ -299,7 +295,7 @@ const FinancialDashboard: React.FC = () => {
                   </p>
                 </div>
                 <div className="p-3 bg-green-50 rounded-full">
-                  <DollarSign className="w-6 h-6 text-green-600" />
+                  <Icon name="money" size="lg" tone="success" />
                 </div>
               </div>
               <div className="mt-4 flex items-center space-x-2 text-sm">
@@ -328,35 +324,31 @@ const FinancialDashboard: React.FC = () => {
                 </div>
                 <div
                   className={`p-3 rounded-full ${
-                    financialMetrics.workingCapital >= 0
-                      ? "bg-green-50"
-                      : "bg-red-50"
+                    isWorkingCapitalPositive ? "bg-green-50" : "bg-red-50"
                   }`}
                 >
-                  <Wallet
-                    className={`w-6 h-6 ${
-                      financialMetrics.workingCapital >= 0
-                        ? "text-green-600"
-                        : "text-red-600"
-                    }`}
+                  <Icon
+                    name="cashflow"
+                    size="lg"
+                    tone={isWorkingCapitalPositive ? "success" : "danger"}
                   />
                 </div>
               </div>
               <div className="mt-4">
                 <div className="flex items-center space-x-1">
-                  {financialMetrics.workingCapital >= 0 ? (
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                  ) : (
-                    <AlertTriangle className="w-4 h-4 text-red-500" />
-                  )}
+                  <Icon
+                    name={isWorkingCapitalPositive ? "success" : "warning"}
+                    size="sm"
+                    tone={isWorkingCapitalPositive ? "success" : "danger"}
+                  />
                   <span
                     className={`text-sm ${
-                      financialMetrics.workingCapital >= 0
+                      isWorkingCapitalPositive
                         ? "text-green-600"
                         : "text-red-600"
                     }`}
                   >
-                    {financialMetrics.workingCapital >= 0
+                    {isWorkingCapitalPositive
                       ? "Tình hình tài chính tốt"
                       : "Cần tăng thanh khoản"}
                   </span>
@@ -382,16 +374,14 @@ const FinancialDashboard: React.FC = () => {
                 </div>
                 <div
                   className={`p-3 rounded-full ${
-                    financialMetrics.netCashFlow >= 0
-                      ? "bg-green-50"
-                      : "bg-red-50"
+                    isNetCashPositive ? "bg-green-50" : "bg-red-50"
                   }`}
                 >
-                  {financialMetrics.netCashFlow >= 0 ? (
-                    <TrendingUp className="w-6 h-6 text-green-600" />
-                  ) : (
-                    <TrendingDown className="w-6 h-6 text-red-600" />
-                  )}
+                  <Icon
+                    name={isNetCashPositive ? "progressUp" : "progressDown"}
+                    size="lg"
+                    tone={isNetCashPositive ? "success" : "danger"}
+                  />
                 </div>
               </div>
               <div className="mt-4 space-y-1">
