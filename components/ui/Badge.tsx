@@ -1,23 +1,26 @@
 import React from "react";
 import { cn } from "../../lib/utils/cn";
+import { Icon, IconName, IconTone } from "../common/Icon";
+
+type BadgeVariant =
+  | "default"
+  | "primary"
+  | "success"
+  | "warning"
+  | "danger"
+  | "info"
+  | "neutral";
 
 export interface BadgeProps {
   children: React.ReactNode;
-  variant?:
-    | "default"
-    | "primary"
-    | "success"
-    | "warning"
-    | "danger"
-    | "info"
-    | "neutral";
+  variant?: BadgeVariant;
   size?: "sm" | "md" | "lg";
   className?: string;
   icon?: React.ReactNode;
   dot?: boolean;
 }
 
-const variantClasses = {
+const variantClasses: Record<BadgeVariant, string> = {
   default:
     "bg-pin-gray-100 text-pin-gray-800 dark:bg-pin-dark-300 dark:text-pin-dark-700",
   primary:
@@ -31,6 +34,26 @@ const variantClasses = {
   info: "bg-pin-blue-100 text-pin-blue-800 dark:bg-pin-blue-900/30 dark:text-pin-blue-400",
   neutral:
     "bg-pin-gray-100 text-pin-gray-800 dark:bg-pin-dark-300 dark:text-pin-dark-700",
+};
+
+const variantIconMap: Record<BadgeVariant, IconName> = {
+  default: "info",
+  primary: "info",
+  success: "success",
+  warning: "warning",
+  danger: "danger",
+  info: "info",
+  neutral: "info",
+};
+
+const variantToneMap: Record<BadgeVariant, IconTone> = {
+  default: "default",
+  primary: "primary",
+  success: "success",
+  warning: "warning",
+  danger: "danger",
+  info: "info",
+  neutral: "muted",
 };
 
 const sizeClasses = {
@@ -98,19 +121,29 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
     return "default";
   };
 
-  const getIcon = (status: string) => {
-    const s = status.toLowerCase();
-    if (s.includes("xong") || s.includes("hoàn thành") || s.includes("trả"))
-      return "✅";
-    if (s.includes("đang") || s.includes("tiến hành")) return "🔧";
-    if (s.includes("chờ") || s.includes("tiếp nhận")) return "⏳";
-    if (s.includes("hủy") || s.includes("lỗi")) return "❌";
-    return "📋";
+  const getIconName = (variant: BadgeVariant): IconName => {
+    if (variant === "success") return "success";
+    if (variant === "warning") return "pending";
+    if (variant === "danger") return "danger";
+    if (variant === "info") return "repairs";
+    return "orders";
   };
 
+  const variant = getVariant(status);
+
   return (
-    <Badge variant={getVariant(status)} className={className}>
-      {getIcon(status)} {status}
+    <Badge
+      variant={variant}
+      className={className}
+      icon={
+        <Icon
+          name={getIconName(variant)}
+          tone={variantToneMap[variant]}
+          size="sm"
+        />
+      }
+    >
+      {status}
     </Badge>
   );
 };
@@ -120,6 +153,7 @@ export interface PaymentBadgeProps {
   status: "paid" | "unpaid" | "partial";
   amount?: number;
   depositAmount?: number;
+  paidAmount?: number;
   className?: string;
 }
 
@@ -127,40 +161,81 @@ export const PaymentBadge: React.FC<PaymentBadgeProps> = ({
   status,
   amount,
   depositAmount,
+  paidAmount,
   className,
 }) => {
-  // If unpaid but has deposit, show deposit info
-  if (status === "unpaid" && depositAmount && depositAmount > 0) {
-    return (
-      <Badge variant="warning" dot className={className}>
-        💰 Đã cọc {formatCurrency(depositAmount)}
-        {amount && amount > 0 ? ` | Còn nợ ${formatCurrency(amount)}` : ""}
-      </Badge>
-    );
-  }
-
-  const variants = {
-    paid: "success" as const,
-    unpaid: "danger" as const,
-    partial: "warning" as const,
+  const baseVariants = {
+    paid: "success" as BadgeVariant,
+    unpaid: "danger" as BadgeVariant,
+    partial: "warning" as BadgeVariant,
   };
 
   const labels = {
     paid: "Đã thanh toán",
     unpaid: "Chưa thanh toán",
-    partial: amount ? `Còn nợ ${formatCurrency(amount)}` : "Thanh toán 1 phần",
+    partial: "Thanh toán 1 phần",
   };
 
-  const icons = {
-    paid: "✓",
-    unpaid: "⚠",
-    partial: "◐",
-  };
+  const outstandingAmount =
+    status !== "paid" && amount && amount > 0 ? amount : undefined;
+  const depositInfo =
+    status !== "paid" && depositAmount && depositAmount > 0
+      ? `Đã cọc ${formatCurrency(depositAmount)}`
+      : undefined;
+  const paidInfo =
+    status !== "paid" && paidAmount && paidAmount > 0
+      ? `Đã trả ${formatCurrency(paidAmount)}`
+      : undefined;
 
   return (
-    <Badge variant={variants[status]} dot className={className}>
-      {icons[status]} {labels[status]}
-    </Badge>
+    <div className={cn("flex flex-col gap-1", className)}>
+      <Badge
+        variant={baseVariants[status]}
+        size="sm"
+        icon={
+          <Icon
+            name={variantIconMap[baseVariants[status]]}
+            tone={variantToneMap[baseVariants[status]]}
+            size="sm"
+          />
+        }
+      >
+        {labels[status]}
+      </Badge>
+      {depositInfo && (
+        <Badge
+          variant="neutral"
+          size="sm"
+          icon={<Icon name="money" tone="primary" size="sm" />}
+        >
+          {depositInfo}
+        </Badge>
+      )}
+      {paidInfo && (
+        <Badge
+          variant="success"
+          size="sm"
+          icon={<Icon name="money" tone="success" size="sm" />}
+        >
+          {paidInfo}
+        </Badge>
+      )}
+      {outstandingAmount && (
+        <Badge
+          variant={status === "partial" ? "warning" : "danger"}
+          size="sm"
+          icon={
+            <Icon
+              name={status === "partial" ? "warning" : "danger"}
+              tone={status === "partial" ? "warning" : "danger"}
+              size="sm"
+            />
+          }
+        >
+          Còn nợ {formatCurrency(outstandingAmount)}
+        </Badge>
+      )}
+    </div>
   );
 };
 

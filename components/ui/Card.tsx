@@ -149,17 +149,51 @@ export interface StatsCardProps {
     label: string;
   };
   variant?: "default" | "primary" | "success" | "warning" | "danger";
+  appearance?: "gradient" | "flat";
   className?: string;
   valueClassName?: string;
   compact?: boolean; // Compact mode for cards with simple numbers
 }
 
-const variantClasses = {
+const gradientVariantClasses = {
   default: "from-pin-gray-500 to-pin-gray-600",
   primary: "from-pin-blue-500 to-pin-blue-600",
   success: "from-pin-green-500 to-pin-green-600",
   warning: "from-pin-orange-500 to-pin-orange-600",
   danger: "from-pin-red-500 to-pin-red-600",
+};
+
+const flatVariantStyles = {
+  default: {
+    border: "border-pin-gray-200 dark:border-pin-dark-300",
+    iconBg: "bg-pin-gray-50 dark:bg-pin-dark-300",
+    value: "text-pin-gray-900 dark:text-white",
+    iconTone: "default" as IconTone,
+  },
+  primary: {
+    border: "border-pin-blue-100 dark:border-pin-blue-900/40",
+    iconBg: "bg-pin-blue-50 dark:bg-pin-blue-900/20",
+    value: "text-pin-blue-700 dark:text-pin-blue-200",
+    iconTone: "primary" as IconTone,
+  },
+  success: {
+    border: "border-pin-green-100 dark:border-pin-green-900/40",
+    iconBg: "bg-pin-green-50 dark:bg-pin-green-900/20",
+    value: "text-pin-green-700 dark:text-pin-green-200",
+    iconTone: "success" as IconTone,
+  },
+  warning: {
+    border: "border-pin-yellow-100 dark:border-pin-yellow-900/40",
+    iconBg: "bg-pin-yellow-50 dark:bg-pin-yellow-900/20",
+    value: "text-pin-yellow-700 dark:text-pin-yellow-200",
+    iconTone: "warning" as IconTone,
+  },
+  danger: {
+    border: "border-pin-red-100 dark:border-pin-red-900/40",
+    iconBg: "bg-pin-red-50 dark:bg-pin-red-900/20",
+    value: "text-pin-red-700 dark:text-pin-red-200",
+    iconTone: "danger" as IconTone,
+  },
 };
 
 export const StatsCard: React.FC<StatsCardProps> = ({
@@ -171,51 +205,74 @@ export const StatsCard: React.FC<StatsCardProps> = ({
   iconSize,
   trend,
   variant = "primary",
+  appearance = "gradient",
   className,
   valueClassName,
   compact = false,
 }) => {
+  const variantKey = variant ?? "default";
+  const flatVariant = flatVariantStyles[variantKey];
+  const computedIconTone =
+    iconTone ??
+    (appearance === "gradient"
+      ? "contrast"
+      : flatVariant?.iconTone ?? "default");
+
   const resolvedIcon =
     icon ||
     (iconName ? (
       <Icon
         name={iconName}
-        tone={iconTone ?? "contrast"}
+        tone={computedIconTone}
         size={iconSize ?? (compact ? "md" : "lg")}
-        className="drop-shadow-sm"
+        className={appearance === "gradient" ? "drop-shadow-sm" : undefined}
       />
     ) : null);
 
+  const containerClasses =
+    appearance === "gradient"
+      ? cn(
+          "relative overflow-hidden",
+          "bg-gradient-to-br",
+          gradientVariantClasses[variantKey],
+          "text-white",
+          "rounded-lg sm:rounded-xl",
+          compact ? "p-2 sm:p-2.5 md:p-3" : "p-3 sm:p-4 md:p-5 lg:p-6",
+          "shadow-lg",
+          className
+        )
+      : cn(
+          "relative bg-white dark:bg-pin-dark-200",
+          "rounded-xl",
+          "border",
+          flatVariant?.border,
+          "shadow-sm",
+          compact ? "p-3" : "p-4 md:p-5",
+          className
+        );
+
   return (
-    <div
-      className={cn(
-        "relative overflow-hidden",
-        "bg-gradient-to-br",
-        variantClasses[variant],
-        "text-white",
-        "rounded-lg sm:rounded-xl",
-        compact ? "p-2 sm:p-2.5 md:p-3" : "p-3 sm:p-4 md:p-5 lg:p-6",
-        "shadow-lg",
-        className
+    <div className={containerClasses}>
+      {appearance === "gradient" && (
+        <>
+          <div
+            className={cn(
+              "absolute bg-white/10 rounded-full",
+              compact
+                ? "-right-1 -top-1 w-8 h-8 sm:w-12 sm:h-12"
+                : "-right-2 -top-2 sm:-right-4 sm:-top-4 w-16 h-16 sm:w-24 sm:h-24"
+            )}
+          />
+          <div
+            className={cn(
+              "absolute bg-white/5 rounded-full",
+              compact
+                ? "-right-2 -bottom-2 w-10 h-10 sm:w-14 sm:h-14"
+                : "-right-3 -bottom-3 sm:-right-6 sm:-bottom-6 w-20 h-20 sm:w-32 sm:h-32"
+            )}
+          />
+        </>
       )}
-    >
-      {/* Decorative background element */}
-      <div
-        className={cn(
-          "absolute bg-white/10 rounded-full",
-          compact
-            ? "-right-1 -top-1 w-8 h-8 sm:w-12 sm:h-12"
-            : "-right-2 -top-2 sm:-right-4 sm:-top-4 w-16 h-16 sm:w-24 sm:h-24"
-        )}
-      />
-      <div
-        className={cn(
-          "absolute bg-white/5 rounded-full",
-          compact
-            ? "-right-2 -bottom-2 w-10 h-10 sm:w-14 sm:h-14"
-            : "-right-3 -bottom-3 sm:-right-6 sm:-bottom-6 w-20 h-20 sm:w-32 sm:h-32"
-        )}
-      />
 
       <div className="relative z-10">
         <div
@@ -227,7 +284,10 @@ export const StatsCard: React.FC<StatsCardProps> = ({
           <div className="flex-1 min-w-0">
             <p
               className={cn(
-                "text-white/80 font-medium leading-tight",
+                appearance === "gradient"
+                  ? "text-white/80"
+                  : "text-pin-gray-500 dark:text-pin-dark-500",
+                "font-medium leading-tight",
                 compact
                   ? "text-[10px] sm:text-xs mb-0.5 truncate"
                   : "text-xs sm:text-sm mb-1 truncate"
@@ -241,6 +301,8 @@ export const StatsCard: React.FC<StatsCardProps> = ({
                 compact
                   ? "text-xl sm:text-2xl"
                   : "text-sm sm:text-base md:text-lg lg:text-xl break-words",
+                appearance === "flat" && flatVariant?.value,
+                appearance === "gradient" && "text-white",
                 valueClassName
               )}
             >
@@ -250,7 +312,10 @@ export const StatsCard: React.FC<StatsCardProps> = ({
           {resolvedIcon && (
             <div
               className={cn(
-                "flex-shrink-0 rounded-md bg-white/20 flex items-center justify-center",
+                "flex-shrink-0 rounded-md flex items-center justify-center",
+                appearance === "gradient"
+                  ? "bg-white/20"
+                  : flatVariant?.iconBg ?? "bg-pin-gray-50",
                 compact
                   ? "w-8 h-8 sm:w-10 sm:h-10"
                   : "w-10 h-10 sm:w-12 sm:h-12"
@@ -264,16 +329,29 @@ export const StatsCard: React.FC<StatsCardProps> = ({
         </div>
 
         {trend && (
-          <div className="flex items-center gap-1.5 text-xs">
+          <div
+            className={cn(
+              "flex items-center gap-1.5 text-xs",
+              appearance === "gradient"
+                ? "text-white"
+                : "text-pin-gray-500 dark:text-pin-dark-500"
+            )}
+          >
             <span
               className={cn(
                 "font-semibold",
-                trend.value >= 0 ? "text-white" : "text-white/70"
+                appearance === "gradient"
+                  ? trend.value >= 0
+                    ? "text-white"
+                    : "text-white/70"
+                  : trend.value >= 0
+                  ? "text-pin-green-600 dark:text-pin-green-400"
+                  : "text-pin-red-600 dark:text-pin-red-400"
               )}
             >
               {trend.value >= 0 ? "↗" : "↘"} {Math.abs(trend.value)}%
             </span>
-            <span className="text-white/70 truncate">{trend.label}</span>
+            <span className="truncate">{trend.label}</span>
           </div>
         )}
       </div>

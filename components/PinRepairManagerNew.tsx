@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import type { PinRepairOrder } from "../types";
 import { usePinContext } from "../contexts/PinContext";
-import { Card, CardGrid, CardTitle, CardBody, StatsCard } from "./ui/Card";
+import { Card, CardGrid, CardTitle, StatsCard } from "./ui/Card";
 import { StatusBadge, PaymentBadge } from "./ui/Badge";
 import { DataTable, Column } from "./ui/Table";
 import {
@@ -17,9 +17,9 @@ import {
   PlusIcon,
   PrinterIcon,
   TrashIcon,
-  DocumentTextIcon,
 } from "./common/Icons";
 import { PinRepairModalNew } from "./PinRepairModalNew";
+import { Icon } from "./common/Icon";
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat("vi-VN", {
@@ -372,8 +372,9 @@ const PinRepairManagerNew: React.FC = () => {
             })}
           </div>
           {order.technicianName && (
-            <div className="text-xs text-pin-gray-600 dark:text-pin-dark-600">
-              👤 {order.technicianName}
+            <div className="flex items-center gap-1.5 text-xs text-pin-gray-600 dark:text-pin-dark-600">
+              <Icon name="technician" tone="primary" size="sm" />
+              <span>{order.technicianName}</span>
             </div>
           )}
         </div>
@@ -385,11 +386,13 @@ const PinRepairManagerNew: React.FC = () => {
       render: (order) => (
         <div className="space-y-1">
           <div className="font-medium">{order.customerName}</div>
-          <div className="text-xs text-pin-gray-500 dark:text-pin-dark-500">
-            📞 {order.customerPhone}
+          <div className="flex items-center gap-1.5 text-xs text-pin-gray-500 dark:text-pin-dark-500">
+            <Icon name="phone" tone="primary" size="sm" />
+            <span>{order.customerPhone}</span>
           </div>
-          <div className="text-xs font-medium text-pin-blue-600 dark:text-pin-blue-400">
-            🛠 {order.deviceName}
+          <div className="flex items-center gap-1.5 text-xs font-medium text-pin-blue-600 dark:text-pin-blue-400">
+            <Icon name="device" tone="primary" size="sm" />
+            <span>{order.deviceName}</span>
           </div>
           {order.issueDescription && (
             <div className="text-xs text-pin-gray-500 dark:text-pin-dark-500 line-clamp-2">
@@ -416,9 +419,12 @@ const PinRepairManagerNew: React.FC = () => {
             {materials.slice(0, 3).map((m: any, idx: number) => (
               <div
                 key={idx}
-                className="text-xs text-pin-gray-600 dark:text-pin-dark-600"
+                className="flex items-center gap-1.5 text-xs text-pin-gray-600 dark:text-pin-dark-600"
               >
-                📦 {m.materialName || m.name} ×{m.quantity}
+                <Icon name="stock" tone="primary" size="sm" />
+                <span>
+                  {m.materialName || m.name} ×{m.quantity}
+                </span>
               </div>
             ))}
             {materials.length > 3 && (
@@ -456,37 +462,13 @@ const PinRepairManagerNew: React.FC = () => {
         const totalPaid = depositAmount + partialPayment;
         const remaining = order.total - totalPaid;
 
-        if (order.paymentStatus === "paid") {
-          return (
-            <div className="text-sm font-medium text-pin-green-600 dark:text-pin-green-400">
-              ✓ Đã thanh toán
-            </div>
-          );
-        }
-
         return (
-          <div className="space-y-1 text-sm">
-            {depositAmount > 0 && (
-              <div className="text-pin-green-600 dark:text-pin-green-400 font-medium">
-                💰 Đã cọc {formatCurrency(depositAmount)}
-              </div>
-            )}
-            {partialPayment > 0 && (
-              <div className="text-pin-green-600 dark:text-pin-green-400 font-medium">
-                💳 Đã trả {formatCurrency(partialPayment)}
-              </div>
-            )}
-            {remaining > 0 && (
-              <div className="text-pin-red-600 dark:text-pin-red-400 font-medium">
-                📌 Còn nợ {formatCurrency(remaining)}
-              </div>
-            )}
-            {totalPaid === 0 && (
-              <div className="text-pin-red-600 dark:text-pin-red-400 font-medium">
-                ⚠ Chưa thanh toán
-              </div>
-            )}
-          </div>
+          <PaymentBadge
+            status={order.paymentStatus as "paid" | "unpaid" | "partial"}
+            amount={remaining > 0 ? remaining : undefined}
+            depositAmount={depositAmount > 0 ? depositAmount : undefined}
+            paidAmount={partialPayment > 0 ? partialPayment : undefined}
+          />
         );
       },
     },

@@ -99,7 +99,8 @@ function getLocalBypassFlag(): boolean {
 
 export const DEV_AUTH_BYPASS: boolean =
   ((import.meta as any)?.env?.VITE_DEV_AUTH_BYPASS === "1" ||
-    getLocalBypassFlag()) &&
+    getLocalBypassFlag() ||
+    IS_OFFLINE_MODE) &&
   isLocalhost();
 
 /**
