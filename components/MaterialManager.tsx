@@ -16,6 +16,7 @@ import {
   XMarkIcon,
   EyeIcon,
 } from "./common/Icons";
+import { Icon, type IconName } from "./common/Icon";
 import PinImportHistory from "./PinImportHistory";
 import MaterialImportModal, { ImportRow } from "./MaterialImportModal";
 const formatCurrency = (amount: number) =>
@@ -3925,13 +3926,14 @@ const MaterialManager: React.FC<{
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 {/* Supplier Filter */}
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                    🏢 Nhà cung cấp
+                  <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                    <Icon name="storefront" className="w-4 h-4 text-teal-500" />
+                    Nhà cung cấp
                   </label>
                   <select
                     value={supplierFilter}
                     onChange={(e) => setSupplierFilter(e.target.value)}
-                    className="w-full px-4 py-3 border-2 border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-slate-900 dark:text-white font-medium focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all duration-200 shadow-sm"
+                    className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-medium focus:border-teal-400 focus:ring-2 focus:ring-teal-400/20 transition-all duration-200"
                   >
                     <option value="">Tất cả</option>
                     {uniqueSuppliers.map((supplier) => (
@@ -3944,13 +3946,14 @@ const MaterialManager: React.FC<{
 
                 {/* Stock Filter */}
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                    📦 Tồn kho
+                  <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                    <Icon name="cube" className="w-4 h-4 text-amber-500" />
+                    Tồn kho
                   </label>
                   <select
                     value={stockFilter}
                     onChange={(e) => setStockFilter(e.target.value)}
-                    className="w-full px-4 py-3 border-2 border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-slate-900 dark:text-white font-medium focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all duration-200 shadow-sm"
+                    className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-medium focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 transition-all duration-200"
                   >
                     <option value="">Tất cả</option>
                     <option value="empty">🔴 Hết hàng (0)</option>
@@ -3961,13 +3964,14 @@ const MaterialManager: React.FC<{
 
                 {/* Unit Filter */}
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                    📏 Đơn vị
+                  <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                    <Icon name="package" className="w-4 h-4 text-cyan-500" />
+                    Đơn vị
                   </label>
                   <select
                     value={unitFilter}
                     onChange={(e) => setUnitFilter(e.target.value)}
-                    className="w-full px-4 py-3 border-2 border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-slate-900 dark:text-white font-medium focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all duration-200 shadow-sm"
+                    className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-medium focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all duration-200"
                   >
                     <option value="">Tất cả</option>
                     {uniqueUnits.map((unit) => (
@@ -3980,7 +3984,7 @@ const MaterialManager: React.FC<{
 
                 {/* Results Count */}
                 <div className="flex items-end">
-                  <div className="text-sm font-semibold px-4 py-3 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/40 dark:to-purple-900/40 rounded-xl w-full text-center border-2 border-blue-200 dark:border-blue-800">
+                  <div className="text-sm font-semibold px-4 py-2.5 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/40 dark:to-purple-900/40 rounded-lg w-full text-center border border-blue-200 dark:border-blue-800">
                     <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
                       {filteredMaterials.length}
                     </span>
@@ -4108,11 +4112,11 @@ const MaterialManager: React.FC<{
                       filteredMaterials.map((material) => (
                         <tr
                           key={material.id}
-                          className={`hover: bg - gray - 50 dark: hover: bg - gray - 700 / 50 transition - colors ${
+                          className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all duration-150 ${
                             selectedItems.has(material.id)
                               ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700"
                               : ""
-                          } `}
+                          }`}
                         >
                           <td className="px-4 py-4 text-center">
                             <input
@@ -4125,7 +4129,12 @@ const MaterialManager: React.FC<{
                             />
                           </td>
                           <td className="px-4 py-4 font-semibold text-gray-900 dark:text-white">
-                            {material.name}
+                            <button
+                              onClick={() => handleShowMaterialDetail(material)}
+                              className="hover:text-cyan-500 dark:hover:text-cyan-400 transition-colors cursor-pointer text-left"
+                            >
+                              {material.name}
+                            </button>
                           </td>
                           <td className="px-4 py-4 text-sm text-gray-600 dark:text-gray-300 font-mono bg-gray-50 dark:bg-gray-700/50">
                             {material.sku}
@@ -4148,57 +4157,54 @@ const MaterialManager: React.FC<{
                           </td>
                           <td className="px-4 py-4 text-center">
                             {(() => {
-                              const stockStatus = getStockStatus(
-                                material.availableStock || material.stock
-                              );
+                              const stockValue =
+                                material.availableStock || material.stock;
                               const hasCommitments =
                                 (material.committedQuantity || 0) > 0;
+
+                              // Color coding based on stock level
+                              let badgeColor = "";
+                              let badgeIcon = "";
+
+                              if (stockValue === 0) {
+                                badgeColor =
+                                  "bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 ring-1 ring-rose-300 dark:ring-rose-700";
+                                badgeIcon = "🔴";
+                              } else if (stockValue < 100) {
+                                badgeColor =
+                                  "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 ring-1 ring-amber-300 dark:ring-amber-700";
+                                badgeIcon = "🟡";
+                              } else if (stockValue < 500) {
+                                badgeColor =
+                                  "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 ring-1 ring-blue-300 dark:ring-blue-700";
+                                badgeIcon = "🔵";
+                              } else {
+                                badgeColor =
+                                  "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-300 dark:ring-emerald-700";
+                                badgeIcon = "🟢";
+                              }
+
                               return (
                                 <div className="flex flex-col items-center gap-1">
                                   <div className="flex items-center gap-2">
-                                    <span className="text-lg">
-                                      {stockStatus.icon}
+                                    <span className="text-base">
+                                      {badgeIcon}
                                     </span>
                                     <span
-                                      className={`px - 3 py - 1 rounded - full text - sm font - semibold ${
-                                        stockStatus.color
-                                      } ${
-                                        (material.availableStock ||
-                                          material.stock) === 0
-                                          ? "bg-red-100 dark:bg-red-900/30"
-                                          : (material.availableStock ||
-                                              material.stock) <= 5
-                                          ? "bg-orange-100 dark:bg-orange-900/30"
-                                          : (material.availableStock ||
-                                              material.stock) <= 10
-                                          ? "bg-yellow-100 dark:bg-yellow-900/30"
-                                          : "bg-green-100 dark:bg-green-900/30"
-                                      } `}
+                                      className={`px-3 py-1.5 rounded-full text-sm font-bold ${badgeColor}`}
                                     >
                                       {hasCommitments ? (
                                         <>
-                                          <span className="font-bold text-green-700 dark:text-green-300">
+                                          <span className="text-current">
                                             {material.availableStock}
                                           </span>
-                                          <span className="text-gray-500 dark:text-gray-400">
+                                          <span className="opacity-60">
                                             /{material.stock}
                                           </span>
                                         </>
                                       ) : (
-                                        material.stock
+                                        stockValue
                                       )}
-                                      {(material.availableStock ||
-                                        material.stock) === 0 && " (Hết hàng)"}
-                                      {(material.availableStock ||
-                                        material.stock) > 0 &&
-                                        (material.availableStock ||
-                                          material.stock) <= 5 &&
-                                        " (Nguy hiểm)"}
-                                      {(material.availableStock ||
-                                        material.stock) > 5 &&
-                                        (material.availableStock ||
-                                          material.stock) <= 10 &&
-                                        " (Thấp)"}
                                     </span>
                                   </div>
                                   {hasCommitments && (
@@ -4219,59 +4225,44 @@ const MaterialManager: React.FC<{
                               "-"}
                           </td>
                           <td className="px-4 py-4">
-                            <div className="flex justify-center gap-1">
-                              <button
-                                onClick={() =>
-                                  handleShowMaterialDetail(material)
-                                }
-                                className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
-                                title="Xem chi tiết & lịch sử"
-                              >
-                                <EyeIcon className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() =>
-                                  handleShowStockForecast(material)
-                                }
-                                className="p-2 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded-lg transition-colors"
-                                title="Dự báo tồn kho thông minh"
-                              >
-                                <span className="text-sm">🔮</span>
-                              </button>
-                              <button
-                                onClick={() =>
-                                  handleShowPriceAnalysis(material)
-                                }
-                                className="p-2 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
-                                title="Phân tích giá nhà cung cấp"
-                              >
-                                <span className="text-sm">💰</span>
-                              </button>
+                            <div className="flex justify-center gap-1.5">
                               <button
                                 onClick={() =>
                                   handleShowStockAdjustment(material)
                                 }
-                                className="p-2 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-lg transition-colors"
+                                className="h-9 w-9 rounded-full flex items-center justify-center ring-1 ring-inset ring-slate-200 dark:ring-slate-600 bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 transition-all duration-200"
                                 title="Điều chỉnh tồn kho"
                               >
-                                <span className="text-sm">⚖️</span>
+                                <Icon
+                                  name="gear"
+                                  weight="bold"
+                                  className="w-5 h-5 text-teal-400"
+                                />
                               </button>
                               <button
                                 onClick={() => {
                                   setEditingMaterial(material);
                                   setShowForm(true);
                                 }}
-                                className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                                className="h-9 w-9 rounded-full flex items-center justify-center ring-1 ring-inset ring-slate-200 dark:ring-slate-600 bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 transition-all duration-200"
                                 title="Nhập kho thêm"
                               >
-                                <PencilSquareIcon className="w-4 h-4" />
+                                <Icon
+                                  name="pencil"
+                                  weight="bold"
+                                  className="w-5 h-5 text-amber-400"
+                                />
                               </button>
                               <button
                                 onClick={() => deleteMaterial(material.id)}
-                                className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                                className="h-9 w-9 rounded-full flex items-center justify-center ring-1 ring-inset ring-slate-200 dark:ring-slate-600 bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 transition-all duration-200"
                                 title="Xóa"
                               >
-                                <TrashIcon className="w-4 h-4" />
+                                <Icon
+                                  name="trash"
+                                  weight="bold"
+                                  className="w-5 h-5 text-rose-400"
+                                />
                               </button>
                             </div>
                           </td>
