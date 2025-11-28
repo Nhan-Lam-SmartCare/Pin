@@ -61,7 +61,9 @@ export default function ReceivablesNew() {
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [showCollectModal, setShowCollectModal] = useState(false);
   const [showSupplierPayModal, setShowSupplierPayModal] = useState(false);
-  const [preSelectedDebtId, setPreSelectedDebtId] = useState<string | undefined>(undefined);
+  const [preSelectedDebtId, setPreSelectedDebtId] = useState<
+    string | undefined
+  >(undefined);
 
   // Calculate customer receivables (from workorders and sales)
   const customerRows = useMemo(() => {
@@ -747,7 +749,8 @@ export default function ReceivablesNew() {
                 onClick={() => {
                   if (activeTab === "customers") {
                     // Nếu có chọn 1 công nợ, tự động điền vào modal
-                    const firstSelectedId = selectedIds.length === 1 ? selectedIds[0] : undefined;
+                    const firstSelectedId =
+                      selectedIds.length === 1 ? selectedIds[0] : undefined;
                     setPreSelectedDebtId(firstSelectedId);
                     setShowCollectModal(true);
                   } else {

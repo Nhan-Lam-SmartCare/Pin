@@ -14,7 +14,11 @@ type Props = {
   preSelectedDebtId?: string; // ID của công nợ đã được chọn từ danh sách
 };
 
-export default function DebtCollectionModal({ open, onClose, preSelectedDebtId }: Props) {
+export default function DebtCollectionModal({
+  open,
+  onClose,
+  preSelectedDebtId,
+}: Props) {
   const ctx = usePinContext();
   const currentUser = ctx.currentUser;
   const currentBranchId = (ctx as any).currentBranchId || "main";
