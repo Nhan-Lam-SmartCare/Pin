@@ -14,15 +14,13 @@ import {
   BeakerIcon,
   CubeIcon,
   CheckCircleIcon,
-  XCircleIcon,
+  XMarkIcon,
 } from "./common/Icons";
 import PredictiveCostEngine from "../lib/PredictiveCostEngine";
 import SmartInventoryAnalytics from "../lib/SmartInventoryAnalytics";
 
 const formatCurrency = (amount: number) =>
-  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
-    amount
-  );
+  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
 
 interface PredictiveDashboardProps {
   orders: ProductionOrder[];
@@ -30,11 +28,7 @@ interface PredictiveDashboardProps {
   boms: PinBOM[];
 }
 
-const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({
-  orders,
-  materials,
-  boms,
-}) => {
+const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({ orders, materials, boms }) => {
   const [selectedTab, setSelectedTab] = useState<
     "overview" | "cost_prediction" | "inventory_forecast"
   >("overview");
@@ -42,11 +36,7 @@ const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({
   // Initialize prediction engines
   const { costEngine, inventoryAnalytics } = useMemo(() => {
     const costEngine = new PredictiveCostEngine(orders, materials);
-    const inventoryAnalytics = new SmartInventoryAnalytics(
-      materials,
-      orders,
-      boms
-    );
+    const inventoryAnalytics = new SmartInventoryAnalytics(materials, orders, boms);
     return { costEngine, inventoryAnalytics };
   }, [orders, materials, boms]);
 
@@ -242,9 +232,7 @@ const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({
                   <p className="text-2xl font-bold text-orange-800 dark:text-orange-200">
                     {overviewMetrics.highRiskOrders}
                   </p>
-                  <p className="text-xs text-orange-600 dark:text-orange-400">
-                    Cần attention ngay
-                  </p>
+                  <p className="text-xs text-orange-600 dark:text-orange-400">Cần attention ngay</p>
                 </div>
                 <ExclamationTriangleIcon className="w-8 h-8 text-orange-600 dark:text-orange-400" />
               </div>
@@ -259,9 +247,7 @@ const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({
                   <p className="text-2xl font-bold text-red-800 dark:text-red-200">
                     {criticalInventoryAlerts.length}
                   </p>
-                  <p className="text-xs text-red-600 dark:text-red-400">
-                    Cần đặt hàng urgent
-                  </p>
+                  <p className="text-xs text-red-600 dark:text-red-400">Cần đặt hàng urgent</p>
                 </div>
                 <CubeIcon className="w-8 h-8 text-red-600 dark:text-red-400" />
               </div>
@@ -293,10 +279,8 @@ const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({
                     {activePredictions
                       .filter(
                         (item) =>
-                          item?.prediction.riskAssessment.overallRisk ===
-                            "high" ||
-                          item?.prediction.riskAssessment.overallRisk ===
-                            "critical"
+                          item?.prediction.riskAssessment.overallRisk === "high" ||
+                          item?.prediction.riskAssessment.overallRisk === "critical"
                       )
                       .slice(0, 5)
                       .map((item, index) => (
@@ -309,20 +293,15 @@ const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({
                               #{item?.order.id} - {item?.order.productName}
                             </p>
                             <p className="text-sm text-slate-600 dark:text-slate-400">
-                              Dự đoán:{" "}
-                              {formatCurrency(
-                                item?.prediction.predictedTotalCost || 0
-                              )}
+                              Dự đoán: {formatCurrency(item?.prediction.predictedTotalCost || 0)}
                             </p>
                           </div>
                           <div
                             className={`px-2 py-1 rounded text-xs font-medium ${getRiskColor(
-                              item?.prediction.riskAssessment.overallRisk ||
-                                "low"
+                              item?.prediction.riskAssessment.overallRisk || "low"
                             )}`}
                           >
-                            {item?.prediction.riskAssessment.overallRisk ===
-                            "critical"
+                            {item?.prediction.riskAssessment.overallRisk === "critical"
                               ? "Nguy cấp"
                               : "Cao"}
                           </div>
@@ -349,39 +328,33 @@ const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {criticalInventoryAlerts
-                      .slice(0, 5)
-                      .map((forecast, index) => {
-                        const material = materials.find(
-                          (m) => m.id === forecast.materialId
-                        );
-                        return (
-                          <div
-                            key={index}
-                            className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg"
-                          >
-                            <div>
-                              <p className="font-medium text-slate-800 dark:text-slate-100">
-                                {material?.name || forecast.materialId}
-                              </p>
-                              <p className="text-sm text-slate-600 dark:text-slate-400">
-                                Tồn kho: {forecast.currentStock}{" "}
-                                {material?.unit}
-                              </p>
-                            </div>
-                            <div
-                              className={`px-2 py-1 rounded text-xs font-medium ${getUrgencyColor(
-                                forecast.recommendedAction.urgencyLevel
-                              )}`}
-                            >
-                              {forecast.recommendedAction.urgencyLevel ===
-                              "critical"
-                                ? "Nguy cấp"
-                                : "Cần đặt hàng"}
-                            </div>
+                    {criticalInventoryAlerts.slice(0, 5).map((forecast, index) => {
+                      const material = materials.find((m) => m.id === forecast.materialId);
+                      return (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg"
+                        >
+                          <div>
+                            <p className="font-medium text-slate-800 dark:text-slate-100">
+                              {material?.name || forecast.materialId}
+                            </p>
+                            <p className="text-sm text-slate-600 dark:text-slate-400">
+                              Tồn kho: {forecast.currentStock} {material?.unit}
+                            </p>
                           </div>
-                        );
-                      })}
+                          <div
+                            className={`px-2 py-1 rounded text-xs font-medium ${getUrgencyColor(
+                              forecast.recommendedAction.urgencyLevel
+                            )}`}
+                          >
+                            {forecast.recommendedAction.urgencyLevel === "critical"
+                              ? "Nguy cấp"
+                              : "Cần đặt hàng"}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -428,9 +401,7 @@ const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({
                     <tr
                       key={index}
                       className={`border-t dark:border-slate-700 ${
-                        index % 2 === 0
-                          ? "bg-slate-25 dark:bg-slate-900/50"
-                          : ""
+                        index % 2 === 0 ? "bg-slate-25 dark:bg-slate-900/50" : ""
                       }`}
                     >
                       <td className="p-4">
@@ -447,9 +418,7 @@ const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({
                         {formatCurrency(item?.order.totalCost || 0)}
                       </td>
                       <td className="p-4 text-right font-medium text-slate-800 dark:text-slate-100">
-                        {formatCurrency(
-                          item?.prediction.predictedTotalCost || 0
-                        )}
+                        {formatCurrency(item?.prediction.predictedTotalCost || 0)}
                       </td>
                       <td className="p-4 text-right">
                         <div className="flex items-center justify-end">
@@ -457,17 +426,12 @@ const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({
                             <div
                               className="bg-green-500 h-2 rounded-full"
                               style={{
-                                width: `${
-                                  (item?.prediction.confidenceLevel || 0) * 100
-                                }%`,
+                                width: `${(item?.prediction.confidenceLevel || 0) * 100}%`,
                               }}
                             />
                           </div>
                           <span className="text-sm text-slate-600 dark:text-slate-400">
-                            {(
-                              (item?.prediction.confidenceLevel || 0) * 100
-                            ).toFixed(0)}
-                            %
+                            {((item?.prediction.confidenceLevel || 0) * 100).toFixed(0)}%
                           </span>
                         </div>
                       </td>
@@ -477,30 +441,25 @@ const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({
                             item?.prediction.riskAssessment.overallRisk || "low"
                           )}`}
                         >
-                          {item?.prediction.riskAssessment.overallRisk ===
-                          "critical"
+                          {item?.prediction.riskAssessment.overallRisk === "critical"
                             ? "Nguy cấp"
-                            : item?.prediction.riskAssessment.overallRisk ===
-                              "high"
-                            ? "Cao"
-                            : item?.prediction.riskAssessment.overallRisk ===
-                              "medium"
-                            ? "TB"
-                            : "Thấp"}
+                            : item?.prediction.riskAssessment.overallRisk === "high"
+                              ? "Cao"
+                              : item?.prediction.riskAssessment.overallRisk === "medium"
+                                ? "TB"
+                                : "Thấp"}
                         </span>
                       </td>
                       <td className="p-4">
                         <div className="space-y-1">
-                          {item?.prediction.predictionFactors
-                            .slice(0, 2)
-                            .map((factor, fIndex) => (
-                              <div
-                                key={fIndex}
-                                className="text-xs text-slate-600 dark:text-slate-400"
-                              >
-                                • {factor.description}
-                              </div>
-                            ))}
+                          {item?.prediction.predictionFactors.slice(0, 2).map((factor, fIndex) => (
+                            <div
+                              key={fIndex}
+                              className="text-xs text-slate-600 dark:text-slate-400"
+                            >
+                              • {factor.description}
+                            </div>
+                          ))}
                         </div>
                       </td>
                     </tr>
@@ -521,9 +480,7 @@ const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({
               <p className="text-2xl font-bold text-blue-800 dark:text-blue-200">
                 {inventorySummary.totalMaterials}
               </p>
-              <p className="text-blue-600 dark:text-blue-400 text-sm">
-                Tổng NVL
-              </p>
+              <p className="text-blue-600 dark:text-blue-400 text-sm">Tổng NVL</p>
             </div>
             <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4 text-center">
               <p className="text-2xl font-bold text-red-800 dark:text-red-200">
@@ -535,17 +492,13 @@ const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({
               <p className="text-2xl font-bold text-green-800 dark:text-green-200">
                 {inventorySummary.adequateStock}
               </p>
-              <p className="text-green-600 dark:text-green-400 text-sm">
-                Đủ tồn kho
-              </p>
+              <p className="text-green-600 dark:text-green-400 text-sm">Đủ tồn kho</p>
             </div>
             <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-4 text-center">
               <p className="text-2xl font-bold text-amber-800 dark:text-amber-200">
                 {inventorySummary.overStock}
               </p>
-              <p className="text-amber-600 dark:text-amber-400 text-sm">
-                Dư thừa
-              </p>
+              <p className="text-amber-600 dark:text-amber-400 text-sm">Dư thừa</p>
             </div>
           </div>
 
@@ -579,9 +532,7 @@ const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({
                 </thead>
                 <tbody>
                   {inventoryForecasts.map((forecast, index) => {
-                    const material = materials.find(
-                      (m) => m.id === forecast.materialId
-                    );
+                    const material = materials.find((m) => m.id === forecast.materialId);
                     const totalDemand = forecast.projectedDemand.reduce(
                       (sum, proj) => sum + proj.projectedDemand,
                       0
@@ -590,9 +541,7 @@ const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({
                       <tr
                         key={index}
                         className={`border-t dark:border-slate-700 ${
-                          index % 2 === 0
-                            ? "bg-slate-25 dark:bg-slate-900/50"
-                            : ""
+                          index % 2 === 0 ? "bg-slate-25 dark:bg-slate-900/50" : ""
                         }`}
                       >
                         <td className="p-4">
@@ -619,8 +568,8 @@ const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({
                                   forecast.stockoutRisk > 0.7
                                     ? "bg-red-500"
                                     : forecast.stockoutRisk > 0.4
-                                    ? "bg-yellow-500"
-                                    : "bg-green-500"
+                                      ? "bg-yellow-500"
+                                      : "bg-green-500"
                                 }`}
                                 style={{
                                   width: `${forecast.stockoutRisk * 100}%`,
@@ -640,19 +589,15 @@ const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({
                           >
                             {forecast.recommendedAction.action === "immediate"
                               ? "Đặt ngay"
-                              : forecast.recommendedAction.action ===
-                                "within_week"
-                              ? "Trong tuần"
-                              : forecast.recommendedAction.action ===
-                                "within_month"
-                              ? "Trong tháng"
-                              : "OK"}
+                              : forecast.recommendedAction.action === "within_week"
+                                ? "Trong tuần"
+                                : forecast.recommendedAction.action === "within_month"
+                                  ? "Trong tháng"
+                                  : "OK"}
                           </div>
-                          {forecast.recommendedAction.recommendedQuantity >
-                            0 && (
+                          {forecast.recommendedAction.recommendedQuantity > 0 && (
                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                              SL:{" "}
-                              {forecast.recommendedAction.recommendedQuantity}
+                              SL: {forecast.recommendedAction.recommendedQuantity}
                             </p>
                           )}
                         </td>
@@ -677,37 +622,34 @@ const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({
             <div className="space-y-2 text-sm text-slate-700 dark:text-slate-300">
               {overviewMetrics.costVariance > 0 && (
                 <p>
-                  • Chi phí dự đoán cao hơn ước tính{" "}
-                  {formatCurrency(overviewMetrics.costVariance)}. Xem xét tối ưu
-                  hóa quy trình sản xuất.
+                  • Chi phí dự đoán cao hơn ước tính {formatCurrency(overviewMetrics.costVariance)}.
+                  Xem xét tối ưu hóa quy trình sản xuất.
                 </p>
               )}
               {overviewMetrics.averageConfidence < 70 && (
                 <p>
-                  • Độ tin cậy dự đoán thấp (
-                  {overviewMetrics.averageConfidence.toFixed(0)}%). Thu thập
-                  thêm dữ liệu lịch sử để cải thiện độ chính xác.
+                  • Độ tin cậy dự đoán thấp ({overviewMetrics.averageConfidence.toFixed(0)}%). Thu
+                  thập thêm dữ liệu lịch sử để cải thiện độ chính xác.
                 </p>
               )}
               {criticalInventoryAlerts.length > 0 && (
                 <p>
-                  • {criticalInventoryAlerts.length} nguyên vật liệu cần đặt
-                  hàng gấp để tránh gián đoạn sản xuất.
+                  • {criticalInventoryAlerts.length} nguyên vật liệu cần đặt hàng gấp để tránh gián
+                  đoạn sản xuất.
                 </p>
               )}
               {inventorySummary.overStock > 0 && (
                 <p>
-                  • {inventorySummary.overStock} nguyên vật liệu dư thừa. Xem
-                  xét giảm đặt hàng để tối ưu cash flow.
+                  • {inventorySummary.overStock} nguyên vật liệu dư thừa. Xem xét giảm đặt hàng để
+                  tối ưu cash flow.
                 </p>
               )}
-              {overviewMetrics.highRiskOrders === 0 &&
-                criticalInventoryAlerts.length === 0 && (
-                  <p>
-                    • ✅ Hệ thống hoạt động tốt! Tất cả lệnh sản xuất và tồn kho
-                    trong tình trạng an toàn.
-                  </p>
-                )}
+              {overviewMetrics.highRiskOrders === 0 && criticalInventoryAlerts.length === 0 && (
+                <p>
+                  • ✅ Hệ thống hoạt động tốt! Tất cả lệnh sản xuất và tồn kho trong tình trạng an
+                  toàn.
+                </p>
+              )}
             </div>
           </div>
         </div>

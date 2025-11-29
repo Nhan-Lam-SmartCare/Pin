@@ -8,6 +8,25 @@ export interface MaterialsService {
   reloadHistory: () => Promise<void>;
 }
 
+interface DBPinMaterial {
+  id?: string;
+  name: string;
+  sku: string;
+  unit: string;
+  purchase_price: number;
+  retail_price: number;
+  wholesale_price: number;
+  stock: number;
+  committed_quantity: number;
+  supplier: string | null;
+  description: string | null;
+  updated_at: string;
+}
+
+function isValidUUID(id: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+}
+
 export function createMaterialsService(ctx: PinContextType): MaterialsService {
   const upsertLocal = async (material: PinMaterial) => {
     ctx.setPinMaterials((prev: PinMaterial[]) => {
@@ -29,7 +48,7 @@ export function createMaterialsService(ctx: PinContextType): MaterialsService {
           return;
         }
 
-        const payload: any = {
+        const payload: DBPinMaterial = {
           name: material.name,
           sku: material.sku,
           unit: material.unit,
@@ -44,23 +63,19 @@ export function createMaterialsService(ctx: PinContextType): MaterialsService {
         };
 
         // Only include id if it's a valid UUID (for updates)
-        if (
-          material.id &&
-          material.id.match(
-            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-          )
-        ) {
+        if (material.id && isValidUUID(material.id)) {
           payload.id = material.id;
         }
 
         const { error } = await supabase.from("pin_materials").upsert(payload);
         if (error) throw error;
         await upsertLocal(material);
-      } catch (e: any) {
+      } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
         ctx.addToast?.({
           type: "error",
           title: "Lưu vật tư thất bại",
-          message: e?.message || String(e),
+          message: errorMessage,
         });
         throw e;
       }
@@ -68,20 +83,18 @@ export function createMaterialsService(ctx: PinContextType): MaterialsService {
     deleteMaterial: async (materialId) => {
       try {
         if (!(IS_OFFLINE_MODE || !ctx.currentUser)) {
-          const { error } = await supabase
-            .from("pin_materials")
-            .delete()
-            .eq("id", materialId);
+          const { error } = await supabase.from("pin_materials").delete().eq("id", materialId);
           if (error) throw error;
         }
         ctx.setPinMaterials((prev: PinMaterial[]) =>
           prev.filter((m: PinMaterial) => m.id !== materialId)
         );
-      } catch (e: any) {
+      } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
         ctx.addToast?.({
           type: "error",
           title: "Xóa vật tư thất bại",
-          message: e?.message || String(e),
+          message: errorMessage,
         });
         throw e;
       }

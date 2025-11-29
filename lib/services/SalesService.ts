@@ -1,10 +1,5 @@
 import type { PinContextType } from "../../contexts/types";
-import type {
-  CashTransaction,
-  PinSale,
-  PinProduct,
-  PinMaterial,
-} from "../../types";
+import type { CashTransaction, PinSale, PinProduct, PinMaterial, PinCartItem } from "../../types";
 import { supabase, IS_OFFLINE_MODE } from "../../supabaseClient";
 import { generateFormattedId } from "../../lib/id";
 
@@ -15,6 +10,27 @@ export interface SalesService {
   ) => Promise<void>;
   deletePinSale: (saleId: string) => Promise<void>;
   updatePinSale: (sale: PinSale) => Promise<void>;
+}
+
+interface DBPinSale {
+  id?: string;
+  code?: string | null;
+  date: string;
+  items: string;
+  subtotal: number;
+  discount: number;
+  total: number;
+  customer: string;
+  payment_method: string;
+  payment_status: string;
+  paid_amount: number;
+  due_date?: string | null;
+  user_id: string;
+  user_name: string;
+}
+
+interface CartItemWithType extends PinCartItem {
+  type?: "product" | "material";
 }
 
 export function createSalesService(ctx: PinContextType): SalesService {
@@ -30,18 +46,18 @@ export function createSalesService(ctx: PinContextType): SalesService {
       }
 
       // Prepare base sale data (code will be generated per-attempt)
-      const newSaleBase: Omit<PinSale, "id"> & { id?: string } = {
+      const newSaleBase: Omit<PinSale, "id"> = {
         ...saleData,
         date: new Date().toISOString(),
         userId: ctx.currentUser ? ctx.currentUser.id : "offline",
         userName: ctx.currentUser ? ctx.currentUser.name : "Offline",
-      } as any;
+      };
 
       if (IS_OFFLINE_MODE) {
         const offlineSale: PinSale = {
-          ...(newSaleBase as any),
+          ...newSaleBase,
           id: `OFF-${Date.now()}`,
-        } as PinSale;
+        };
         ctx.setPinSales((prev: PinSale[]) => [offlineSale, ...prev]);
         await ctx.addCashTransaction?.(newCashTx);
         return;
@@ -50,61 +66,38 @@ export function createSalesService(ctx: PinContextType): SalesService {
       try {
         // Prepare DB payload for pin_sales (snake_case)
         const paymentStatus =
-          (newSaleBase as any).paymentStatus ||
-          (typeof (saleData as any).paidAmount === "number" &&
-          (saleData as any).paidAmount < saleData.total
+          newSaleBase.paymentStatus ||
+          (typeof saleData.paidAmount === "number" && saleData.paidAmount < saleData.total
             ? "partial"
             : "paid");
         // Build-and-insert with retry on unique code conflicts
-        let inserted: any = null;
-        let pinSaleError: any = null;
+        let inserted: { id: string; code?: string } | null = null;
+        let pinSaleError: Error | { message: string; status?: number; code?: string } | null = null;
         let finalCode: string | null = null;
         for (let attempt = 0; attempt < 3; attempt++) {
           const saleCode = await generateFormattedId("LTN-BH");
           finalCode = saleCode;
-          let payload: any = {
+          const payload: DBPinSale = {
             code: saleCode,
             date: newSaleBase.date,
-            items: newSaleBase.items,
+            items: JSON.stringify(newSaleBase.items ?? []),
             subtotal: newSaleBase.subtotal,
             discount: newSaleBase.discount,
             total: newSaleBase.total,
-            customer: newSaleBase.customer,
+            customer: JSON.stringify(newSaleBase.customer ?? {}),
             payment_method: newSaleBase.paymentMethod,
             payment_status: paymentStatus,
             paid_amount:
-              typeof (saleData as any).paidAmount === "number"
-                ? Math.max(0, (saleData as any).paidAmount)
-                : newCashTx?.amount ?? newSaleBase.total,
-            due_date: (newSaleBase as any).dueDate ?? null,
+              typeof saleData.paidAmount === "number"
+                ? Math.max(0, saleData.paidAmount)
+                : (newCashTx?.amount ?? newSaleBase.total),
+            due_date: newSaleBase.dueDate ?? null,
             user_id: newSaleBase.userId,
             user_name: newSaleBase.userName,
           };
 
-          // Ensure JSON text fields for DB
-          if (
-            payload.items !== undefined &&
-            typeof payload.items !== "string"
-          ) {
-            try {
-              payload.items = JSON.stringify(payload.items);
-            } catch {}
-          }
-          if (
-            payload.customer !== undefined &&
-            typeof payload.customer !== "string"
-          ) {
-            try {
-              payload.customer = JSON.stringify(payload.customer);
-            } catch {}
-          }
-
-          const res = await supabase
-            .from("pin_sales")
-            .insert(payload)
-            .select()
-            .single();
-          inserted = res.data;
+          const res = await supabase.from("pin_sales").insert(payload).select().single();
+          inserted = res.data as { id: string; code?: string } | null;
           pinSaleError = res.error;
 
           // Retry logic on unique code violation or 409 Conflict
@@ -113,17 +106,14 @@ export function createSalesService(ctx: PinContextType): SalesService {
             (/duplicate key|unique constraint|23505|409|Conflict/i.test(
               pinSaleError.message || ""
             ) ||
-              pinSaleError.status === 409);
+              (pinSaleError as { status?: number }).status === 409);
 
           if (!pinSaleError || !isUniqueViolation) {
             break;
           }
         }
         // Fallback: older deployments without `code` column
-        if (
-          pinSaleError &&
-          /column|does not exist/i.test(pinSaleError.message || "")
-        ) {
+        if (pinSaleError && /column|does not exist/i.test(pinSaleError.message || "")) {
           try {
             const res2 = await supabase
               .from("pin_sales")
@@ -137,19 +127,19 @@ export function createSalesService(ctx: PinContextType): SalesService {
                 payment_method: newSaleBase.paymentMethod,
                 payment_status: paymentStatus,
                 paid_amount:
-                  typeof (saleData as any).paidAmount === "number"
-                    ? Math.max(0, (saleData as any).paidAmount)
-                    : newCashTx?.amount ?? newSaleBase.total,
-                due_date: (newSaleBase as any).dueDate ?? null,
+                  typeof saleData.paidAmount === "number"
+                    ? Math.max(0, saleData.paidAmount)
+                    : (newCashTx?.amount ?? newSaleBase.total),
+                due_date: newSaleBase.dueDate ?? null,
                 user_id: newSaleBase.userId,
                 user_name: newSaleBase.userName,
               })
               .select()
               .single();
-            inserted = res2.data;
+            inserted = res2.data as { id: string; code?: string } | null;
             pinSaleError = res2.error;
           } catch (e) {
-            pinSaleError = e;
+            pinSaleError = e as Error;
           }
         }
         if (pinSaleError) {
@@ -158,10 +148,8 @@ export function createSalesService(ctx: PinContextType): SalesService {
             message: pinSaleError.message || String(pinSaleError),
             type: "error",
           });
-          if (
-            (pinSaleError as any).code === "42501" ||
-            /permission|policy|rls/i.test(pinSaleError.message || "")
-          ) {
+          const errorCode = (pinSaleError as { code?: string }).code;
+          if (errorCode === "42501" || /permission|policy|rls/i.test(pinSaleError.message || "")) {
             ctx.addToast?.({
               title: "Quyền truy cập bị chặn",
               message: "Kiểm tra RLS/policy trên bảng pin_sales",
@@ -173,17 +161,17 @@ export function createSalesService(ctx: PinContextType): SalesService {
 
         // Add sale with returned UUID id
         const savedSale: PinSale = {
-          ...(newSaleBase as any),
-          id: (inserted as any)?.id,
-          code: finalCode || (inserted as any)?.code,
-        } as PinSale;
+          ...newSaleBase,
+          id: inserted?.id || "",
+          code: finalCode || inserted?.code,
+        };
         ctx.setPinSales((prev: PinSale[]) => [savedSale, ...prev]);
 
         // Inventory adjustments after sale
         try {
           const usageByProduct = new Map<string, number>();
           const usageByMaterial = new Map<string, number>();
-          (newSaleBase.items || []).forEach((it: any) => {
+          (newSaleBase.items || []).forEach((it: CartItemWithType) => {
             const q = Number(it.quantity || 0);
             const pid = it.productId;
             const itemType = it.type || "product";
@@ -196,29 +184,16 @@ export function createSalesService(ctx: PinContextType): SalesService {
 
           // Products
           for (const [productId, qty] of usageByProduct.entries()) {
-            const prod = ctx.pinProducts.find(
-              (p: PinProduct) => p.id === productId
-            );
+            const prod = ctx.pinProducts.find((p: PinProduct) => p.id === productId);
             if (!prod) continue;
             const remaining = Math.max(0, (prod.stock || 0) - qty);
-            const pld = {
-              id: prod.id,
-              name: prod.name,
-              sku: prod.sku,
-              stock: remaining,
-              costPrice: (prod as any).costPrice,
-              sellingPrice: (prod as any).sellingPrice,
-              created_by: ctx.currentUser?.id,
-            } as any;
             const { error: upErr } = await supabase
               .from("pin_products")
               .update({ stock: remaining })
               .eq("id", productId);
             if (!upErr) {
               ctx.setPinProducts((prev: PinProduct[]) =>
-                prev.map((p: PinProduct) =>
-                  p.id === productId ? { ...p, stock: remaining } : p
-                )
+                prev.map((p: PinProduct) => (p.id === productId ? { ...p, stock: remaining } : p))
               );
             } else {
               ctx.addToast?.({
@@ -231,30 +206,16 @@ export function createSalesService(ctx: PinContextType): SalesService {
 
           // Materials
           for (const [materialId, qty] of usageByMaterial.entries()) {
-            const mat = ctx.pinMaterials.find(
-              (m: PinMaterial) => m.id === materialId
-            );
+            const mat = ctx.pinMaterials.find((m: PinMaterial) => m.id === materialId);
             if (!mat) continue;
             const remaining = Math.max(0, (mat.stock || 0) - qty);
-            const mld = {
-              id: mat.id,
-              name: mat.name,
-              sku: (mat as any).sku,
-              stock: remaining,
-              purchasePrice: (mat as any).purchasePrice,
-              retailPrice: (mat as any).retailPrice,
-              wholesalePrice: (mat as any).wholesalePrice,
-              created_by: (mat as any).created_by || ctx.currentUser?.id,
-            } as any;
             const { error: upErr } = await supabase
               .from("pin_materials")
               .update({ stock: remaining })
               .eq("id", materialId);
             if (!upErr) {
               ctx.setPinMaterials((prev: PinMaterial[]) =>
-                prev.map((m: PinMaterial) =>
-                  m.id === materialId ? { ...m, stock: remaining } : m
-                )
+                prev.map((m: PinMaterial) => (m.id === materialId ? { ...m, stock: remaining } : m))
               );
             } else {
               ctx.addToast?.({
@@ -271,18 +232,19 @@ export function createSalesService(ctx: PinContextType): SalesService {
         // Cash transaction
         if ((newCashTx?.amount || 0) > 0) {
           const tag = "#app:pincorp";
-          const txWithSale = {
+          const txWithSale: CashTransaction = {
             ...newCashTx,
-            saleId: (inserted as any)?.id,
+            saleId: inserted?.id,
             notes: `${newCashTx.notes ? newCashTx.notes + " " : ""}${tag}`,
-          } as CashTransaction;
+          };
           await ctx.addCashTransaction?.(txWithSale);
         }
-      } catch (e: any) {
+      } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
         console.error("Exception inserting pin sale:", e);
         ctx.addToast?.({
           title: "Lỗi lưu đơn PIN",
-          message: e?.message || String(e),
+          message: errorMessage,
           type: "error",
         });
       }
@@ -302,7 +264,7 @@ export function createSalesService(ctx: PinContextType): SalesService {
       if (IS_OFFLINE_MODE) {
         const usageByProduct = new Map<string, number>();
         const usageByMaterial = new Map<string, number>();
-        (sale.items || []).forEach((it: any) => {
+        (sale.items || []).forEach((it: CartItemWithType) => {
           const pid = it.productId;
           const q = Number(it.quantity || 0);
           const itemType = it.type || "product";
@@ -332,9 +294,7 @@ export function createSalesService(ctx: PinContextType): SalesService {
               : m
           )
         );
-        ctx.setPinSales((prev: PinSale[]) =>
-          prev.filter((s: PinSale) => s.id !== saleId)
-        );
+        ctx.setPinSales((prev: PinSale[]) => prev.filter((s: PinSale) => s.id !== saleId));
         ctx.setCashTransactions?.((prev: CashTransaction[]) =>
           prev.filter((t: CashTransaction) => t.saleId !== saleId)
         );
@@ -354,7 +314,7 @@ export function createSalesService(ctx: PinContextType): SalesService {
         // Return stock
         const usageByProduct = new Map<string, number>();
         const usageByMaterial = new Map<string, number>();
-        (sale.items || []).forEach((it: any) => {
+        (sale.items || []).forEach((it: CartItemWithType) => {
           const pid = it.productId;
           const q = Number(it.quantity || 0);
           const itemType = it.type || "product";
@@ -366,55 +326,23 @@ export function createSalesService(ctx: PinContextType): SalesService {
         });
 
         for (const [productId, qty] of usageByProduct.entries()) {
-          const prod = ctx.pinProducts.find(
-            (p: PinProduct) => p.id === productId
-          );
+          const prod = ctx.pinProducts.find((p: PinProduct) => p.id === productId);
           if (!prod) continue;
           const remaining = (prod.stock || 0) + qty;
-          const pld = {
-            id: prod.id,
-            name: prod.name,
-            sku: prod.sku,
-            stock: remaining,
-            costPrice: (prod as any).costPrice,
-            sellingPrice: (prod as any).sellingPrice,
-            created_by: ctx.currentUser?.id,
-          } as any;
-          await supabase
-            .from("pin_products")
-            .update({ stock: remaining })
-            .eq("id", productId);
+          await supabase.from("pin_products").update({ stock: remaining }).eq("id", productId);
         }
 
         for (const [materialId, qty] of usageByMaterial.entries()) {
-          const mat = ctx.pinMaterials.find(
-            (m: PinMaterial) => m.id === materialId
-          );
+          const mat = ctx.pinMaterials.find((m: PinMaterial) => m.id === materialId);
           if (!mat) continue;
           const remaining = (mat.stock || 0) + qty;
-          const mld = {
-            id: mat.id,
-            name: mat.name,
-            sku: (mat as any).sku,
-            stock: remaining,
-            purchasePrice: (mat as any).purchasePrice,
-            retailPrice: (mat as any).retailPrice,
-            wholesalePrice: (mat as any).wholesalePrice,
-            created_by: (mat as any).created_by || ctx.currentUser?.id,
-          } as any;
-          await supabase
-            .from("pin_materials")
-            .update({ stock: remaining })
-            .eq("id", materialId);
+          await supabase.from("pin_materials").update({ stock: remaining }).eq("id", materialId);
         }
 
         // Delete cash transactions via centralized finance helper
-        await (ctx as any).deleteCashTransactions?.({ saleId });
+        await ctx.deleteCashTransactions?.({ saleId });
 
-        const { error: delSaleErr } = await supabase
-          .from("pin_sales")
-          .delete()
-          .eq("id", saleId);
+        const { error: delSaleErr } = await supabase.from("pin_sales").delete().eq("id", saleId);
         if (delSaleErr) {
           ctx.addToast?.({
             title: "Lỗi xoá hoá đơn",
@@ -424,19 +352,18 @@ export function createSalesService(ctx: PinContextType): SalesService {
           return;
         }
 
-        ctx.setPinSales((prev: PinSale[]) =>
-          prev.filter((s: PinSale) => s.id !== saleId)
-        );
+        ctx.setPinSales((prev: PinSale[]) => prev.filter((s: PinSale) => s.id !== saleId));
         ctx.addToast?.({
           title: "Đã xoá hoá đơn",
           message: saleId,
           type: "success",
         });
-      } catch (e: any) {
+      } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
         console.error("Exception xoá hoá đơn PIN:", e);
         ctx.addToast?.({
           title: "Lỗi xoá hoá đơn",
-          message: e?.message || String(e),
+          message: errorMessage,
           type: "error",
         });
       }
@@ -471,34 +398,18 @@ export function createSalesService(ctx: PinContextType): SalesService {
       }
 
       try {
-        let payload: any = { ...sale };
-        // Normalize at boundary if needed; ensure JSON-string fields
-        if (payload.items !== undefined && typeof payload.items !== "string") {
-          try {
-            payload.items = JSON.stringify(payload.items);
-          } catch {}
-        }
-        if (
-          payload.customer !== undefined &&
-          typeof payload.customer !== "string"
-        ) {
-          try {
-            payload.customer = JSON.stringify(payload.customer);
-          } catch {}
-        }
-
         // Map to snake_case for pin_sales
-        const updatePayload: any = {
-          code: sale.code ?? null,
+        const updatePayload: Partial<DBPinSale> = {
+          code: sale.code ?? undefined,
           date: sale.date,
-          items: payload.items,
+          items: JSON.stringify(sale.items ?? []),
           subtotal: sale.subtotal,
           discount: sale.discount,
           total: sale.total,
-          customer: payload.customer,
+          customer: JSON.stringify(sale.customer ?? {}),
           payment_method: sale.paymentMethod,
-          payment_status: sale.paymentStatus ?? null,
-          paid_amount: sale.paidAmount ?? null,
+          payment_status: sale.paymentStatus ?? "paid",
+          paid_amount: sale.paidAmount ?? sale.total,
           due_date: sale.dueDate ?? null,
           user_id: sale.userId,
           user_name: sale.userName,
@@ -517,9 +428,7 @@ export function createSalesService(ctx: PinContextType): SalesService {
         }
 
         // Also update related cash transaction if exists
-        const related = ctx.cashTransactions?.find(
-          (t: CashTransaction) => t.saleId === sale.id
-        );
+        const related = ctx.cashTransactions?.find((t: CashTransaction) => t.saleId === sale.id);
         if (related) {
           const tag = "#app:pincorp";
           const updatedTx: CashTransaction = {
@@ -528,9 +437,7 @@ export function createSalesService(ctx: PinContextType): SalesService {
             paymentSourceId: sale.paymentMethod,
             notes:
               (related.notes || `Cập nhật hoá đơn ${sale.id}`) +
-              (/#app:(pin|pincorp)/i.test(related.notes || "")
-                ? ""
-                : ` ${tag}`),
+              (/#app:(pin|pincorp)/i.test(related.notes || "") ? "" : ` ${tag}`),
           };
           await ctx.addCashTransaction?.(updatedTx);
         }
@@ -543,11 +450,12 @@ export function createSalesService(ctx: PinContextType): SalesService {
           message: sale.id,
           type: "success",
         });
-      } catch (e: any) {
+      } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
         console.error("Exception cập nhật hoá đơn PIN:", e);
         ctx.addToast?.({
           title: "Lỗi cập nhật hoá đơn",
-          message: e?.message || String(e),
+          message: errorMessage,
           type: "error",
         });
       }

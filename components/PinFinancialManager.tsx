@@ -7,6 +7,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { usePinContext } from "../contexts/PinContext";
 import { FinancialAnalyticsService } from "../lib/services/FinancialAnalyticsService";
 import { supabase } from "../supabaseClient";
+import type { FixedAsset, CapitalInvestment, CashTransaction } from "../types";
 import {
   ArrowTrendingUpIcon as TrendingUp,
   ArrowTrendingDownIcon as TrendingDown,
@@ -25,11 +26,11 @@ import {
 const PinFinancialManager: React.FC = () => {
   const pinContext = usePinContext();
   const {
-    fixedAssets,
+    fixedAssets = [] as FixedAsset[],
     setFixedAssets,
-    capitalInvestments,
+    capitalInvestments = [] as CapitalInvestment[],
     setCapitalInvestments,
-    cashTransactions,
+    cashTransactions = [] as CashTransaction[],
     addCashTransaction,
     currentUser,
     addToast,
@@ -38,11 +39,9 @@ const PinFinancialManager: React.FC = () => {
     upsertPinFixedAsset,
     deletePinFixedAsset,
     upsertPinCapitalInvestment,
-  } = pinContext as any;
+  } = pinContext;
 
-  const [activeTab, setActiveTab] = useState<
-    "overview" | "assets" | "capital" | "cashflow"
-  >(() => {
+  const [activeTab, setActiveTab] = useState<"overview" | "assets" | "capital" | "cashflow">(() => {
     // Load saved tab from localStorage
     const saved = localStorage.getItem("pinFinancialActiveTab");
     return (saved as any) || "overview";
@@ -63,9 +62,9 @@ const PinFinancialManager: React.FC = () => {
     localStorage.setItem("pinFinanceShowAllApps", showAllApps ? "1" : "0");
   }, [showAllApps]);
   // Default filter: only show PIN-related cash transactions in this screen
-  const pinCashTransactions = useMemo(() => {
+  const pinCashTransactions = useMemo((): CashTransaction[] => {
     if (showAllApps) return cashTransactions || [];
-    const isPinTx = (tx: any) => {
+    const isPinTx = (tx: CashTransaction) => {
       // Exclude obvious MotoCare work orders
       if (tx.workOrderId && String(tx.workOrderId).startsWith("LTN-SC")) {
         return false;
@@ -78,8 +77,8 @@ const PinFinancialManager: React.FC = () => {
     return (cashTransactions || []).filter(isPinTx);
   }, [cashTransactions, showAllApps]);
   const [showCapitalModal, setShowCapitalModal] = useState(false);
-  const [editingAsset, setEditingAsset] = useState<any>(null);
-  const [editingInvestment, setEditingInvestment] = useState<any>(null);
+  const [editingAsset, setEditingAsset] = useState<FixedAsset | null>(null);
+  const [editingInvestment, setEditingInvestment] = useState<CapitalInvestment | null>(null);
   const [newAsset, setNewAsset] = useState({
     name: "",
     category: "equipment" as const,
@@ -120,10 +119,7 @@ const PinFinancialManager: React.FC = () => {
     // Calculate total asset value with depreciation
     const totalAssetValue = fixedAssets.reduce((total, asset) => {
       if (asset.status === "disposed" || asset.status === "sold") return total;
-      const bookValue = FinancialAnalyticsService.calculateBookValue(
-        asset,
-        currentDate
-      );
+      const bookValue = FinancialAnalyticsService.calculateBookValue(asset, currentDate);
       return total + bookValue;
     }, 0);
 
@@ -134,11 +130,7 @@ const PinFinancialManager: React.FC = () => {
     );
 
     // Calculate current month cash flow from transactions
-    const startOfMonth = new Date(
-      currentDate.getFullYear(),
-      currentDate.getMonth(),
-      1
-    );
+    const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
     const monthlyIncome = pinCashTransactions
       .filter((tx) => new Date(tx.date) >= startOfMonth && tx.amount > 0)
       .reduce((sum, tx) => sum + tx.amount, 0);
@@ -152,10 +144,7 @@ const PinFinancialManager: React.FC = () => {
     const netCashFlow = monthlyIncome - monthlyExpenses;
 
     // Calculate working capital (simplified)
-    const currentCash = pinCashTransactions.reduce(
-      (sum, tx) => sum + tx.amount,
-      0
-    );
+    const currentCash = pinCashTransactions.reduce((sum, tx) => sum + tx.amount, 0);
 
     return {
       totalAssetValue,
@@ -166,12 +155,8 @@ const PinFinancialManager: React.FC = () => {
       netCashFlow,
       workingCapital: currentCash, // Simplified - would need more data for accurate calculation
       assetDepreciation: fixedAssets.reduce((total, asset) => {
-        if (asset.status === "disposed" || asset.status === "sold")
-          return total;
-        const depreciation = FinancialAnalyticsService.calculateDepreciation(
-          asset,
-          currentDate
-        );
+        if (asset.status === "disposed" || asset.status === "sold") return total;
+        const depreciation = FinancialAnalyticsService.calculateDepreciation(asset, currentDate);
         return total + depreciation;
       }, 0),
     };
@@ -179,25 +164,24 @@ const PinFinancialManager: React.FC = () => {
 
   // Asset breakdown by category
   const assetBreakdown = useMemo(() => {
-    const breakdown = fixedAssets.reduce((acc, asset) => {
-      if (asset.status === "disposed" || asset.status === "sold") return acc;
+    const breakdown = fixedAssets.reduce(
+      (acc, asset) => {
+        if (asset.status === "disposed" || asset.status === "sold") return acc;
 
-      const bookValue = FinancialAnalyticsService.calculateBookValue(asset);
-      if (!acc[asset.category]) acc[asset.category] = 0;
-      acc[asset.category] += bookValue;
-      return acc;
-    }, {} as Record<string, number>);
+        const bookValue = FinancialAnalyticsService.calculateBookValue(asset);
+        if (!acc[asset.category]) acc[asset.category] = 0;
+        acc[asset.category] += bookValue;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
     return Object.entries(breakdown).map(([category, value]) => ({
       category: category.replace("_", " ").toUpperCase(),
       value,
       percentage:
-        financialSummary.totalAssetValue > 0
-          ? (value / financialSummary.totalAssetValue) * 100
-          : 0,
-      count: fixedAssets.filter(
-        (a) => a.category === category && a.status === "active"
-      ).length,
+        financialSummary.totalAssetValue > 0 ? (value / financialSummary.totalAssetValue) * 100 : 0,
+      count: fixedAssets.filter((a) => a.category === category && a.status === "active").length,
     }));
   }, [fixedAssets, financialSummary.totalAssetValue]);
 
@@ -240,17 +224,14 @@ const PinFinancialManager: React.FC = () => {
         if (error) throw error;
         setFixedAssets((prev: any[]) => {
           const idx = prev.findIndex((a: any) => a.id === asset.id);
-          if (idx >= 0)
-            return prev.map((a: any) => (a.id === asset.id ? asset : a));
+          if (idx >= 0) return prev.map((a: any) => (a.id === asset.id ? asset : a));
           return [asset, ...prev];
         });
       }
 
       addToast({
         id: Date.now().toString(),
-        message: `Đã ${isEditing ? "cập nhật" : "thêm"} tài sản "${
-          asset.name
-        }" thành công`,
+        message: `Đã ${isEditing ? "cập nhật" : "thêm"} tài sản "${asset.name}" thành công`,
         type: "success",
       });
 
@@ -298,8 +279,7 @@ const PinFinancialManager: React.FC = () => {
       interestRate: newCapital.interestRate,
       branchId: "main",
       createdBy: (editingInvestment as any)?.createdBy || currentUser.id,
-      createdAt:
-        (editingInvestment as any)?.createdAt || new Date().toISOString(),
+      createdAt: (editingInvestment as any)?.createdAt || new Date().toISOString(),
     };
 
     try {
@@ -308,16 +288,11 @@ const PinFinancialManager: React.FC = () => {
         await upsertPinCapitalInvestment(investment as any);
       } else {
         // Fallback: Directly update local state and save to supabase
-        const { error } = await supabase
-          .from("pin_capital_investments")
-          .upsert(investment);
+        const { error } = await supabase.from("pin_capital_investments").upsert(investment);
         if (error) throw error;
         setCapitalInvestments((prev: any[]) => {
           const idx = prev.findIndex((i: any) => i.id === investment.id);
-          if (idx >= 0)
-            return prev.map((i: any) =>
-              i.id === investment.id ? investment : i
-            );
+          if (idx >= 0) return prev.map((i: any) => (i.id === investment.id ? investment : i));
           return [investment, ...prev];
         });
       }
@@ -361,9 +336,7 @@ const PinFinancialManager: React.FC = () => {
 
     try {
       const appTag = "#app:pincorp";
-      const taggedNotes = `${
-        newTransaction.notes ? newTransaction.notes + " " : ""
-      }${appTag}`;
+      const taggedNotes = `${newTransaction.notes ? newTransaction.notes + " " : ""}${appTag}`;
       const transaction = {
         id: `tx_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
         amount:
@@ -372,8 +345,7 @@ const PinFinancialManager: React.FC = () => {
             : Math.abs(newTransaction.amount),
         description: newTransaction.description,
         category:
-          newTransaction.category ||
-          (newTransaction.type === "income" ? "revenue" : "expense"),
+          newTransaction.category || (newTransaction.type === "income" ? "revenue" : "expense"),
         date: newTransaction.date,
         notes: taggedNotes,
         createdBy: currentUser?.id || "",
@@ -430,14 +402,9 @@ const PinFinancialManager: React.FC = () => {
         await deletePinFixedAsset(assetId);
       } else {
         // Fallback
-        const { error } = await supabase
-          .from("pin_fixed_assets")
-          .delete()
-          .eq("id", assetId);
+        const { error } = await supabase.from("pin_fixed_assets").delete().eq("id", assetId);
         if (error) throw error;
-        setFixedAssets((prev: any[]) =>
-          prev.filter((a: any) => a.id !== assetId)
-        );
+        setFixedAssets((prev: any[]) => prev.filter((a: any) => a.id !== assetId));
       }
 
       addToast({
@@ -485,16 +452,8 @@ const PinFinancialManager: React.FC = () => {
     const currentDate = new Date();
 
     for (let i = 11; i >= 0; i--) {
-      const monthStart = new Date(
-        currentDate.getFullYear(),
-        currentDate.getMonth() - i,
-        1
-      );
-      const monthEnd = new Date(
-        currentDate.getFullYear(),
-        currentDate.getMonth() - i + 1,
-        0
-      );
+      const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+      const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() - i + 1, 0);
 
       const monthlyIncome = pinCashTransactions
         .filter((tx) => {
@@ -531,9 +490,7 @@ const PinFinancialManager: React.FC = () => {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <AlertTriangle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-500">
-            Vui lòng đăng nhập để xem quản lý tài chính
-          </p>
+          <p className="text-gray-500">Vui lòng đăng nhập để xem quản lý tài chính</p>
         </div>
       </div>
     );
@@ -649,9 +606,7 @@ const PinFinancialManager: React.FC = () => {
               </div>
               <div className="mt-4">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500 dark:text-gray-400">
-                    Khấu hao tích lũy:
-                  </span>
+                  <span className="text-gray-500 dark:text-gray-400">Khấu hao tích lũy:</span>
                   <span className="text-red-600 dark:text-red-400">
                     {formatCurrency(financialSummary.assetDepreciation)}
                   </span>
@@ -676,9 +631,7 @@ const PinFinancialManager: React.FC = () => {
               </div>
               <div className="mt-4">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500 dark:text-gray-400">
-                    Số dự án:
-                  </span>
+                  <span className="text-gray-500 dark:text-gray-400">Số dự án:</span>
                   <span className="font-medium text-gray-900 dark:text-white">
                     {formatNumber(capitalInvestments.length)}
                   </span>
@@ -733,9 +686,7 @@ const PinFinancialManager: React.FC = () => {
                         : "text-red-600 dark:text-red-400"
                     }`}
                   >
-                    {financialSummary.currentCash >= 0
-                      ? "Thanh khoản tốt"
-                      : "Cần bổ sung tiền mặt"}
+                    {financialSummary.currentCash >= 0 ? "Thanh khoản tốt" : "Cần bổ sung tiền mặt"}
                   </span>
                 </div>
               </div>
@@ -774,17 +725,13 @@ const PinFinancialManager: React.FC = () => {
               </div>
               <div className="mt-4 space-y-1">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500 dark:text-gray-400">
-                    Thu nhập:
-                  </span>
+                  <span className="text-gray-500 dark:text-gray-400">Thu nhập:</span>
                   <span className="text-green-600 dark:text-green-400">
                     {formatCurrency(financialSummary.monthlyIncome)}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500 dark:text-gray-400">
-                    Chi phí:
-                  </span>
+                  <span className="text-gray-500 dark:text-gray-400">Chi phí:</span>
                   <span className="text-red-600 dark:text-red-400">
                     {formatCurrency(financialSummary.monthlyExpenses)}
                   </span>
@@ -801,10 +748,7 @@ const PinFinancialManager: React.FC = () => {
             {assetBreakdown.length > 0 ? (
               <div className="space-y-4">
                 {assetBreakdown.map((item, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between"
-                  >
+                  <div key={index} className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
                       <div
                         className={`w-4 h-4 rounded-full`}
@@ -854,13 +798,8 @@ const PinFinancialManager: React.FC = () => {
             </h3>
             <div className="space-y-3">
               {cashFlowTrends.map((trend, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between py-2"
-                >
-                  <div className="w-20 text-sm text-gray-600 dark:text-gray-400">
-                    {trend.month}
-                  </div>
+                <div key={index} className="flex items-center justify-between py-2">
+                  <div className="w-20 text-sm text-gray-600 dark:text-gray-400">{trend.month}</div>
                   <div className="flex-1 flex items-center space-x-4 px-4">
                     <div className="flex items-center space-x-2">
                       <div className="w-3 h-3 bg-green-500 rounded-full" />
@@ -873,9 +812,7 @@ const PinFinancialManager: React.FC = () => {
                     </div>
                     <div className="flex items-center space-x-2">
                       <div className="w-3 h-3 bg-red-500 rounded-full" />
-                      <span className="text-xs text-gray-600 dark:text-gray-400 w-16">
-                        Chi phí
-                      </span>
+                      <span className="text-xs text-gray-600 dark:text-gray-400 w-16">Chi phí</span>
                       <span className="text-sm font-medium text-red-600 dark:text-red-400 w-24 text-right">
                         {formatCurrency(trend.expenses)}
                       </span>
@@ -946,26 +883,20 @@ const PinFinancialManager: React.FC = () => {
                 <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                   {fixedAssets.map((asset) => {
                     const currentDate = new Date();
-                    const bookValue =
-                      FinancialAnalyticsService.calculateBookValue(
-                        asset,
-                        currentDate
-                      );
+                    const bookValue = FinancialAnalyticsService.calculateBookValue(
+                      asset,
+                      currentDate
+                    );
                     const depreciation = asset.purchasePrice - bookValue;
-                    const depreciationRate = (
-                      (depreciation / asset.purchasePrice) *
-                      100
-                    ).toFixed(1);
+                    const depreciationRate = ((depreciation / asset.purchasePrice) * 100).toFixed(
+                      1
+                    );
                     const ageInYears =
-                      (currentDate.getTime() -
-                        new Date(asset.purchaseDate).getTime()) /
+                      (currentDate.getTime() - new Date(asset.purchaseDate).getTime()) /
                       (365.25 * 24 * 60 * 60 * 1000);
 
                     return (
-                      <tr
-                        key={asset.id}
-                        className="hover:bg-gray-50 dark:hover:bg-gray-700"
-                      >
+                      <tr key={asset.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                         <td className="px-6 py-4">
                           <div>
                             <div className="text-sm font-medium text-gray-900 dark:text-white">
@@ -985,11 +916,7 @@ const PinFinancialManager: React.FC = () => {
                           {asset.category.replace("_", " ")}
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
-                          <div>
-                            {new Date(asset.purchaseDate).toLocaleDateString(
-                              "vi-VN"
-                            )}
-                          </div>
+                          <div>{new Date(asset.purchaseDate).toLocaleDateString("vi-VN")}</div>
                           <div className="text-xs text-gray-500 dark:text-gray-400">
                             {ageInYears.toFixed(1)} năm tuổi
                           </div>
@@ -1007,10 +934,7 @@ const PinFinancialManager: React.FC = () => {
                               <div
                                 className="bg-red-500 dark:bg-red-400 h-2 rounded-full"
                                 style={{
-                                  width: `${Math.min(
-                                    parseFloat(depreciationRate),
-                                    100
-                                  )}%`,
+                                  width: `${Math.min(parseFloat(depreciationRate), 100)}%`,
                                 }}
                               />
                             </div>
@@ -1022,17 +946,17 @@ const PinFinancialManager: React.FC = () => {
                               asset.status === "active"
                                 ? "bg-green-100 text-green-800"
                                 : asset.status === "under_maintenance"
-                                ? "bg-yellow-100 text-yellow-800"
-                                : "bg-red-100 text-red-800"
+                                  ? "bg-yellow-100 text-yellow-800"
+                                  : "bg-red-100 text-red-800"
                             }`}
                           >
                             {asset.status === "active"
                               ? "Hoạt động"
                               : asset.status === "under_maintenance"
-                              ? "Bảo trì"
-                              : asset.status === "disposed"
-                              ? "Thanh lý"
-                              : "Đã bán"}
+                                ? "Bảo trì"
+                                : asset.status === "disposed"
+                                  ? "Thanh lý"
+                                  : "Đã bán"}
                           </span>
                         </td>
                         <td className="px-6 py-4">
@@ -1047,9 +971,8 @@ const PinFinancialManager: React.FC = () => {
                                   purchaseDate: asset.purchaseDate,
                                   usefulLife: asset.usefulLife || 5,
                                   salvageValue: asset.salvageValue || 0,
-                                  depreciationMethod:
-                                    (asset.depreciationMethod ||
-                                      "straight_line") as any,
+                                  depreciationMethod: (asset.depreciationMethod ||
+                                    "straight_line") as any,
                                   location: asset.location || "",
                                   description: asset.description || "",
                                 });
@@ -1108,8 +1031,7 @@ const PinFinancialManager: React.FC = () => {
                   Danh sách Đầu tư Vốn
                 </h3>
                 <span className="text-sm text-gray-500 dark:text-gray-400">
-                  Tổng đầu tư:{" "}
-                  {formatCurrency(financialSummary.totalCapitalInvested)}
+                  Tổng đầu tư: {formatCurrency(financialSummary.totalCapitalInvested)}
                 </span>
               </div>
             </div>
@@ -1149,9 +1071,7 @@ const PinFinancialManager: React.FC = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
-                        {(investment as any).description ||
-                          (investment as any).notes ||
-                          "-"}
+                        {(investment as any).description || (investment as any).notes || "-"}
                       </td>
                       <td className="px-6 py-4 text-sm font-bold text-right text-green-600 dark:text-green-400">
                         {formatCurrency(investment.amount)}
@@ -1162,14 +1082,17 @@ const PinFinancialManager: React.FC = () => {
                             onClick={() => {
                               // Set form data with investment values
                               setNewCapital({
-                                type: (investment as any).type || "equipment",
+                                source: ((investment as { type?: string }).type === "loan"
+                                  ? "Vay ngân hàng"
+                                  : "Vốn chủ sở hữu") as "Vốn chủ sở hữu" | "Vay ngân hàng",
                                 amount: investment.amount,
                                 description:
-                                  (investment as any).description ||
-                                  (investment as any).notes ||
+                                  (investment as { description?: string }).description ||
+                                  (investment as { notes?: string }).notes ||
                                   "",
                                 date: investment.date,
-                                notes: (investment as any).notes || "",
+                                interestRate: (investment as { interestRate?: number })
+                                  .interestRate,
                               });
                               setEditingInvestment(investment);
                               setShowAddCapital(true);
@@ -1180,9 +1103,7 @@ const PinFinancialManager: React.FC = () => {
                             <PencilSquareIcon className="w-5 h-5" />
                           </button>
                           <button
-                            onClick={() =>
-                              handleDeleteInvestment(investment.id)
-                            }
+                            onClick={() => handleDeleteInvestment(investment.id)}
                             className="p-2 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                             title="Xóa"
                           >
@@ -1280,19 +1201,12 @@ const PinFinancialManager: React.FC = () => {
                     .slice(-10)
                     .reverse()
                     .map((transaction) => (
-                      <tr
-                        key={transaction.id}
-                        className="hover:bg-gray-50 dark:hover:bg-gray-700"
-                      >
+                      <tr key={transaction.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                         <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
-                          {new Date(transaction.date).toLocaleDateString(
-                            "vi-VN"
-                          )}
+                          {new Date(transaction.date).toLocaleDateString("vi-VN")}
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
-                          <div className="font-medium">
-                            {transaction.description || "-"}
-                          </div>
+                          <div className="font-medium">{transaction.description || "-"}</div>
                           {transaction.notes && (
                             <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                               {transaction.notes}
@@ -1300,8 +1214,7 @@ const PinFinancialManager: React.FC = () => {
                           )}
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
-                          {typeof transaction.contact === "object" &&
-                          transaction.contact?.name
+                          {typeof transaction.contact === "object" && transaction.contact?.name
                             ? transaction.contact.name
                             : "-"}
                         </td>
@@ -1345,9 +1258,7 @@ const PinFinancialManager: React.FC = () => {
           <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-auto">
             <div className="p-6 border-b border-gray-200 dark:border-gray-700">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {editingAsset
-                  ? "✏️ Sửa Tài sản Cố định"
-                  : "➕ Thêm Tài sản Cố định"}
+                {editingAsset ? "✏️ Sửa Tài sản Cố định" : "➕ Thêm Tài sản Cố định"}
               </h3>
             </div>
             <div className="p-6 space-y-4">
@@ -1359,9 +1270,7 @@ const PinFinancialManager: React.FC = () => {
                   <input
                     type="text"
                     value={newAsset.name}
-                    onChange={(e) =>
-                      setNewAsset({ ...newAsset, name: e.target.value })
-                    }
+                    onChange={(e) => setNewAsset({ ...newAsset, name: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     placeholder="Nhập tên tài sản"
                   />
@@ -1412,9 +1321,7 @@ const PinFinancialManager: React.FC = () => {
                   <input
                     type="date"
                     value={newAsset.purchaseDate}
-                    onChange={(e) =>
-                      setNewAsset({ ...newAsset, purchaseDate: e.target.value })
-                    }
+                    onChange={(e) => setNewAsset({ ...newAsset, purchaseDate: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   />
                 </div>
@@ -1463,9 +1370,7 @@ const PinFinancialManager: React.FC = () => {
                 <input
                   type="text"
                   value={newAsset.location}
-                  onChange={(e) =>
-                    setNewAsset({ ...newAsset, location: e.target.value })
-                  }
+                  onChange={(e) => setNewAsset({ ...newAsset, location: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   placeholder="Nhập vị trí tài sản"
                 />
@@ -1476,9 +1381,7 @@ const PinFinancialManager: React.FC = () => {
                 </label>
                 <textarea
                   value={newAsset.description}
-                  onChange={(e) =>
-                    setNewAsset({ ...newAsset, description: e.target.value })
-                  }
+                  onChange={(e) => setNewAsset({ ...newAsset, description: e.target.value })}
                   rows={3}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   placeholder="Mô tả chi tiết tài sản"
@@ -1512,9 +1415,7 @@ const PinFinancialManager: React.FC = () => {
           <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md">
             <div className="p-6 border-b border-gray-200 dark:border-gray-700">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {editingInvestment
-                  ? "✏️ Sửa Đầu tư Vốn"
-                  : "💰 Ghi nhận Đầu tư Vốn"}
+                {editingInvestment ? "✏️ Sửa Đầu tư Vốn" : "💰 Ghi nhận Đầu tư Vốn"}
               </h3>
             </div>
             <div className="p-6 space-y-4">
@@ -1561,9 +1462,7 @@ const PinFinancialManager: React.FC = () => {
                 <input
                   type="date"
                   value={newCapital.date}
-                  onChange={(e) =>
-                    setNewCapital({ ...newCapital, date: e.target.value })
-                  }
+                  onChange={(e) => setNewCapital({ ...newCapital, date: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 />
               </div>
@@ -1578,9 +1477,7 @@ const PinFinancialManager: React.FC = () => {
                     onChange={(e) =>
                       setNewCapital({
                         ...newCapital,
-                        interestRate: e.target.value
-                          ? Number(e.target.value)
-                          : undefined,
+                        interestRate: e.target.value ? Number(e.target.value) : undefined,
                       })
                     }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
@@ -1798,9 +1695,7 @@ const PinFinancialManager: React.FC = () => {
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
-                    onClick={() =>
-                      setNewTransaction((prev) => ({ ...prev, type: "income" }))
-                    }
+                    onClick={() => setNewTransaction((prev) => ({ ...prev, type: "income" }))}
                     className={`p-3 rounded-lg border text-center font-medium transition-colors ${
                       newTransaction.type === "income"
                         ? "bg-green-50 dark:bg-green-900/20 border-green-500 text-green-700 dark:text-green-400"

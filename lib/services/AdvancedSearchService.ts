@@ -14,7 +14,7 @@ export interface SavedFilter {
   id: string;
   name: string;
   description?: string;
-  filters: any;
+  filters: Record<string, unknown>;
   createdAt: string;
   lastUsed?: string;
 }
@@ -29,24 +29,16 @@ export interface AdvancedSearchService {
   clearHistory: () => void;
 
   // Saved filters
-  saveFilter: (name: string, filters: any, description?: string) => void;
+  saveFilter: (name: string, filters: Record<string, unknown>, description?: string) => void;
   getSavedFilters: () => SavedFilter[];
   loadFilter: (id: string) => SavedFilter | null;
   deleteFilter: (id: string) => void;
 
   // Advanced date filtering
-  filterByDateRange: <T>(
-    items: T[],
-    dateKey: keyof T,
-    from?: Date,
-    to?: Date
-  ) => T[];
+  filterByDateRange: <T>(items: T[], dateKey: keyof T, from?: Date, to?: Date) => T[];
 
   // Multi-field search
-  multiFieldSearch: <T>(
-    items: T[],
-    queries: Partial<Record<keyof T, string>>
-  ) => T[];
+  multiFieldSearch: <T>(items: T[], queries: Partial<Record<keyof T, string>>) => T[];
 }
 
 export function createAdvancedSearchService(): AdvancedSearchService {
@@ -143,9 +135,7 @@ export function createAdvancedSearchService(): AdvancedSearchService {
 
     addToHistory: (query: string, resultCount: number) => {
       try {
-        const history = JSON.parse(
-          localStorage.getItem(HISTORY_KEY) || "[]"
-        ) as SearchHistory[];
+        const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]") as SearchHistory[];
 
         // Don't add duplicates
         const existing = history.findIndex((h) => h.query === query);
@@ -183,11 +173,9 @@ export function createAdvancedSearchService(): AdvancedSearchService {
       localStorage.removeItem(HISTORY_KEY);
     },
 
-    saveFilter: (name: string, filters: any, description?: string) => {
+    saveFilter: (name: string, filters: Record<string, unknown>, description?: string) => {
       try {
-        const saved = JSON.parse(
-          localStorage.getItem(FILTERS_KEY) || "[]"
-        ) as SavedFilter[];
+        const saved = JSON.parse(localStorage.getItem(FILTERS_KEY) || "[]") as SavedFilter[];
 
         saved.push({
           id: `filter-${Date.now()}`,
@@ -213,9 +201,7 @@ export function createAdvancedSearchService(): AdvancedSearchService {
 
     loadFilter: (id: string) => {
       try {
-        const filters = JSON.parse(
-          localStorage.getItem(FILTERS_KEY) || "[]"
-        ) as SavedFilter[];
+        const filters = JSON.parse(localStorage.getItem(FILTERS_KEY) || "[]") as SavedFilter[];
         const filter = filters.find((f) => f.id === id);
 
         if (filter) {
@@ -232,9 +218,7 @@ export function createAdvancedSearchService(): AdvancedSearchService {
 
     deleteFilter: (id: string) => {
       try {
-        const filters = JSON.parse(
-          localStorage.getItem(FILTERS_KEY) || "[]"
-        ) as SavedFilter[];
+        const filters = JSON.parse(localStorage.getItem(FILTERS_KEY) || "[]") as SavedFilter[];
         const updated = filters.filter((f) => f.id !== id);
         localStorage.setItem(FILTERS_KEY, JSON.stringify(updated));
       } catch (error) {
@@ -242,12 +226,7 @@ export function createAdvancedSearchService(): AdvancedSearchService {
       }
     },
 
-    filterByDateRange: <T>(
-      items: T[],
-      dateKey: keyof T,
-      from?: Date,
-      to?: Date
-    ): T[] => {
+    filterByDateRange: <T>(items: T[], dateKey: keyof T, from?: Date, to?: Date): T[] => {
       return items.filter((item) => {
         const dateValue = item[dateKey];
         if (!dateValue) return false;
@@ -261,19 +240,14 @@ export function createAdvancedSearchService(): AdvancedSearchService {
       });
     },
 
-    multiFieldSearch: <T>(
-      items: T[],
-      queries: Partial<Record<keyof T, string>>
-    ): T[] => {
+    multiFieldSearch: <T>(items: T[], queries: Partial<Record<keyof T, string>>): T[] => {
       return items.filter((item) => {
         return Object.entries(queries).every(([key, value]) => {
           if (!value) return true;
 
           const itemValue = item[key as keyof T];
           if (typeof itemValue === "string") {
-            return normalizeVietnamese(itemValue).includes(
-              normalizeVietnamese(value as string)
-            );
+            return normalizeVietnamese(itemValue).includes(normalizeVietnamese(value as string));
           } else if (typeof itemValue === "number") {
             return String(itemValue).includes(value as string);
           }

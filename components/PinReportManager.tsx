@@ -1,30 +1,29 @@
 import React, { useState, useMemo } from "react";
 import type { PinSale, ProductionOrder } from "../types";
-import { BanknotesIcon, ChartBarIcon } from "./common/Icons";
+import { Card, CardGrid, CardTitle, CardBody, StatsCard } from "./ui/Card";
+import { Badge } from "./ui/Badge";
+import { DataTable, Column } from "./ui/Table";
+import { Icon } from "./common/Icon";
 
 const formatCurrency = (amount: number) =>
-  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
-    amount
-  );
+  new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+  }).format(amount);
 
-// --- Main Component ---
 interface PinReportManagerProps {
   sales: PinSale[];
   orders?: ProductionOrder[];
 }
 
-const PinReportManager: React.FC<PinReportManagerProps> = ({
-  sales,
-  orders = [],
-}) => {
+const PinReportManager: React.FC<PinReportManagerProps> = ({ sales, orders = [] }) => {
   const today = new Date();
   const lastMonth = new Date(today);
   lastMonth.setMonth(today.getMonth() - 1);
 
-  const [startDate, setStartDate] = useState(
-    lastMonth.toISOString().split("T")[0]
-  );
+  const [startDate, setStartDate] = useState(lastMonth.toISOString().split("T")[0]);
   const [endDate, setEndDate] = useState(today.toISOString().split("T")[0]);
+  const [selectedTab, setSelectedTab] = useState<"sales" | "production">("sales");
 
   const reportData = useMemo(() => {
     const start = new Date(`${startDate}T00:00:00`);
@@ -34,6 +33,7 @@ const PinReportManager: React.FC<PinReportManagerProps> = ({
       const saleDate = new Date(s.date);
       return saleDate >= start && saleDate <= end;
     });
+
     const filteredOrders = orders.filter((o) => {
       const od = new Date(o.creationDate);
       return od >= start && od <= end && o.status !== "Đã hủy";
@@ -41,326 +41,335 @@ const PinReportManager: React.FC<PinReportManagerProps> = ({
 
     const totalRevenue = filteredSales.reduce((sum, s) => sum + s.total, 0);
     const totalCost = filteredSales.reduce(
-      (sum, s) =>
-        sum +
-        s.items.reduce((itemSum, i) => itemSum + i.costPrice * i.quantity, 0),
+      (sum, s) => sum + s.items.reduce((itemSum, i) => itemSum + i.costPrice * i.quantity, 0),
       0
     );
     const totalProfit = totalRevenue - totalCost;
 
-    const productPerformance: {
-      [key: string]: {
-        name: string;
-        sku: string;
-        quantity: number;
-        revenue: number;
-        profit: number;
-      };
-    } = {};
+    const productStats = new Map<string, { sold: number; revenue: number; profit: number }>();
+
     filteredSales.forEach((sale) => {
       sale.items.forEach((item) => {
-        if (!productPerformance[item.productId]) {
-          productPerformance[item.productId] = {
-            name: item.name,
-            sku: item.sku,
-            quantity: 0,
-            revenue: 0,
-            profit: 0,
-          };
-        }
-        const itemRevenue =
-          item.sellingPrice * item.quantity - (item.discount || 0); // Approx revenue for item
-        const itemCost = item.costPrice * item.quantity;
-        productPerformance[item.productId].quantity += item.quantity;
-        productPerformance[item.productId].revenue += itemRevenue;
-        productPerformance[item.productId].profit += itemRevenue - itemCost;
+        const existing = productStats.get(item.name) || {
+          sold: 0,
+          revenue: 0,
+          profit: 0,
+        };
+        productStats.set(item.name, {
+          sold: existing.sold + item.quantity,
+          revenue: existing.revenue + item.sellingPrice * item.quantity,
+          profit: existing.profit + (item.sellingPrice - item.costPrice) * item.quantity,
+        });
       });
     });
 
-    const dailyData: { [key: string]: { revenue: number; profit: number } } =
-      {};
-    filteredSales.forEach((sale) => {
-      const dayKey = new Date(sale.date).toLocaleDateString("vi-VN", {
-        day: "2-digit",
-        month: "2-digit",
-      });
-      if (!dailyData[dayKey]) dailyData[dayKey] = { revenue: 0, profit: 0 };
-      const saleCost = sale.items.reduce(
-        (sum, i) => sum + i.costPrice * i.quantity,
-        0
-      );
-      dailyData[dayKey].revenue += sale.total;
-      dailyData[dayKey].profit += sale.total - saleCost;
-    });
+    const topProducts = Array.from(productStats.entries())
+      .map(([name, stats]) => ({ name, ...stats }))
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 10);
 
-    const trendData = Object.entries(dailyData)
-      .map(([label, data]) => ({ label, ...data }))
-      .sort((a, b) => {
-        const [dayA, monthA] = a.label.split("/");
-        const [dayB, monthB] = b.label.split("/");
-        return (
-          new Date(`${monthA}/${dayA}/2024`).getTime() -
-          new Date(`${monthB}/${dayB}/2024`).getTime()
-        );
-      });
-
-    // Production cost by period
-    const totalProductionCost = filteredOrders.reduce(
-      (sum, o) =>
-        sum +
-        (o.materialsCost || 0) +
-        (o.additionalCosts?.reduce((s, c) => s + (c.amount || 0), 0) || 0),
-      0
-    );
-    const ordersCount = filteredOrders.length;
+    // Production stats
+    const productionStats = {
+      total: filteredOrders.length,
+      completed: filteredOrders.filter((o) => o.status === "Hoàn thành").length,
+      inProgress: filteredOrders.filter((o) => o.status === "Đang sản xuất").length,
+      pending: filteredOrders.filter((o) => o.status === "Chờ sản xuất").length,
+    };
 
     return {
+      filteredSales,
+      filteredOrders,
       totalRevenue,
       totalCost,
       totalProfit,
-      totalProductionCost,
-      ordersCount,
-      productPerformance: Object.values(productPerformance).sort(
-        (a, b) => b.revenue - a.revenue
-      ),
-      trendData,
+      topProducts,
+      productionStats,
     };
   }, [sales, orders, startDate, endDate]);
 
+  const salesColumns: Column<PinSale>[] = [
+    {
+      key: "date",
+      label: "Ngày",
+      sortable: true,
+      render: (sale) => new Date(sale.date).toLocaleDateString("vi-VN"),
+    },
+    {
+      key: "customer",
+      label: "Khách hàng",
+      render: (sale) => (
+        <div>
+          <div className="font-medium">{sale.customer.name}</div>
+          {sale.customer.phone && (
+            <div className="text-xs text-pin-gray-500 dark:text-pin-dark-500">
+              {sale.customer.phone}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "items",
+      label: "Sản phẩm",
+      render: (sale) => (
+        <div className="text-sm">
+          {sale.items.length} sản phẩm ({sale.items.reduce((sum, i) => sum + i.quantity, 0)} SP)
+        </div>
+      ),
+    },
+    {
+      key: "total",
+      label: "Tổng tiền",
+      align: "right",
+      sortable: true,
+      render: (sale) => (
+        <span className="font-bold text-pin-blue-600 dark:text-pin-blue-400">
+          {formatCurrency(sale.total)}
+        </span>
+      ),
+    },
+    {
+      key: "paymentMethod",
+      label: "Thanh toán",
+      render: (sale) => (
+        <Badge variant="success" size="sm">
+          {sale.paymentMethod}
+        </Badge>
+      ),
+    },
+  ];
+
+  const productColumns: Column<{
+    name: string;
+    sold: number;
+    revenue: number;
+    profit: number;
+  }>[] = [
+    {
+      key: "name",
+      label: "Sản phẩm",
+      sortable: true,
+      render: (item) => <div className="font-medium">{item.name}</div>,
+    },
+    {
+      key: "sold",
+      label: "Đã bán",
+      align: "center",
+      sortable: true,
+      render: (item) => (
+        <Badge variant="primary" size="sm">
+          {item.sold}
+        </Badge>
+      ),
+    },
+    {
+      key: "revenue",
+      label: "Doanh thu",
+      align: "right",
+      sortable: true,
+      render: (item) => (
+        <span className="font-semibold text-pin-green-600 dark:text-pin-green-400">
+          {formatCurrency(item.revenue)}
+        </span>
+      ),
+    },
+    {
+      key: "profit",
+      label: "Lợi nhuận",
+      align: "right",
+      sortable: true,
+      render: (item) => (
+        <span className="font-semibold text-pin-blue-600 dark:text-pin-blue-400">
+          {formatCurrency(item.profit)}
+        </span>
+      ),
+    },
+  ];
+
   return (
-    <div className="space-y-2 p-1">
-      <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">
-        Báo cáo Doanh thu & Lợi nhuận
-      </h1>
-      <div className="bg-white dark:bg-slate-800 p-2 rounded-lg shadow-sm border dark:border-slate-700 flex flex-col sm:flex-row gap-2 items-center">
-        <div className="flex-1 w-full">
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-            Từ ngày
-          </label>
+    <div className="space-y-6">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-pin-gray-900 dark:text-pin-dark-900">
+            Báo cáo & Thống kê
+          </h1>
+          <p className="text-pin-gray-500 dark:text-pin-dark-500 mt-1">
+            Phân tích doanh thu và hiệu quả kinh doanh
+          </p>
+        </div>
+
+        {/* Date Filter */}
+        <Card padding="sm" className="flex items-center gap-3 w-full sm:w-auto">
+          <Icon name="calendar" size="md" tone="muted" />
           <input
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
-            className="mt-1 block w-full p-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+            className="px-3 py-1.5 rounded-lg border border-pin-gray-200 dark:border-pin-dark-400 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-pin-blue-500"
           />
-        </div>
-        <div className="flex-1 w-full">
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-            Đến ngày
-          </label>
+          <span className="text-pin-gray-400">đến</span>
           <input
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
-            className="mt-1 block w-full p-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+            className="px-3 py-1.5 rounded-lg border border-pin-gray-200 dark:border-pin-dark-400 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-pin-blue-500"
           />
-        </div>
+        </Card>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-sky-50 dark:bg-sky-900/50 p-4 rounded-lg border border-sky-200 dark:border-sky-800">
-          <p className="text-sm font-medium text-sky-800 dark:text-sky-300">
-            Tổng Doanh thu
-          </p>
-          <p className="text-2xl font-bold text-sky-800 dark:text-sky-200">
-            {formatCurrency(reportData.totalRevenue)}
-          </p>
-        </div>
-        <div className="bg-amber-50 dark:bg-amber-900/50 p-4 rounded-lg border border-amber-200 dark:border-amber-800">
-          <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
-            Tổng Giá vốn
-          </p>
-          <p className="text-2xl font-bold text-amber-800 dark:text-amber-200">
-            {formatCurrency(reportData.totalCost)}
-          </p>
-        </div>
-        <div className="bg-green-50 dark:bg-green-900/50 p-4 rounded-lg border border-green-200 dark:border-green-800">
-          <p className="text-sm font-medium text-green-800 dark:text-green-300">
-            Lợi nhuận ròng
-          </p>
-          <p className="text-2xl font-bold text-green-800 dark:text-green-200">
-            {formatCurrency(reportData.totalProfit)}
-          </p>
-        </div>
-        <div className="bg-purple-50 dark:bg-purple-900/50 p-4 rounded-lg border border-purple-200 dark:border-purple-800">
-          <p className="text-sm font-medium text-purple-800 dark:text-purple-300">
-            Chi phí sản xuất (kỳ)
-          </p>
-          <p className="text-2xl font-bold text-purple-800 dark:text-purple-200">
-            {formatCurrency(reportData.totalProductionCost)}
-          </p>
-          <p className="text-xs text-purple-700 dark:text-purple-300 mt-1">
-            Số lệnh: {reportData.ordersCount}
-          </p>
-        </div>
+      {/* Stats Cards */}
+      <CardGrid cols={4}>
+        <StatsCard
+          title="Tổng doanh thu"
+          value={formatCurrency(reportData.totalRevenue)}
+          iconName="money"
+          variant="primary"
+        />
+        <StatsCard
+          title="Lợi nhuận"
+          value={formatCurrency(reportData.totalProfit)}
+          iconName="progressUp"
+          variant="success"
+        />
+        <StatsCard
+          title="Đơn hàng"
+          value={reportData.filteredSales.length}
+          iconName="sales"
+          variant="warning"
+        />
+        <StatsCard
+          title="Sản xuất"
+          value={reportData.productionStats.total}
+          iconName="stock"
+          variant="info"
+        />
+      </CardGrid>
+
+      {/* Tab Navigation */}
+      <div className="flex gap-2 border-b border-pin-gray-200 dark:border-pin-dark-300">
+        <button
+          onClick={() => setSelectedTab("sales")}
+          className={`px-4 py-2 font-medium text-sm transition-colors border-b-2 ${
+            selectedTab === "sales"
+              ? "border-pin-blue-500 text-pin-blue-600 dark:text-pin-blue-400"
+              : "border-transparent text-pin-gray-600 dark:text-pin-dark-600 hover:text-pin-gray-900 dark:hover:text-pin-dark-900"
+          }`}
+        >
+          <Icon
+            name="sales"
+            size="sm"
+            tone={selectedTab === "sales" ? "primary" : "muted"}
+            className="inline mr-2"
+          />
+          Bán hàng ({reportData.filteredSales.length})
+        </button>
+        <button
+          onClick={() => setSelectedTab("production")}
+          className={`px-4 py-2 font-medium text-sm transition-colors border-b-2 ${
+            selectedTab === "production"
+              ? "border-pin-blue-500 text-pin-blue-600 dark:text-pin-blue-400"
+              : "border-transparent text-pin-gray-600 dark:text-pin-dark-600 hover:text-pin-gray-900 dark:hover:text-pin-dark-900"
+          }`}
+        >
+          <Icon
+            name="stock"
+            size="sm"
+            tone={selectedTab === "production" ? "primary" : "muted"}
+            className="inline mr-2"
+          />
+          Sản xuất ({reportData.productionStats.total})
+        </button>
       </div>
 
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border dark:border-slate-700 overflow-x-auto">
-        <h3 className="p-4 text-lg font-semibold">
-          Hiệu suất bán hàng theo sản phẩm
-        </h3>
-        <table className="w-full text-left min-w-max">
-          <thead className="border-b dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50">
-            <tr>
-              <th className="p-3 font-semibold text-slate-600 dark:text-slate-300">
-                Sản phẩm
-              </th>
-              <th className="p-3 font-semibold text-slate-600 dark:text-slate-300 text-center">
-                SL Bán
-              </th>
-              <th className="p-3 font-semibold text-slate-600 dark:text-slate-300 text-right">
-                Doanh thu
-              </th>
-              <th className="p-3 font-semibold text-slate-600 dark:text-slate-300 text-right">
-                Lợi nhuận
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {reportData.productPerformance.map((item) => (
-              <tr
-                key={item.sku}
-                className="border-t dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50"
-              >
-                <td className="p-3 font-medium text-slate-800 dark:text-slate-200">
-                  {item.name}
-                </td>
-                <td className="p-3 text-center text-slate-700 dark:text-slate-300">
-                  {item.quantity}
-                </td>
-                <td className="p-3 text-right text-slate-800 dark:text-slate-200 font-semibold">
-                  {formatCurrency(item.revenue)}
-                </td>
-                <td className="p-3 text-right text-green-600 dark:text-green-400 font-bold">
-                  {formatCurrency(item.profit)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {reportData.productPerformance.length === 0 && (
-          <div className="text-center p-8 text-slate-500">
-            Không có dữ liệu.
-          </div>
-        )}
-      </div>
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border dark:border-slate-700 p-4">
-        <h3 className="text-lg font-semibold mb-2">
-          Xu hướng doanh thu & lợi nhuận (theo ngày)
-        </h3>
-        {reportData.trendData.length > 1 ? (
-          <SimpleLineChart
-            data={reportData.trendData}
-            width={600}
-            height={220}
-            margin={{ top: 10, right: 20, bottom: 20, left: 40 }}
-          />
-        ) : (
-          <div className="text-slate-500">Chưa đủ dữ liệu để vẽ biểu đồ.</div>
-        )}
-      </div>
+      {/* Tab Content */}
+      {selectedTab === "sales" && (
+        <div className="space-y-6">
+          {/* Sales Table */}
+          <Card padding="none">
+            <div className="p-6 border-b border-pin-gray-200 dark:border-pin-dark-300">
+              <CardTitle icon={<Icon name="ratios" size="md" tone="primary" />}>
+                Chi tiết đơn hàng
+              </CardTitle>
+            </div>
+            <div className="p-6">
+              <DataTable
+                columns={salesColumns}
+                data={reportData.filteredSales}
+                keyExtractor={(sale) => sale.id}
+                emptyMessage="Không có đơn hàng trong khoảng thời gian này"
+              />
+            </div>
+          </Card>
+
+          {/* Top Products */}
+          <Card>
+            <CardTitle
+              icon={<Icon name="progressUp" size="md" tone="primary" />}
+              subtitle="Sản phẩm bán chạy nhất"
+            >
+              Top sản phẩm
+            </CardTitle>
+            <CardBody className="mt-6">
+              <DataTable
+                columns={productColumns}
+                data={reportData.topProducts}
+                keyExtractor={(item) => item.name}
+                emptyMessage="Chưa có dữ liệu sản phẩm"
+              />
+            </CardBody>
+          </Card>
+        </div>
+      )}
+
+      {selectedTab === "production" && (
+        <Card>
+          <CardTitle
+            icon={<Icon name="stock" size="md" tone="primary" />}
+            subtitle="Thống kê sản xuất"
+          >
+            Tình trạng sản xuất
+          </CardTitle>
+          <CardBody className="mt-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="p-4 rounded-lg bg-pin-blue-50 dark:bg-pin-blue-900/20">
+                <div className="text-2xl font-bold text-pin-blue-600 dark:text-pin-blue-400">
+                  {reportData.productionStats.total}
+                </div>
+                <div className="text-sm text-pin-gray-600 dark:text-pin-dark-600 mt-1">
+                  Tổng đơn
+                </div>
+              </div>
+              <div className="p-4 rounded-lg bg-pin-green-50 dark:bg-pin-green-900/20">
+                <div className="text-2xl font-bold text-pin-green-600 dark:text-pin-green-400">
+                  {reportData.productionStats.completed}
+                </div>
+                <div className="text-sm text-pin-gray-600 dark:text-pin-dark-600 mt-1">
+                  Hoàn thành
+                </div>
+              </div>
+              <div className="p-4 rounded-lg bg-pin-yellow-50 dark:bg-pin-yellow-900/20">
+                <div className="text-2xl font-bold text-pin-yellow-600 dark:text-pin-yellow-400">
+                  {reportData.productionStats.inProgress}
+                </div>
+                <div className="text-sm text-pin-gray-600 dark:text-pin-dark-600 mt-1">
+                  Đang sản xuất
+                </div>
+              </div>
+              <div className="p-4 rounded-lg bg-pin-gray-100 dark:bg-pin-dark-300">
+                <div className="text-2xl font-bold text-pin-gray-600 dark:text-pin-dark-600">
+                  {reportData.productionStats.pending}
+                </div>
+                <div className="text-sm text-pin-gray-600 dark:text-pin-dark-600 mt-1">
+                  Chờ sản xuất
+                </div>
+              </div>
+            </div>
+          </CardBody>
+        </Card>
+      )}
     </div>
   );
 };
 
 export default PinReportManager;
-
-// Lightweight inline chart to avoid extra deps
-const SimpleLineChart: React.FC<{
-  data: { label: string; revenue: number; profit: number }[];
-  width?: number;
-  height?: number;
-  margin?: { top: number; right: number; bottom: number; left: number };
-}> = ({
-  data,
-  width = 600,
-  height = 220,
-  margin = { top: 10, right: 20, bottom: 20, left: 40 },
-}) => {
-  const innerW = width - margin.left - margin.right;
-  const innerH = height - margin.top - margin.bottom;
-  const maxY = Math.max(1, ...data.map((d) => Math.max(d.revenue, d.profit)));
-  const points = (key: "revenue" | "profit") =>
-    data
-      .map((d, i) => {
-        const x = (i / (data.length - 1)) * innerW;
-        const y = innerH - (d[key] / maxY) * innerH;
-        return `${x},${y}`;
-      })
-      .join(" ");
-  const yTicks = 4;
-  const formatY = (n: number) =>
-    new Intl.NumberFormat("vi-VN", {
-      notation: "compact",
-      maximumFractionDigits: 1,
-    }).format(n);
-  return (
-    <svg
-      width={width}
-      height={height}
-      role="img"
-      aria-label="Xu hướng doanh thu & lợi nhuận"
-    >
-      <g transform={`translate(${margin.left},${margin.top})`}>
-        {/* grid & y labels */}
-        {[...Array(yTicks + 1)].map((_, i) => {
-          const y = (i / yTicks) * innerH;
-          const val = maxY - (i / yTicks) * maxY;
-          return (
-            <g key={i}>
-              <line x1={0} y1={y} x2={innerW} y2={y} stroke="#e2e8f0" />
-              <text
-                x={-8}
-                y={y}
-                textAnchor="end"
-                dominantBaseline="middle"
-                fontSize={10}
-                fill="#64748b"
-              >
-                {formatY(val)}
-              </text>
-            </g>
-          );
-        })}
-        {/* x labels */}
-        {data.map((d, i) => (
-          <text
-            key={i}
-            x={(i / (data.length - 1)) * innerW}
-            y={innerH + 14}
-            textAnchor="middle"
-            fontSize={10}
-            fill="#64748b"
-          >
-            {d.label}
-          </text>
-        ))}
-        {/* revenue line */}
-        <polyline
-          fill="none"
-          stroke="#0284c7"
-          strokeWidth={2}
-          points={points("revenue")}
-        />
-        {/* profit line */}
-        <polyline
-          fill="none"
-          stroke="#10b981"
-          strokeWidth={2}
-          points={points("profit")}
-        />
-        {/* legend */}
-        <g transform={`translate(0, -4)`}>
-          <rect x={0} y={-8} width={8} height={2} fill="#0284c7" />
-          <text x={12} y={-6} fontSize={10} fill="#334155">
-            Doanh thu
-          </text>
-          <rect x={80} y={-8} width={8} height={2} fill="#10b981" />
-          <text x={94} y={-6} fontSize={10} fill="#334155">
-            Lợi nhuận
-          </text>
-        </g>
-      </g>
-    </svg>
-  );
-};

@@ -20,7 +20,7 @@ import {
   SparklesIcon,
 } from "./common/Icons";
 import { ThemeToggle } from "./ThemeToggle";
-import type { User } from "../types";
+import type { CurrentUser } from "../contexts/types";
 import { supabase } from "../supabaseClient";
 import NotificationBell from "./NotificationBell";
 
@@ -42,9 +42,7 @@ const PinNavItem: React.FC<{
   return (
     <NavLink
       to={to}
-      className={({ isActive }) =>
-        `${baseItem} ${isActive ? activeClass : inactiveClass}`
-      }
+      className={({ isActive }) => `${baseItem} ${isActive ? activeClass : inactiveClass}`}
     >
       {({ isActive }) => (
         <>
@@ -63,9 +61,7 @@ const PinNavItem: React.FC<{
           </div>
           <span
             className={`text-xs font-medium mt-1.5 truncate w-full ${
-              isActive
-                ? "text-slate-900 dark:text-slate-100"
-                : "text-slate-500 dark:text-slate-400"
+              isActive ? "text-slate-900 dark:text-slate-100" : "text-slate-500 dark:text-slate-400"
             }`}
           >
             {label}
@@ -78,7 +74,7 @@ const PinNavItem: React.FC<{
 
 // --- DESKTOP TOP NAV ---
 export const PinTopNav: React.FC<{
-  currentUser: User;
+  currentUser: CurrentUser;
   onSwitchApp: () => void;
 }> = ({ currentUser, onSwitchApp }) => {
   const [showLogoMenu, setShowLogoMenu] = useState(false);
@@ -164,10 +160,7 @@ export const PinTopNav: React.FC<{
               {showLogoMenu && (
                 <>
                   {/* Backdrop */}
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setShowLogoMenu(false)}
-                  />
+                  <div className="fixed inset-0 z-40" onClick={() => setShowLogoMenu(false)} />
                   {/* Dropdown Menu */}
                   <div className="absolute left-0 top-full mt-2 w-72 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 z-50 max-h-[80vh] overflow-y-auto">
                     <div className="p-4 border-b border-slate-200 dark:border-slate-700">
@@ -265,9 +258,7 @@ export const PinTopNav: React.FC<{
               )}
             </div>
 
-            <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">
-              PIN Corp
-            </h1>
+            <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">PIN Corp</h1>
           </div>
           <div className="flex items-center gap-3">
             <nav className="flex items-center gap-1">
@@ -308,9 +299,7 @@ const MobileNavItem: React.FC<{
     {({ isActive }) => (
       <>
         {React.cloneElement(icon, {
-          className: `w-6 h-6 ${
-            isActive ? color : "text-slate-500 dark:text-slate-400"
-          }`,
+          className: `w-6 h-6 ${isActive ? color : "text-slate-500 dark:text-slate-400"}`,
         })}
         <span
           className={`text-xs font-medium mt-1 ${
@@ -382,9 +371,7 @@ export const PinMobileNav: React.FC = () => {
 };
 
 // --- FLOATING NAV BUTTONS for Mobile ---
-export const FloatingNavButtons: React.FC<{ onSwitchApp: () => void }> = ({
-  onSwitchApp,
-}) => {
+export const FloatingNavButtons: React.FC<{ onSwitchApp: () => void }> = ({ onSwitchApp }) => {
   const navigate = useNavigate();
   return (
     <div className="md:hidden fixed top-4 right-4 z-50 flex flex-col gap-3">

@@ -23,17 +23,14 @@ export async function runNetworkDiagnostics(): Promise<DiagnosticResult[]> {
     check: "Browser Online Status",
     status: navigator.onLine ? "success" : "error",
     message: navigator.onLine ? "Browser is online" : "Browser is offline",
-    details: navigator.onLine
-      ? "Network connection detected"
-      : "No network connection detected",
+    details: navigator.onLine ? "Network connection detected" : "No network connection detected",
   });
 
   // Check 2: Supabase URL configuration
   const supabaseUrl = import.meta.env?.VITE_SUPABASE_URL;
   results.push({
     check: "Supabase URL",
-    status:
-      supabaseUrl && !supabaseUrl.includes("placeholder") ? "success" : "error",
+    status: supabaseUrl && !supabaseUrl.includes("placeholder") ? "success" : "error",
     message: supabaseUrl ? "Supabase URL configured" : "Supabase URL not set",
     details: supabaseUrl || "VITE_SUPABASE_URL environment variable is missing",
   });
@@ -41,11 +38,7 @@ export async function runNetworkDiagnostics(): Promise<DiagnosticResult[]> {
   // Check 3: Supabase connection
   try {
     const startTime = Date.now();
-    const { error } = await supabase
-      .from("profiles")
-      .select("count")
-      .limit(1)
-      .single();
+    const { error } = await supabase.from("profiles").select("count").limit(1).single();
     const duration = Date.now() - startTime;
 
     if (error && !error.message.includes("multiple")) {
@@ -60,16 +53,15 @@ export async function runNetworkDiagnostics(): Promise<DiagnosticResult[]> {
         check: "Supabase Connection",
         status: duration > 3000 ? "warning" : "success",
         message: `Connected to Supabase (${duration}ms)`,
-        details:
-          duration > 3000 ? "Connection is slow" : "Connection is healthy",
+        details: duration > 3000 ? "Connection is slow" : "Connection is healthy",
       });
     }
-  } catch (e: any) {
+  } catch (e: unknown) {
     results.push({
       check: "Supabase Connection",
       status: "error",
       message: "Connection failed",
-      details: e.message || "Unknown error",
+      details: e instanceof Error ? e.message : "Unknown error",
     });
   }
 
@@ -86,7 +78,7 @@ export async function runNetworkDiagnostics(): Promise<DiagnosticResult[]> {
         message: "Internet connection verified",
         details: "Successfully reached external server",
       });
-    } catch (e: any) {
+    } catch (_e: unknown) {
       results.push({
         check: "Internet Connectivity",
         status: "error",
@@ -102,14 +94,11 @@ export async function runNetworkDiagnostics(): Promise<DiagnosticResult[]> {
 /**
  * Get common network error suggestions
  */
-export function getNetworkErrorSuggestions(error: any): string[] {
+export function getNetworkErrorSuggestions(error: unknown): string[] {
   const suggestions: string[] = [];
-  const errorMsg = error?.message || error?.toString() || "";
+  const errorMsg = (error as { message?: string })?.message || String(error) || "";
 
-  if (
-    errorMsg.includes("Failed to fetch") ||
-    errorMsg.includes("NetworkError")
-  ) {
+  if (errorMsg.includes("Failed to fetch") || errorMsg.includes("NetworkError")) {
     suggestions.push("Kiểm tra kết nối internet của bạn");
     suggestions.push("Tắt VPN hoặc proxy nếu đang sử dụng");
     suggestions.push("Kiểm tra firewall hoặc antivirus");
@@ -149,12 +138,7 @@ export function formatDiagnosticResults(results: DiagnosticResult[]): string {
   let output = "=== NETWORK DIAGNOSTICS ===\n\n";
 
   results.forEach((result, index) => {
-    const icon =
-      result.status === "success"
-        ? "✅"
-        : result.status === "warning"
-        ? "⚠️"
-        : "❌";
+    const icon = result.status === "success" ? "✅" : result.status === "warning" ? "⚠️" : "❌";
     output += `${index + 1}. ${icon} ${result.check}\n`;
     output += `   ${result.message}\n`;
     if (result.details) {

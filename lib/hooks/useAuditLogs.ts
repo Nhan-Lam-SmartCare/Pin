@@ -186,10 +186,7 @@ export function getOperationDisplay(operation: string): {
   color: string;
   icon: string;
 } {
-  const operations: Record<
-    string,
-    { label: string; color: string; icon: string }
-  > = {
+  const operations: Record<string, { label: string; color: string; icon: string }> = {
     INSERT: { label: "Thêm mới", color: "green", icon: "plus" },
     UPDATE: { label: "Cập nhật", color: "blue", icon: "edit" },
     DELETE: { label: "Xóa", color: "red", icon: "trash" },
@@ -206,9 +203,7 @@ export function getOperationDisplay(operation: string): {
 /**
  * Helper function to format changed fields for display
  */
-export function formatChangedFields(
-  changedFields: string[] | null | undefined
-): string {
+export function formatChangedFields(changedFields: string[] | null | undefined): string {
   if (!changedFields || changedFields.length === 0) {
     return "Không có thay đổi";
   }
@@ -237,14 +232,14 @@ export function formatChangedFields(
  * Helper function to get diff between old and new data
  */
 export function getDiff(
-  oldData: Record<string, any> | null | undefined,
-  newData: Record<string, any> | null | undefined,
+  oldData: Record<string, unknown> | null | undefined,
+  newData: Record<string, unknown> | null | undefined,
   changedFields: string[] | null | undefined
 ): Array<{
   field: string;
   displayName: string;
-  oldValue: any;
-  newValue: any;
+  oldValue: unknown;
+  newValue: unknown;
 }> {
   if (!changedFields || changedFields.length === 0) {
     return [];

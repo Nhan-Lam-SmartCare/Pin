@@ -1,5 +1,5 @@
 import type { PinContextType } from "../../contexts/types";
-import type { PinMaterial, PinProduct } from "../../types";
+import type { PinMaterial, PinProduct, PinSale, PinRepairOrder } from "../../types";
 
 export interface Notification {
   id: string;
@@ -10,7 +10,7 @@ export interface Notification {
   timestamp: string;
   read: boolean;
   actionUrl?: string;
-  data?: any;
+  data?: Record<string, unknown>;
 }
 
 export interface NotificationSettings {
@@ -25,9 +25,7 @@ export interface NotificationSettings {
 export interface NotificationService {
   checkLowStock: () => Notification[];
   checkDebtOverdue: () => Notification[];
-  addNotification: (
-    notification: Omit<Notification, "id" | "timestamp">
-  ) => void;
+  addNotification: (notification: Omit<Notification, "id" | "timestamp">) => void;
   markAsRead: (id: string) => void;
   markAllAsRead: () => void;
   getUnreadCount: () => number;
@@ -46,9 +44,7 @@ const DEFAULT_SETTINGS: NotificationSettings = {
   soundEnabled: true,
 };
 
-export function createNotificationService(
-  ctx: PinContextType
-): NotificationService {
+export function createNotificationService(ctx: PinContextType): NotificationService {
   const STORAGE_KEY = "pincorp-notifications";
   const SETTINGS_KEY = "pincorp-notification-settings";
   const LAST_CHECK_KEY = "pincorp-notifications-last-check";
@@ -104,9 +100,7 @@ export function createNotificationService(
   const loadSettings = (): NotificationSettings => {
     try {
       const data = localStorage.getItem(SETTINGS_KEY);
-      return data
-        ? { ...DEFAULT_SETTINGS, ...JSON.parse(data) }
-        : DEFAULT_SETTINGS;
+      return data ? { ...DEFAULT_SETTINGS, ...JSON.parse(data) } : DEFAULT_SETTINGS;
     } catch {
       return DEFAULT_SETTINGS;
     }
@@ -126,8 +120,7 @@ export function createNotificationService(
 
     // Tạo âm thanh thông báo đơn giản
     try {
-      const audioContext = new (window.AudioContext ||
-        (window as any).webkitAudioContext)();
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
 
@@ -138,10 +131,7 @@ export function createNotificationService(
       oscillator.type = "sine";
 
       gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(
-        0.01,
-        audioContext.currentTime + 0.3
-      );
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
 
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 0.3);
@@ -163,10 +153,7 @@ export function createNotificationService(
       // Lọc ra các notification tồn kho đã đọc trong 24h qua
       const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
       const recentReadNotifs = existingNotifs.filter(
-        (n) =>
-          n.type === "low_stock" &&
-          n.read &&
-          new Date(n.timestamp).getTime() > oneDayAgo
+        (n) => n.type === "low_stock" && n.read && new Date(n.timestamp).getTime() > oneDayAgo
       );
       const readMaterialIds = new Set(
         recentReadNotifs.map((n) => n.data?.materialId || n.data?.productId)
@@ -179,8 +166,7 @@ export function createNotificationService(
         // Bỏ qua nếu không có stock hoặc đang committed
         if (material.stock <= 0) return;
 
-        const availableStock =
-          material.stock - (material.committedQuantity || 0);
+        const availableStock = material.stock - (material.committedQuantity || 0);
         const stockPercentage = (availableStock / material.stock) * 100;
 
         let severity: Notification["severity"] | null = null;
@@ -252,32 +238,22 @@ export function createNotificationService(
       // Lọc notification công nợ đã đọc
       const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
       const recentReadDebts = existingNotifs.filter(
-        (n) =>
-          n.type === "debt_overdue" &&
-          n.read &&
-          new Date(n.timestamp).getTime() > oneDayAgo
+        (n) => n.type === "debt_overdue" && n.read && new Date(n.timestamp).getTime() > oneDayAgo
       );
-      const readDebtIds = new Set(
-        recentReadDebts.map((n) => n.data?.saleId || n.data?.repairId)
-      );
+      const readDebtIds = new Set(recentReadDebts.map((n) => n.data?.saleId || n.data?.repairId));
 
       const sales = ctx.pinSales || [];
       const now = new Date();
 
-      sales.forEach((sale: any) => {
+      sales.forEach((sale: PinSale) => {
         if (readDebtIds.has(sale.id)) return; // Đã đọc rồi thì bỏ qua
 
-        const paymentStatus = (sale as any).paymentStatus;
-        const dueDate = (sale as any).dueDate;
+        const paymentStatus = sale.paymentStatus;
+        const dueDate = sale.dueDate;
 
-        if (
-          (paymentStatus === "partial" || paymentStatus === "debt") &&
-          dueDate
-        ) {
+        if ((paymentStatus === "partial" || paymentStatus === "debt") && dueDate) {
           const due = new Date(dueDate);
-          const daysOverdue = Math.floor(
-            (now.getTime() - due.getTime()) / (1000 * 60 * 60 * 24)
-          );
+          const daysOverdue = Math.floor((now.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
 
           if (daysOverdue > 0) {
             debtNotifications.push({
@@ -285,13 +261,13 @@ export function createNotificationService(
               type: "debt_overdue",
               severity: daysOverdue > 7 ? "critical" : "high",
               title: "Công nợ quá hạn",
-              message: `Đơn hàng ${(sale as any).code || sale.id} của ${
+              message: `Đơn hàng ${sale.code || sale.id} của ${
                 sale.customer.name
               } đã quá hạn ${daysOverdue} ngày`,
               timestamp: new Date().toISOString(),
               read: false,
               actionUrl: "/receivables",
-              data: { saleId: sale.id, sale, daysOverdue },
+              data: { saleId: sale.id, daysOverdue },
             });
           }
         }
@@ -299,18 +275,15 @@ export function createNotificationService(
 
       // Check repair orders
       const repairOrders = ctx.pinRepairOrders || [];
-      repairOrders.forEach((order: any) => {
+      repairOrders.forEach((order: PinRepairOrder) => {
         if (readDebtIds.has(order.id)) return; // Đã đọc rồi thì bỏ qua
 
         if (
-          (order.paymentStatus === "partial" ||
-            order.paymentStatus === "unpaid") &&
+          (order.paymentStatus === "partial" || order.paymentStatus === "unpaid") &&
           order.paymentDate
         ) {
           const due = new Date(order.paymentDate);
-          const daysOverdue = Math.floor(
-            (now.getTime() - due.getTime()) / (1000 * 60 * 60 * 24)
-          );
+          const daysOverdue = Math.floor((now.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
 
           if (daysOverdue > 0) {
             debtNotifications.push({
@@ -322,7 +295,7 @@ export function createNotificationService(
               timestamp: new Date().toISOString(),
               read: false,
               actionUrl: "/repairs",
-              data: { repairId: order.id, order, daysOverdue },
+              data: { repairId: order.id, daysOverdue },
             });
           }
         }
@@ -351,10 +324,7 @@ export function createNotificationService(
       playNotificationSound();
 
       // Show toast for important notifications
-      if (
-        newNotification.severity === "critical" ||
-        newNotification.severity === "high"
-      ) {
+      if (newNotification.severity === "critical" || newNotification.severity === "high") {
         ctx.addToast?.({
           type: newNotification.severity === "critical" ? "error" : "warn",
           title: newNotification.title,

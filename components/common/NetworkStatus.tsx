@@ -37,6 +37,7 @@ export function NetworkStatus() {
       }, 3000);
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, [isOnline, showOfflineBanner]);
 
   if (!showOfflineBanner) return null;

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import { usePinContext } from "../contexts/PinContext";
-import type { PinProduct, PinCartItem, PinSale, PinCustomer } from "../types";
+import type { PinProduct, PinCartItem, PinSale, PinCustomer, PinMaterial } from "../types";
 import {
   ShoppingCartIcon,
   PlusIcon,
@@ -20,9 +20,7 @@ import {
 import PinReceiptModal from "./PinReceiptModal";
 
 const formatCurrency = (amount: number) =>
-  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
-    amount
-  );
+  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
 
 // --- New Customer Modal ---
 const NewPinCustomerModal: React.FC<{
@@ -125,11 +123,7 @@ const NewPinCustomerModal: React.FC<{
             <button
               type="submit"
               disabled={!currentUser}
-              title={
-                !currentUser
-                  ? "Bạn phải đăng nhập để thêm khách hàng"
-                  : undefined
-              }
+              title={!currentUser ? "Bạn phải đăng nhập để thêm khách hàng" : undefined}
               className={`font-semibold py-2 px-4 rounded-lg ${
                 currentUser
                   ? "bg-sky-600 text-white"
@@ -171,9 +165,7 @@ interface PinSalesManagerProps {
   products: PinProduct[];
   cartItems: PinCartItem[];
   setCartItems: React.Dispatch<React.SetStateAction<PinCartItem[]>>;
-  handleSale: (
-    saleData: Omit<PinSale, "id" | "date" | "userId" | "userName">
-  ) => void;
+  handleSale: (saleData: Omit<PinSale, "id" | "date" | "userId" | "userName">) => void;
   customers: PinCustomer[];
   setCustomers: React.Dispatch<React.SetStateAction<PinCustomer[]>>;
 }
@@ -187,20 +179,13 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
   setCustomers,
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [salesCategory, setSalesCategory] = useState<
-    "products" | "materials" | "all"
-  >("all");
-  const { currentUser, pinSales, deletePinSale, updatePinSale, pinMaterials } =
-    usePinContext();
+  const [salesCategory, setSalesCategory] = useState<"products" | "materials" | "all">("all");
+  const { currentUser, pinSales, deletePinSale, updatePinSale, pinMaterials } = usePinContext();
   const [discount, setDiscount] = useState(0);
   const [discountType, setDiscountType] = useState<"VND" | "%">("VND");
-  const [paymentMethod, setPaymentMethod] = useState<"cash" | "bank" | null>(
-    null
-  );
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "bank" | null>(null);
   // New: payment modes
-  const [paymentMode, setPaymentMode] = useState<"full" | "partial" | "debt">(
-    "full"
-  );
+  const [paymentMode, setPaymentMode] = useState<"full" | "partial" | "debt">("full");
   const [paidAmount, setPaidAmount] = useState<number>(0);
   const [dueDate, setDueDate] = useState<string>("");
   const [mobileView, setMobileView] = useState<"products" | "cart">("products");
@@ -211,9 +196,7 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
 
   // Customer state
   const [customerSearch, setCustomerSearch] = useState("");
-  const [selectedCustomer, setSelectedCustomer] = useState<PinCustomer | null>(
-    null
-  );
+  const [selectedCustomer, setSelectedCustomer] = useState<PinCustomer | null>(null);
   const [isCustomerListOpen, setIsCustomerListOpen] = useState(false);
   const [isNewCustomerModalOpen, setIsNewCustomerModalOpen] = useState(false);
   const customerInputRef = useRef<HTMLDivElement>(null);
@@ -230,25 +213,22 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
     const filteredMaterials =
       pinMaterials
         ?.filter(
-          (m) =>
+          (m: PinMaterial) =>
             (m.stock || 0) > 0 &&
             (m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
               m.sku?.toLowerCase().includes(searchTerm.toLowerCase()))
         )
-        .map((material) => ({
+        .map((material: PinMaterial) => ({
           id: material.id,
           name: material.name,
           sku: material.sku || `MAT-${material.id.slice(-4)}`,
           stock: material.stock || 0,
-          costPrice: (material as any).purchasePrice || 0,
+          costPrice: material.purchasePrice || 0,
           // Dùng giá bán lẻ làm mặc định cho cart
           sellingPrice:
-            (material as any).retailPrice ||
-            (material as any).sellingPrice ||
-            (material as any).purchasePrice ||
-            0,
-          retailPrice: (material as any).retailPrice || 0,
-          wholesalePrice: (material as any).wholesalePrice || 0,
+            material.retailPrice || material.sellingPrice || material.purchasePrice || 0,
+          retailPrice: material.retailPrice || 0,
+          wholesalePrice: material.wholesalePrice || 0,
           type: "material" as const,
           originalMaterial: material,
         })) || [];
@@ -268,10 +248,7 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
   // Keep backward compatibility
   const availableProducts = availableItems;
 
-  const addToCart = (
-    product: PinProduct,
-    priceType: "retail" | "wholesale" = "retail"
-  ) => {
+  const addToCart = (product: PinProduct, priceType: "retail" | "wholesale" = "retail") => {
     setCartItems((prev) => {
       const existing = prev.find(
         (item) => item.productId === product.id && item.priceType === priceType
@@ -285,13 +262,10 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
       }
 
       // Xác định giá bán dựa trên priceType
-      const retailPrice =
-        (product as any).retailPrice || product.sellingPrice || 0;
+      const retailPrice = (product as any).retailPrice || product.sellingPrice || 0;
       const wholesalePrice = (product as any).wholesalePrice || 0;
       const finalSellingPrice =
-        priceType === "wholesale" && wholesalePrice > 0
-          ? wholesalePrice
-          : retailPrice;
+        priceType === "wholesale" && wholesalePrice > 0 ? wholesalePrice : retailPrice;
 
       return [
         ...prev,
@@ -323,24 +297,17 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
           // Nếu có priceType, chỉ cập nhật item có cùng productId VÀ priceType
           // Nếu không có priceType, cập nhật tất cả item có cùng productId (backward compatible)
           const shouldUpdate = priceType
-            ? item.productId === productId &&
-              (item.priceType || "retail") === priceType
+            ? item.productId === productId && (item.priceType || "retail") === priceType
             : item.productId === productId;
 
-          return shouldUpdate
-            ? { ...item, quantity: Math.max(0, quantity) }
-            : item;
+          return shouldUpdate ? { ...item, quantity: Math.max(0, quantity) } : item;
         })
         .filter((item) => item.quantity > 0)
     );
   };
 
   const subtotal = useMemo(
-    () =>
-      cartItems.reduce(
-        (sum, item) => sum + item.sellingPrice * item.quantity,
-        0
-      ),
+    () => cartItems.reduce((sum, item) => sum + item.sellingPrice * item.quantity, 0),
     [cartItems]
   );
 
@@ -368,10 +335,7 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        customerInputRef.current &&
-        !customerInputRef.current.contains(event.target as Node)
-      ) {
+      if (customerInputRef.current && !customerInputRef.current.contains(event.target as Node)) {
         setIsCustomerListOpen(false);
       }
     };
@@ -412,18 +376,14 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
     if (paymentMode === "partial") {
       const amt = Number(paidAmount || 0);
       if (!(amt > 0 && amt < total)) {
-        alert(
-          "Số tiền thanh toán một phần phải lớn hơn 0 và nhỏ hơn Tổng cộng."
-        );
+        alert("Số tiền thanh toán một phần phải lớn hơn 0 và nhỏ hơn Tổng cộng.");
         return;
       }
     }
     if (paymentMode === "debt") {
       // Optional: encourage selecting a customer for debts
       if (!selectedCustomer) {
-        if (
-          !confirm("Bạn chưa chọn khách hàng. Ghi nợ cho 'Khách vãng lai'?")
-        ) {
+        if (!confirm("Bạn chưa chọn khách hàng. Ghi nợ cho 'Khách vãng lai'?")) {
           return;
         }
       }
@@ -446,17 +406,13 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
       customer: customerDetails,
       paymentMethod,
       paymentStatus:
-        paymentMode === "full"
-          ? "paid"
-          : paymentMode === "partial"
-          ? "partial"
-          : "debt",
+        paymentMode === "full" ? "paid" : paymentMode === "partial" ? "partial" : "debt",
       paidAmount:
         paymentMode === "full"
           ? total
           : paymentMode === "partial"
-          ? Math.min(Math.max(1, paidAmount || 0), total)
-          : 0,
+            ? Math.min(Math.max(1, paidAmount || 0), total)
+            : 0,
       dueDate: paymentMode === "debt" ? dueDate || undefined : undefined,
     };
     handleSale(saleData);
@@ -516,15 +472,10 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
   };
   const saveEdit = async () => {
     if (!editingSale) return;
-    const subtotal = editingSale.items.reduce(
-      (sum, it) => sum + it.sellingPrice * it.quantity,
-      0
-    );
+    const subtotal = editingSale.items.reduce((sum, it) => sum + it.sellingPrice * it.quantity, 0);
 
     const finalDiscountAmount =
-      editDiscountType === "%"
-        ? Math.round((subtotal * editDiscount) / 100)
-        : editDiscount;
+      editDiscountType === "%" ? Math.round((subtotal * editDiscount) / 100) : editDiscount;
 
     const updated: PinSale = {
       ...editingSale,
@@ -622,13 +573,13 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
                 }`}
               >
                 📦 Nguyên liệu (
-                {(pinMaterials || []).filter((m) => (m.stock || 0) > 0).length})
+                {(pinMaterials || []).filter((m: PinMaterial) => (m.stock || 0) > 0).length})
               </button>
             </div>
             <div className="flex-1 overflow-y-auto pr-2 -mr-2">
               {availableProducts.length > 0 ? (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-                  {availableProducts.map((product) => (
+                  {availableProducts.map((product: PinProduct & { type?: string }) => (
                     <div
                       key={product.id}
                       className="bg-white dark:bg-slate-800 p-4 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-sky-500 dark:hover:border-sky-400 hover:bg-sky-50/50 dark:hover:bg-sky-900/20 transition-colors duration-150 h-fit"
@@ -645,9 +596,7 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
                               : "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
                           }`}
                         >
-                          {(product as any).type === "material"
-                            ? "📦 NVL"
-                            : "📱 TP"}
+                          {(product as any).type === "material" ? "📦 NVL" : "📱 TP"}
                         </span>
                       </div>
 
@@ -666,9 +615,7 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
                           </span>
                           <span className="font-semibold text-slate-800 dark:text-slate-100">
                             {formatCurrency(
-                              (product as any).retailPrice ??
-                                product.sellingPrice ??
-                                0
+                              (product as any).retailPrice ?? product.sellingPrice ?? 0
                             )}
                           </span>
                         </div>
@@ -681,9 +628,7 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
                               Giá sỉ
                             </span>
                             <span className="font-semibold text-slate-800 dark:text-slate-100">
-                              {formatCurrency(
-                                (product as any).wholesalePrice || 0
-                              )}
+                              {formatCurrency((product as any).wholesalePrice || 0)}
                             </span>
                           </div>
                         )}
@@ -738,34 +683,32 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
                     {salesCategory === "products"
                       ? "Không có thành phẩm nào"
                       : salesCategory === "materials"
-                      ? "Không có nguyên liệu nào"
-                      : "Không có sản phẩm nào"}
+                        ? "Không có nguyên liệu nào"
+                        : "Không có sản phẩm nào"}
                   </p>
                   <p className="text-sm">
                     {salesCategory === "products"
                       ? "Hãy hoàn thành sản xuất để có thành phẩm bán."
                       : salesCategory === "materials"
-                      ? "Hãy nhập kho nguyên liệu để bán lẻ."
-                      : "Thành phẩm và nguyên liệu có tồn kho sẽ hiện ở đây."}
+                        ? "Hãy nhập kho nguyên liệu để bán lẻ."
+                        : "Thành phẩm và nguyên liệu có tồn kho sẽ hiện ở đây."}
                   </p>
                   {salesCategory === "products" && products.length === 0 && (
                     <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-blue-700 dark:text-blue-300">
                       <p className="text-sm font-medium">💡 Gợi ý:</p>
                       <p className="text-xs mt-1">
-                        1. Tạo BOM → 2. Tạo lệnh sản xuất → 3. Hoàn thành sản
-                        xuất
+                        1. Tạo BOM → 2. Tạo lệnh sản xuất → 3. Hoàn thành sản xuất
                       </p>
                     </div>
                   )}
-                  {salesCategory === "materials" &&
-                    (pinMaterials || []).length === 0 && (
-                      <div className="mt-4 p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg text-orange-700 dark:text-orange-300">
-                        <p className="text-sm font-medium">💡 Gợi ý:</p>
-                        <p className="text-xs mt-1">
-                          Vào trang Nguyên liệu để nhập kho các vật tư cần bán
-                        </p>
-                      </div>
-                    )}
+                  {salesCategory === "materials" && (pinMaterials || []).length === 0 && (
+                    <div className="mt-4 p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg text-orange-700 dark:text-orange-300">
+                      <p className="text-sm font-medium">💡 Gợi ý:</p>
+                      <p className="text-xs mt-1">
+                        Vào trang Nguyên liệu để nhập kho các vật tư cần bán
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -826,9 +769,7 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
                                     : "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
                                 }`}
                               >
-                                {item.priceType === "wholesale"
-                                  ? "💰 Sỉ"
-                                  : "🛒 Lẻ"}
+                                {item.priceType === "wholesale" ? "💰 Sỉ" : "🛒 Lẻ"}
                               </span>
                             )}
                           </div>
@@ -844,8 +785,7 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
                                 (i) =>
                                   !(
                                     i.productId === item.productId &&
-                                    (i.priceType || "retail") ===
-                                      (item.priceType || "retail")
+                                    (i.priceType || "retail") === (item.priceType || "retail")
                                   )
                               )
                             );
@@ -901,11 +841,7 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
                             />
                             <button
                               onClick={() =>
-                                updateQuantity(
-                                  item.productId,
-                                  item.quantity + 1,
-                                  item.priceType
-                                )
+                                updateQuantity(item.productId, item.quantity + 1, item.priceType)
                               }
                               className="w-8 h-8 flex items-center justify-center bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-full hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
                             >
@@ -1006,76 +942,72 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
                       <PlusIcon className="w-4 h-4" />
                     </button>
                   </div>
-                  {isCustomerListOpen &&
-                    (customerSearch || filteredCustomers.length > 0) && (
-                      <div className="absolute bottom-full mb-2 z-20 w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-xl max-h-64 overflow-y-auto">
-                        <div className="p-2 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50">
-                          <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                            📋 Danh bạ khách hàng ({filteredCustomers.length}{" "}
-                            kết quả)
-                          </p>
-                        </div>
+                  {isCustomerListOpen && (customerSearch || filteredCustomers.length > 0) && (
+                    <div className="absolute bottom-full mb-2 z-20 w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-xl max-h-64 overflow-y-auto">
+                      <div className="p-2 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50">
+                        <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                          📋 Danh bạ khách hàng ({filteredCustomers.length} kết quả)
+                        </p>
+                      </div>
 
-                        {filteredCustomers.length > 0 ? (
-                          <div className="max-h-48 overflow-y-auto">
-                            {filteredCustomers.map((c, index) => (
-                              <div
-                                key={c.id}
-                                onClick={() => handleSelectCustomer(c)}
-                                className={`p-3 hover:bg-blue-50 dark:hover:bg-blue-900/30 cursor-pointer border-b border-slate-100 dark:border-slate-700 transition-colors group ${
-                                  index === filteredCustomers.length - 1
-                                    ? "border-b-0"
-                                    : ""
-                                }`}
-                              >
-                                <div className="flex items-start justify-between gap-3">
-                                  <div className="flex-1">
-                                    <p className="font-semibold text-slate-800 dark:text-slate-200 text-sm group-hover:text-blue-700 dark:group-hover:text-blue-300">
-                                      👤 {c.name}
+                      {filteredCustomers.length > 0 ? (
+                        <div className="max-h-48 overflow-y-auto">
+                          {filteredCustomers.map((c, index) => (
+                            <div
+                              key={c.id}
+                              onClick={() => handleSelectCustomer(c)}
+                              className={`p-3 hover:bg-blue-50 dark:hover:bg-blue-900/30 cursor-pointer border-b border-slate-100 dark:border-slate-700 transition-colors group ${
+                                index === filteredCustomers.length - 1 ? "border-b-0" : ""
+                              }`}
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex-1">
+                                  <p className="font-semibold text-slate-800 dark:text-slate-200 text-sm group-hover:text-blue-700 dark:group-hover:text-blue-300">
+                                    👤 {c.name}
+                                  </p>
+                                  <div className="mt-1 space-y-1">
+                                    <p className="text-xs text-slate-600 dark:text-slate-400 flex items-center gap-1">
+                                      📞 {c.phone}
                                     </p>
-                                    <div className="mt-1 space-y-1">
+                                    {c.address && (
                                       <p className="text-xs text-slate-600 dark:text-slate-400 flex items-center gap-1">
-                                        📞 {c.phone}
+                                        📍 {c.address}
                                       </p>
-                                      {c.address && (
-                                        <p className="text-xs text-slate-600 dark:text-slate-400 flex items-center gap-1">
-                                          📍 {c.address}
-                                        </p>
-                                      )}
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center">
-                                    <ChevronRightIcon className="w-4 h-4 text-slate-400 group-hover:text-blue-500" />
+                                    )}
                                   </div>
                                 </div>
+                                <div className="flex items-center">
+                                  <ChevronRightIcon className="w-4 h-4 text-slate-400 group-hover:text-blue-500" />
+                                </div>
                               </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="p-6 text-center">
-                            <div className="text-slate-400 mb-2">
-                              <UsersIcon className="w-12 h-12 mx-auto" />
                             </div>
-                            <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">
-                              Không tìm thấy khách hàng
-                            </p>
-                            <p className="text-xs text-slate-500 dark:text-slate-500">
-                              Thử tìm với từ khóa khác hoặc thêm khách hàng mới
-                            </p>
-                            <button
-                              onClick={() => {
-                                setIsNewCustomerModalOpen(true);
-                                setIsCustomerListOpen(false);
-                              }}
-                              disabled={!currentUser}
-                              className="mt-3 px-3 py-1.5 bg-blue-500 text-white text-xs rounded-lg hover:bg-blue-600 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
-                            >
-                              ➕ Thêm khách hàng mới
-                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="p-6 text-center">
+                          <div className="text-slate-400 mb-2">
+                            <UsersIcon className="w-12 h-12 mx-auto" />
                           </div>
-                        )}
-                      </div>
-                    )}
+                          <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">
+                            Không tìm thấy khách hàng
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-500">
+                            Thử tìm với từ khóa khác hoặc thêm khách hàng mới
+                          </p>
+                          <button
+                            onClick={() => {
+                              setIsNewCustomerModalOpen(true);
+                              setIsCustomerListOpen(false);
+                            }}
+                            disabled={!currentUser}
+                            className="mt-3 px-3 py-1.5 bg-blue-500 text-white text-xs rounded-lg hover:bg-blue-600 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
+                          >
+                            ➕ Thêm khách hàng mới
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Quick Actions */}
@@ -1116,9 +1048,7 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
 
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-slate-600 dark:text-slate-400">
-                    Tạm tính (
-                    {cartItems.reduce((sum, item) => sum + item.quantity, 0)}{" "}
-                    sản phẩm)
+                    Tạm tính ({cartItems.reduce((sum, item) => sum + item.quantity, 0)} sản phẩm)
                   </span>
                   <span className="font-medium text-slate-800 dark:text-slate-200">
                     {formatCurrency(subtotal)}
@@ -1126,9 +1056,7 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
                 </div>
 
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-slate-600 dark:text-slate-400">
-                    💰 Giảm giá
-                  </span>
+                  <span className="text-slate-600 dark:text-slate-400">💰 Giảm giá</span>
                   <div className="flex items-center gap-2">
                     <input
                       type="number"
@@ -1155,9 +1083,7 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
 
                 {discountAmount > 0 && (
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-slate-500 dark:text-slate-500 text-xs">
-                      Số tiền giảm
-                    </span>
+                    <span className="text-slate-500 dark:text-slate-500 text-xs">Số tiền giảm</span>
                     <span className="text-red-600 dark:text-red-400 font-medium">
                       -{formatCurrency(discountAmount)}
                     </span>
@@ -1259,16 +1185,11 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
                           min={1}
                           max={total - 1}
                           value={paidAmount || ""}
-                          onChange={(e) =>
-                            setPaidAmount(Number(e.target.value || 0))
-                          }
+                          onChange={(e) => setPaidAmount(Number(e.target.value || 0))}
                           className="w-36 p-2 border border-slate-300 dark:border-slate-600 rounded-md text-right bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm"
                         />
                         <span className="text-xs text-slate-500">
-                          Còn lại:{" "}
-                          {formatCurrency(
-                            Math.max(0, total - (paidAmount || 0))
-                          )}
+                          Còn lại: {formatCurrency(Math.max(0, total - (paidAmount || 0)))}
                         </span>
                       </div>
                     </div>
@@ -1310,24 +1231,22 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
                   !currentUser ||
                   cartItems.length === 0 ||
                   !paymentMethod ||
-                  (paymentMode === "partial" &&
-                    !(paidAmount > 0 && paidAmount < total))
+                  (paymentMode === "partial" && !(paidAmount > 0 && paidAmount < total))
                 }
                 title={
                   !currentUser
                     ? "Bạn phải đăng nhập để thực hiện thanh toán"
                     : cartItems.length === 0
-                    ? "Giỏ hàng trống"
-                    : !paymentMethod
-                    ? "Chọn phương thức thanh toán"
-                    : "Hoàn tất thanh toán"
+                      ? "Giỏ hàng trống"
+                      : !paymentMethod
+                        ? "Chọn phương thức thanh toán"
+                        : "Hoàn tất thanh toán"
                 }
                 className={`w-full font-bold py-4 rounded-lg text-lg flex items-center justify-center gap-3 transition-all shadow-lg ${
                   !currentUser ||
                   cartItems.length === 0 ||
                   !paymentMethod ||
-                  (paymentMode === "partial" &&
-                    !(paidAmount > 0 && paidAmount < total))
+                  (paymentMode === "partial" && !(paidAmount > 0 && paidAmount < total))
                     ? "bg-slate-300 dark:bg-slate-600 text-slate-500 dark:text-slate-400 cursor-not-allowed"
                     : "bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700 transform hover:scale-105 active:scale-95"
                 }`}
@@ -1340,8 +1259,7 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
                   <>💳 Chọn phương thức thanh toán</>
                 ) : paymentMode === "partial" ? (
                   <>
-                    ✨ Thanh {formatCurrency(Math.min(paidAmount || 0, total))}{" "}
-                    • Nợ{" "}
+                    ✨ Thanh {formatCurrency(Math.min(paidAmount || 0, total))} • Nợ{" "}
                     {formatCurrency(Math.max(0, total - (paidAmount || 0)))}{" "}
                   </>
                 ) : paymentMode === "debt" ? (
@@ -1357,9 +1275,7 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
 
       {activeTab === "history" && (
         <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200/60 dark:border-slate-700 p-4">
-          <h3 className="text-lg font-bold mb-4">
-            Lịch sử bán hàng (50 gần nhất)
-          </h3>
+          <h3 className="text-lg font-bold mb-4">Lịch sử bán hàng (50 gần nhất)</h3>
           <div className="overflow-x-auto">
             <table className="w-full text-left min-w-max">
               <thead className="border-b dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50">
@@ -1379,20 +1295,16 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
                     </td>
                   </tr>
                 )}
-                {recentSales.map((s) => (
+                {recentSales.map((s: PinSale) => (
                   <tr key={s.id} className="border-t dark:border-slate-700">
-                    <td className="p-3 text-sm">
-                      {new Date(s.date).toLocaleString("vi-VN")}
-                    </td>
+                    <td className="p-3 text-sm">{new Date(s.date).toLocaleString("vi-VN")}</td>
                     <td className="p-3 text-sm">{s.customer?.name || ""}</td>
                     <td className="p-3 text-sm">
                       {(s.items || [])
-                        .map((it) => `${it.sku} x${it.quantity}`)
+                        .map((it: PinCartItem) => `${it.sku} x${it.quantity}`)
                         .join(", ")}
                     </td>
-                    <td className="p-3 text-right font-semibold">
-                      {formatCurrency(s.total)}
-                    </td>
+                    <td className="p-3 text-right font-semibold">{formatCurrency(s.total)}</td>
                     <td className="p-3 text-right">
                       <button
                         onClick={() => {
@@ -1407,15 +1319,9 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
                       <button
                         onClick={() => openEdit(s)}
                         disabled={!currentUser}
-                        title={
-                          !currentUser
-                            ? "Bạn phải đăng nhập để sửa"
-                            : "Sửa hoá đơn"
-                        }
+                        title={!currentUser ? "Bạn phải đăng nhập để sửa" : "Sửa hoá đơn"}
                         className={`mr-2 ${
-                          currentUser
-                            ? "text-sky-600"
-                            : "text-slate-400 cursor-not-allowed"
+                          currentUser ? "text-sky-600" : "text-slate-400 cursor-not-allowed"
                         }`}
                       >
                         <PencilSquareIcon className="w-5 h-5" />
@@ -1426,24 +1332,14 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
                             alert("Vui lòng đăng nhập");
                             return;
                           }
-                          if (
-                            window.confirm(
-                              "Xoá hoá đơn này? Tồn kho sẽ được hoàn lại."
-                            )
-                          ) {
+                          if (window.confirm("Xoá hoá đơn này? Tồn kho sẽ được hoàn lại.")) {
                             await deletePinSale(s.id);
                           }
                         }}
                         disabled={!currentUser}
-                        title={
-                          !currentUser
-                            ? "Bạn phải đăng nhập để xoá"
-                            : "Xoá hoá đơn"
-                        }
+                        title={!currentUser ? "Bạn phải đăng nhập để xoá" : "Xoá hoá đơn"}
                         className={`${
-                          currentUser
-                            ? "text-red-500"
-                            : "text-red-300 cursor-not-allowed"
+                          currentUser ? "text-red-500" : "text-red-300 cursor-not-allowed"
                         }`}
                       >
                         <TrashIcon className="w-5 h-5" />
@@ -1471,9 +1367,7 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
                 <input
                   type="datetime-local"
                   value={
-                    editingSale?.date
-                      ? new Date(editingSale.date).toISOString().slice(0, 16)
-                      : ""
+                    editingSale?.date ? new Date(editingSale.date).toISOString().slice(0, 16) : ""
                   }
                   onChange={(e) => {
                     if (editingSale) {
@@ -1507,16 +1401,12 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
                     <option value="%">%</option>
                   </select>
                 </div>
-                {editDiscountType === "%" &&
-                  editDiscount > 0 &&
-                  editingSale && (
-                    <p className="text-xs text-slate-500 mt-1">
-                      Số tiền giảm:{" "}
-                      {formatCurrency(
-                        Math.round((editingSale.subtotal * editDiscount) / 100)
-                      )}
-                    </p>
-                  )}
+                {editDiscountType === "%" && editDiscount > 0 && editingSale && (
+                  <p className="text-xs text-slate-500 mt-1">
+                    Số tiền giảm:{" "}
+                    {formatCurrency(Math.round((editingSale.subtotal * editDiscount) / 100))}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium">Phương thức</label>
@@ -1524,9 +1414,7 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
                   <button
                     onClick={() => setEditPayment("cash")}
                     className={`flex-1 p-2 border rounded ${
-                      editPayment === "cash"
-                        ? "border-sky-500"
-                        : "border-slate-300"
+                      editPayment === "cash" ? "border-sky-500" : "border-slate-300"
                     }`}
                   >
                     Tiền mặt
@@ -1534,9 +1422,7 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
                   <button
                     onClick={() => setEditPayment("bank")}
                     className={`flex-1 p-2 border rounded ${
-                      editPayment === "bank"
-                        ? "border-sky-500"
-                        : "border-slate-300"
+                      editPayment === "bank" ? "border-sky-500" : "border-slate-300"
                     }`}
                   >
                     Chuyển khoản
@@ -1550,10 +1436,7 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
                 >
                   Hủy
                 </button>
-                <button
-                  onClick={saveEdit}
-                  className="bg-sky-600 text-white px-4 py-2 rounded"
-                >
+                <button onClick={saveEdit} className="bg-sky-600 text-white px-4 py-2 rounded">
                   Lưu
                 </button>
               </div>

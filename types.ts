@@ -4,6 +4,17 @@ export type AllowedApp = "motocare" | "pincorp" | "both";
 
 export type UserRole = "admin" | "manager" | "employee";
 
+/**
+ * Toast notification item
+ */
+export interface ToastItem {
+  id?: string;
+  title?: string;
+  message?: string;
+  type?: "info" | "success" | "warn" | "error";
+  duration?: number;
+}
+
 export interface UserPermissions {
   canViewProfitReports: boolean;
   canViewCostDetails: boolean;
@@ -360,6 +371,7 @@ export interface CashTransaction {
     name: string;
   };
   notes: string;
+  description?: string;
   paymentSourceId: string;
   branchId: string;
   // Optional classification / forecasting helpers
@@ -395,11 +407,7 @@ export interface GoodsReceipt {
   branchId: string;
 }
 
-export type ContactType =
-  | "Khách hàng"
-  | "Nhà cung cấp"
-  | "Đối tác sửa chữa"
-  | "Đối tác tài chính";
+export type ContactType = "Khách hàng" | "Nhà cung cấp" | "Đối tác sửa chữa" | "Đối tác tài chính";
 
 export interface Contact {
   id: string;
@@ -438,7 +446,9 @@ export interface FixedAsset {
   maintenanceSchedule?: MaintenanceSchedule[];
   status: "active" | "disposed" | "sold" | "under_maintenance";
   branchId?: string;
-  created_at: string;
+  created_at?: string;
+  createdAt?: string;
+  createdBy?: string;
 }
 
 export interface CapitalInvestment {
@@ -464,7 +474,9 @@ export interface PinMaterial {
   // Optional selling prices for materials
   retailPrice?: number; // Giá bán lẻ
   wholesalePrice?: number; // Giá bán sỉ
+  sellingPrice?: number; // Giá bán (legacy)
   stock: number; // Total stock in warehouse
+  quantity?: number; // Alias for stock (legacy compatibility)
   committedQuantity?: number; // Reserved for production orders
   supplier?: string;
   description?: string;
@@ -555,7 +567,9 @@ export interface ProductionOrder {
     | "Đang sản xuất"
     | "Hoàn thành"
     | "Đã nhập kho"
-    | "Đã hủy";
+    | "Đã hủy"
+    | "Chờ sản xuất"
+    | "Mới";
   materialsCost: number; // Estimated cost
   additionalCosts: AdditionalCost[];
   totalCost: number; // Estimated total
@@ -646,7 +660,7 @@ export interface PinRepairOrder {
   deviceName: string;
   issueDescription: string;
   technicianName?: string;
-  status: "Tiếp nhận" | "Đang sửa" | "Đá sửa xong" | "Trả máy";
+  status: "Tiếp nhận" | "Đang sửa" | "Đã sửa xong" | "Trả máy" | "Chờ";
   materialsUsed?: PinRepairMaterial[];
   laborCost: number;
   total: number;
@@ -654,7 +668,7 @@ export interface PinRepairOrder {
   paymentStatus: "paid" | "unpaid" | "partial";
   partialPaymentAmount?: number; // Số tiền khách thanh toán trước nếu thanh toán 1 phần
   depositAmount?: number; // Số tiền đặt cọc
-  paymentMethod?: "cash" | "transfer" | "card"; // Phương thức thanh toán (dùng chung cho cọc và thanh toán)
+  paymentMethod?: "cash" | "transfer" | "card" | "bank"; // Phương thức thanh toán (dùng chung cho cọc và thanh toán)
   paymentDate?: string;
   dueDate?: string; // Thời gian hẹn trả - để nhắc nợ
   cashTransactionId?: string;
@@ -803,12 +817,7 @@ export interface PricingMetrics {
 }
 
 export interface SupplierRecommendation {
-  type:
-    | "maintain"
-    | "negotiate"
-    | "find_alternative"
-    | "increase_orders"
-    | "reduce_orders";
+  type: "maintain" | "negotiate" | "find_alternative" | "increase_orders" | "reduce_orders";
   reason: string;
   potentialBenefit: number; // cost savings or improvement
   actionPriority: "high" | "medium" | "low";
@@ -855,12 +864,7 @@ export interface OptimizationSavings {
 }
 
 export interface OptimizationSuggestion {
-  type:
-    | "reschedule"
-    | "reallocate_resources"
-    | "batch_orders"
-    | "outsource"
-    | "delay_non_critical";
+  type: "reschedule" | "reallocate_resources" | "batch_orders" | "outsource" | "delay_non_critical";
   impact: "high" | "medium" | "low";
   effort: "high" | "medium" | "low";
   potentialSavings: number;
@@ -911,13 +915,7 @@ export interface MaintenanceSchedule {
   assetId: string;
   type: "preventive" | "corrective" | "inspection";
   description: string;
-  frequency:
-    | "daily"
-    | "weekly"
-    | "monthly"
-    | "quarterly"
-    | "annually"
-    | "custom";
+  frequency: "daily" | "weekly" | "monthly" | "quarterly" | "annually" | "custom";
   nextDueDate: string;
   lastCompletedDate?: string;
   estimatedCost: number;
@@ -959,12 +957,7 @@ export interface CashFlow {
   paymentMethod: "cash" | "bank_transfer" | "check" | "card" | "other";
   accountId?: string;
   isRecurring: boolean;
-  recurringFrequency?:
-    | "daily"
-    | "weekly"
-    | "monthly"
-    | "quarterly"
-    | "annually";
+  recurringFrequency?: "daily" | "weekly" | "monthly" | "quarterly" | "annually";
   tags: string[];
   attachments?: string[];
   created_at: string;

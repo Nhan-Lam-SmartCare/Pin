@@ -15,10 +15,10 @@ export interface AuditLog {
   entityId: string;
   entityName?: string;
   changes?: {
-    before?: any;
-    after?: any;
+    before?: Record<string, unknown>;
+    after?: Record<string, unknown>;
   };
-  metadata?: any;
+  metadata?: Record<string, unknown>;
   ipAddress?: string;
   userAgent?: string;
 }
@@ -128,14 +128,10 @@ export function createAuditLogService(ctx: PinContextType): AuditLogService {
           logs = logs.filter((log) => log.entity === filter.entity);
         }
         if (filter.dateFrom) {
-          logs = logs.filter(
-            (log) => new Date(log.timestamp) >= filter.dateFrom!
-          );
+          logs = logs.filter((log) => new Date(log.timestamp) >= filter.dateFrom!);
         }
         if (filter.dateTo) {
-          logs = logs.filter(
-            (log) => new Date(log.timestamp) <= filter.dateTo!
-          );
+          logs = logs.filter((log) => new Date(log.timestamp) <= filter.dateTo!);
         }
         if (filter.searchQuery) {
           const query = filter.searchQuery.toLowerCase();
@@ -159,9 +155,7 @@ export function createAuditLogService(ctx: PinContextType): AuditLogService {
 
     getLogsByEntity: (entity, entityId) => {
       const logs = loadLogs();
-      return logs.filter(
-        (log) => log.entity === entity && log.entityId === entityId
-      );
+      return logs.filter((log) => log.entity === entity && log.entityId === entityId);
     },
 
     getUserActivity: (userId, limit = 50) => {
@@ -179,18 +173,14 @@ export function createAuditLogService(ctx: PinContextType): AuditLogService {
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
 
-      const filtered = logs.filter(
-        (log) => new Date(log.timestamp) >= cutoffDate
-      );
+      const filtered = logs.filter((log) => new Date(log.timestamp) >= cutoffDate);
 
       saveLogs(filtered);
 
       ctx.addToast?.({
         type: "success",
         title: "Đã xóa logs cũ",
-        message: `Đã xóa ${
-          logs.length - filtered.length
-        } logs cũ hơn ${daysToKeep} ngày`,
+        message: `Đã xóa ${logs.length - filtered.length} logs cũ hơn ${daysToKeep} ngày`,
       });
     },
 
@@ -201,10 +191,8 @@ export function createAuditLogService(ctx: PinContextType): AuditLogService {
               if (filter.userId && log.userId !== filter.userId) return false;
               if (filter.action && log.action !== filter.action) return false;
               if (filter.entity && log.entity !== filter.entity) return false;
-              if (filter.dateFrom && new Date(log.timestamp) < filter.dateFrom)
-                return false;
-              if (filter.dateTo && new Date(log.timestamp) > filter.dateTo)
-                return false;
+              if (filter.dateFrom && new Date(log.timestamp) < filter.dateFrom) return false;
+              if (filter.dateTo && new Date(log.timestamp) > filter.dateTo) return false;
               return true;
             })
           : loadLogs();
@@ -227,11 +215,12 @@ export function createAuditLogService(ctx: PinContextType): AuditLogService {
           title: "Xuất audit logs thành công",
           message: `Đã xuất ${logs.length} logs`,
         });
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
         ctx.addToast?.({
           type: "error",
           title: "Lỗi xuất logs",
-          message: error?.message || String(error),
+          message: errorMessage,
         });
       }
     },

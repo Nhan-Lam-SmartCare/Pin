@@ -7,7 +7,31 @@ import type {
   CashTransaction,
   MaterialCommitment,
   ActualCost,
+  PinProduct,
 } from "../../types";
+
+// AppContext subset needed by BusinessLogicService
+interface BusinessLogicContext {
+  pinMaterials: PinMaterial[];
+  pinProducts: PinProduct[];
+  productionOrders: ProductionOrder[];
+  addProductionOrder: (order: ProductionOrder, bom: PinBOM) => Promise<void>;
+  updateProductionOrderStatus: (orderId: string, status: string) => Promise<void>;
+  upsertProductionOrder: (order: ProductionOrder) => Promise<void>;
+  upsertPinMaterial: (material: PinMaterial) => Promise<void>;
+  handlePinSale: (sale: PinSale, cashTx: CashTransaction) => Promise<void>;
+  updatePinProduct: (product: PinProduct) => Promise<void>;
+  addToast: (toast: { title: string; message: string; type: "success" | "error" | "warn" }) => void;
+}
+
+interface CostAnalysis {
+  estimatedCost: number;
+  actualCost: number;
+  variance: number;
+  variancePercentage: number;
+  materialVariance: number;
+  additionalCostsVariance: number;
+}
 
 /**
  * Business Logic Service Class
@@ -28,7 +52,7 @@ export class BusinessLogicService {
   static async createProductionOrder(
     order: ProductionOrder,
     bom: PinBOM,
-    appContext: any // We'll type this properly based on AppContext
+    appContext: BusinessLogicContext
   ): Promise<{ success: boolean; message: string; orderId?: string }> {
     try {
       // 1. Validate material availability
@@ -62,11 +86,7 @@ export class BusinessLogicService {
       await appContext.addProductionOrder(orderWithCommitments, bom);
 
       // 5. Update material committed quantities
-      await this.updateMaterialCommitments(
-        materialCommitments,
-        "add",
-        appContext
-      );
+      await this.updateMaterialCommitments(materialCommitments, "add", appContext);
 
       return {
         success: true,
@@ -75,11 +95,10 @@ export class BusinessLogicService {
       };
     } catch (error) {
       console.error("Error creating production order:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
       return {
         success: false,
-        message: `Lỗi tạo đơn hàng: ${
-          (error as any)?.message || "Unknown error"
-        }`,
+        message: `Lỗi tạo đơn hàng: ${errorMessage}`,
       };
     }
   }
@@ -90,7 +109,7 @@ export class BusinessLogicService {
   static async processSale(
     sale: PinSale,
     newCashTx: CashTransaction,
-    appContext: any
+    appContext: BusinessLogicContext
   ): Promise<{ success: boolean; message: string }> {
     try {
       // 1. Validate product availability
@@ -117,11 +136,10 @@ export class BusinessLogicService {
       };
     } catch (error) {
       console.error("Error processing sale:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
       return {
         success: false,
-        message: `Lỗi xử lý đơn hàng: ${
-          (error as any)?.message || "Unknown error"
-        }`,
+        message: `Lỗi xử lý đơn hàng: ${errorMessage}`,
       };
     }
   }
@@ -132,12 +150,10 @@ export class BusinessLogicService {
   static async completeProductionOrder(
     orderId: string,
     actualCosts: ActualCost,
-    appContext: any
-  ): Promise<{ success: boolean; message: string; costAnalysis?: any }> {
+    appContext: BusinessLogicContext
+  ): Promise<{ success: boolean; message: string; costAnalysis?: CostAnalysis }> {
     try {
-      const order = appContext.productionOrders.find(
-        (o: ProductionOrder) => o.id === orderId
-      );
+      const order = appContext.productionOrders.find((o: ProductionOrder) => o.id === orderId);
       if (!order) {
         return { success: false, message: "Không tìm thấy đơn hàng sản xuất" };
       }
@@ -174,11 +190,10 @@ export class BusinessLogicService {
       };
     } catch (error) {
       console.error("Error completing production order:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
       return {
         success: false,
-        message: `Lỗi hoàn thành đơn hàng: ${
-          (error as any)?.message || "Unknown error"
-        }`,
+        message: `Lỗi hoàn thành đơn hàng: ${errorMessage}`,
       };
     }
   }
@@ -189,7 +204,7 @@ export class BusinessLogicService {
   private static async validateMaterialAvailabilityForBOM(
     bom: PinBOM,
     quantity: number,
-    appContext: any
+    appContext: BusinessLogicContext
   ): Promise<{ isValid: boolean; message?: string }> {
     const materialRequirements = bom.materials.map((bomMat) => ({
       materialId: bomMat.materialId,
@@ -199,9 +214,7 @@ export class BusinessLogicService {
     const shortages: string[] = [];
 
     for (const req of materialRequirements) {
-      const material = appContext.pinMaterials.find(
-        (m: PinMaterial) => m.id === req.materialId
-      );
+      const material = appContext.pinMaterials.find((m: PinMaterial) => m.id === req.materialId);
       if (!material) {
         shortages.push(`Nguyên liệu không tồn tại (${req.materialId})`);
         continue;
@@ -215,18 +228,13 @@ export class BusinessLogicService {
       const availableStock = (material.stock || 0) - committedQty;
 
       if (availableStock < req.quantity) {
-        shortages.push(
-          `${material.name}: cần ${req.quantity}, có ${availableStock}`
-        );
+        shortages.push(`${material.name}: cần ${req.quantity}, có ${availableStock}`);
       }
     }
 
     return {
       isValid: shortages.length === 0,
-      message:
-        shortages.length > 0
-          ? `Thiếu nguyên liệu: ${shortages.join(", ")}`
-          : undefined,
+      message: shortages.length > 0 ? `Thiếu nguyên liệu: ${shortages.join(", ")}` : undefined,
     };
   }
 
@@ -235,32 +243,25 @@ export class BusinessLogicService {
    */
   private static async validateStockForSale(
     sale: PinSale,
-    appContext: any
+    appContext: BusinessLogicContext
   ): Promise<{ isValid: boolean; message?: string }> {
     const shortages: string[] = [];
 
     for (const item of sale.items) {
-      const product = appContext.pinProducts.find(
-        (p: any) => p.id === item.productId
-      );
+      const product = appContext.pinProducts.find((p) => p.id === item.productId);
       if (!product) {
         shortages.push(`Sản phẩm không tồn tại (${item.productId})`);
         continue;
       }
 
       if (product.stock < item.quantity) {
-        shortages.push(
-          `${product.name}: cần ${item.quantity}, có ${product.stock}`
-        );
+        shortages.push(`${product.name}: cần ${item.quantity}, có ${product.stock}`);
       }
     }
 
     return {
       isValid: shortages.length === 0,
-      message:
-        shortages.length > 0
-          ? `Không đủ hàng: ${shortages.join(", ")}`
-          : undefined,
+      message: shortages.length > 0 ? `Không đủ hàng: ${shortages.join(", ")}` : undefined,
     };
   }
 
@@ -295,14 +296,9 @@ export class BusinessLogicService {
     productionOrders: ProductionOrder[]
   ): number {
     return productionOrders
-      .filter(
-        (order) =>
-          order.status === "Đang chờ" || order.status === "Đang sản xuất"
-      )
+      .filter((order) => order.status === "Đang chờ" || order.status === "Đang sản xuất")
       .reduce((total, order) => {
-        const commitment = order.committedMaterials?.find(
-          (cm) => cm.materialId === materialId
-        );
+        const commitment = order.committedMaterials?.find((cm) => cm.materialId === materialId);
         return total + (commitment?.quantity || 0);
       }, 0);
   }
@@ -313,7 +309,7 @@ export class BusinessLogicService {
   private static async updateMaterialCommitments(
     commitments: MaterialCommitment[],
     operation: "add" | "remove",
-    appContext: any
+    appContext: BusinessLogicContext
   ): Promise<void> {
     const updates = commitments
       .map((commitment) => {
@@ -333,12 +329,10 @@ export class BusinessLogicService {
           committedQuantity: newCommittedQuantity,
         };
       })
-      .filter(Boolean);
+      .filter((m): m is PinMaterial => m !== null);
 
     // Update materials in batch
-    await Promise.all(
-      updates.map((material) => appContext.upsertPinMaterial(material))
-    );
+    await Promise.all(updates.map((material) => appContext.upsertPinMaterial(material)));
   }
 
   /**
@@ -346,13 +340,11 @@ export class BusinessLogicService {
    */
   private static async updateInventoryAfterSale(
     sale: PinSale,
-    appContext: any
+    appContext: BusinessLogicContext
   ): Promise<void> {
     // This is typically handled by handlePinSale, but we can add verification here
     for (const item of sale.items) {
-      const product = appContext.pinProducts.find(
-        (p: any) => p.id === item.productId
-      );
+      const product = appContext.pinProducts.find((p) => p.id === item.productId);
       if (product && product.stock >= item.quantity) {
         const updatedProduct = {
           ...product,
@@ -366,22 +358,20 @@ export class BusinessLogicService {
   /**
    * Check and trigger reorder points
    */
-  private static async checkReorderPoints(appContext: any): Promise<void> {
+  private static async checkReorderPoints(appContext: BusinessLogicContext): Promise<void> {
     // Implementation would check materials against minimum stock levels
     // and trigger reorder alerts or automatic purchase orders
 
-    const lowStockMaterials = appContext.pinMaterials.filter(
-      (material: PinMaterial) => {
-        const minStock = (material as any).minStock || 0;
-        const committedQty = this.calculateCurrentCommitments(
-          material.id,
-          appContext.productionOrders
-        );
-        const availableStock = (material.stock || 0) - committedQty;
+    const lowStockMaterials = appContext.pinMaterials.filter((material: PinMaterial) => {
+      const minStock = (material as PinMaterial & { minStock?: number }).minStock || 0;
+      const committedQty = this.calculateCurrentCommitments(
+        material.id,
+        appContext.productionOrders
+      );
+      const availableStock = (material.stock || 0) - committedQty;
 
-        return availableStock <= minStock;
-      }
-    );
+      return availableStock <= minStock;
+    });
 
     if (lowStockMaterials.length > 0) {
       appContext.addToast({
@@ -398,12 +388,11 @@ export class BusinessLogicService {
   private static calculateCostAnalysis(
     order: ProductionOrder,
     actualCosts: ActualCost
-  ): any {
+  ): CostAnalysis {
     const estimatedCost = order.totalCost;
     const actualCost = actualCosts.totalActualCost;
     const variance = actualCost - estimatedCost;
-    const variancePercentage =
-      estimatedCost > 0 ? (variance / estimatedCost) * 100 : 0;
+    const variancePercentage = estimatedCost > 0 ? (variance / estimatedCost) * 100 : 0;
 
     // Calculate material variance
     const estimatedMaterialCost = order.materialsCost;
@@ -414,16 +403,9 @@ export class BusinessLogicService {
     const materialVariance = actualMaterialCost - estimatedMaterialCost;
 
     // Calculate additional costs variance
-    const estimatedAdditionalCosts = order.additionalCosts.reduce(
-      (sum, ac) => sum + ac.amount,
-      0
-    );
-    const actualAdditionalCosts = actualCosts.otherCosts.reduce(
-      (sum, oc) => sum + oc.amount,
-      0
-    );
-    const additionalCostsVariance =
-      actualAdditionalCosts - estimatedAdditionalCosts;
+    const estimatedAdditionalCosts = order.additionalCosts.reduce((sum, ac) => sum + ac.amount, 0);
+    const actualAdditionalCosts = actualCosts.otherCosts.reduce((sum, oc) => sum + oc.amount, 0);
+    const additionalCostsVariance = actualAdditionalCosts - estimatedAdditionalCosts;
 
     return {
       estimatedCost,

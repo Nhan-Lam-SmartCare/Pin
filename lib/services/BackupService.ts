@@ -92,11 +92,12 @@ export function createBackupService(ctx: PinContextType): BackupService {
           title: "Xuất dữ liệu thành công",
           message: `Đã tạo file backup tại ${a.download}`,
         });
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
         ctx.addToast?.({
           type: "error",
           title: "Lỗi xuất dữ liệu",
-          message: error?.message || String(error),
+          message: errorMessage,
         });
         throw error;
       }
@@ -138,14 +139,7 @@ export function createBackupService(ctx: PinContextType): BackupService {
 
         // Products
         if (data.products.length > 0) {
-          const headers = [
-            "SKU",
-            "Tên",
-            "Giá vốn",
-            "Giá bán",
-            "Tồn kho",
-            "Ngày sản xuất",
-          ];
+          const headers = ["SKU", "Tên", "Giá vốn", "Giá bán", "Tồn kho", "Ngày sản xuất"];
           const rows = data.products.map((p) => [
             p.sku,
             p.name,
@@ -245,11 +239,12 @@ export function createBackupService(ctx: PinContextType): BackupService {
           title: "Xuất Excel thành công",
           message: `Đã tạo ${Object.keys(sheets).length} file CSV`,
         });
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
         ctx.addToast?.({
           type: "error",
           title: "Lỗi xuất Excel",
-          message: error?.message || String(error),
+          message: errorMessage,
         });
         throw error;
       }
@@ -267,9 +262,7 @@ export function createBackupService(ctx: PinContextType): BackupService {
         // Confirm before import
         const confirmed = confirm(
           `Bạn có chắc muốn import dữ liệu từ backup?\n\n` +
-            `Thời gian: ${new Date(backup.timestamp).toLocaleString(
-              "vi-VN"
-            )}\n` +
+            `Thời gian: ${new Date(backup.timestamp).toLocaleString("vi-VN")}\n` +
             `Nguyên liệu: ${backup.data.materials?.length || 0}\n` +
             `Sản phẩm: ${backup.data.products?.length || 0}\n` +
             `Đơn hàng: ${backup.data.sales?.length || 0}\n\n` +
@@ -281,29 +274,26 @@ export function createBackupService(ctx: PinContextType): BackupService {
         // Import data
         if (backup.data.materials) ctx.setPinMaterials(backup.data.materials);
         if (backup.data.boms) ctx.setBoms(backup.data.boms);
-        if (backup.data.productionOrders)
-          ctx.setProductionOrders(backup.data.productionOrders);
+        if (backup.data.productionOrders) ctx.setProductionOrders(backup.data.productionOrders);
         if (backup.data.products) ctx.setPinProducts(backup.data.products);
         if (backup.data.sales) ctx.setPinSales(backup.data.sales);
         if (backup.data.customers) ctx.setPinCustomers(backup.data.customers);
         if (backup.data.suppliers) ctx.setSuppliers(backup.data.suppliers);
-        if (backup.data.repairOrders)
-          ctx.setRepairOrders(backup.data.repairOrders);
-        if (backup.data.cashTransactions)
-          ctx.setCashTransactions(backup.data.cashTransactions);
-        if (backup.data.materialHistory)
-          ctx.setPinMaterialHistory(backup.data.materialHistory);
+        if (backup.data.repairOrders) ctx.setRepairOrders(backup.data.repairOrders);
+        if (backup.data.cashTransactions) ctx.setCashTransactions(backup.data.cashTransactions);
+        if (backup.data.materialHistory) ctx.setPinMaterialHistory(backup.data.materialHistory);
 
         ctx.addToast?.({
           type: "success",
           title: "Import thành công",
           message: "Đã khôi phục dữ liệu từ backup",
         });
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
         ctx.addToast?.({
           type: "error",
           title: "Lỗi import dữ liệu",
-          message: error?.message || String(error),
+          message: errorMessage,
         });
         throw error;
       }
@@ -312,9 +302,7 @@ export function createBackupService(ctx: PinContextType): BackupService {
     createAutoBackup: async () => {
       try {
         const backup = await gatherAllData();
-        const key = `pincorp-auto-backup-${
-          new Date().toISOString().split("T")[0]
-        }`;
+        const key = `pincorp-auto-backup-${new Date().toISOString().split("T")[0]}`;
         localStorage.setItem(
           key,
           JSON.stringify({
@@ -340,9 +328,7 @@ export function createBackupService(ctx: PinContextType): BackupService {
     },
 
     getBackupHistory: async () => {
-      const allKeys = Object.keys(localStorage).filter((k) =>
-        k.startsWith("pincorp-auto-backup-")
-      );
+      const allKeys = Object.keys(localStorage).filter((k) => k.startsWith("pincorp-auto-backup-"));
       return allKeys
         .map((key) => {
           try {

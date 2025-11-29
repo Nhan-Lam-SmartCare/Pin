@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { usePinContext } from "../contexts/PinContext";
 import { createBarcodeService } from "../lib/services/BarcodeService";
 import type { ScanResult } from "../lib/services/BarcodeService";
+import type { PinProduct, PinMaterial } from "../types";
 import { Card } from "./ui/Card";
 import { Icon } from "./common/Icon";
 import { XMarkIcon, CameraIcon, DocumentArrowDownIcon } from "./common/Icons";
@@ -94,7 +95,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
     if (parsed.type === "sku") {
       // Search in products
       const product = ctx.pinProducts?.find(
-        (p) => p.sku.toUpperCase() === parsed.value
+        (p: PinProduct) => p.sku.toUpperCase() === parsed.value
       );
       if (product) {
         ctx.addToast?.({
@@ -105,7 +106,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
       } else {
         // Search in materials
         const material = ctx.pinMaterials?.find(
-          (m) => m.sku.toUpperCase() === parsed.value
+          (m: PinMaterial) => m.sku.toUpperCase() === parsed.value
         );
         if (material) {
           ctx.addToast?.({
@@ -163,7 +164,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   };
 
   const handleGenerateForProduct = async () => {
-    const product = ctx.pinProducts?.find((p) => p.id === selectedProduct);
+    const product = ctx.pinProducts?.find((p: PinProduct) => p.id === selectedProduct);
     if (!product) return;
 
     setTextToEncode(product.sku);
@@ -242,11 +243,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
 
               {/* Scanner View */}
               <div className="relative bg-black rounded-lg overflow-hidden aspect-square">
-                <div
-                  id="qr-reader"
-                  ref={scannerRef}
-                  className="w-full h-full"
-                />
+                <div id="qr-reader" ref={scannerRef} className="w-full h-full" />
                 {!scanning && (
                   <div className="absolute inset-0 flex items-center justify-center bg-slate-900/50">
                     <div className="text-center text-white">
@@ -281,9 +278,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
               {/* Error */}
               {error && (
                 <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
-                  <p className="text-sm text-red-700 dark:text-red-300">
-                    ⚠️ {error}
-                  </p>
+                  <p className="text-sm text-red-700 dark:text-red-300">⚠️ {error}</p>
                 </div>
               )}
             </div>
@@ -344,9 +339,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
               ) : (
                 <div className="text-center py-12">
                   <div className="text-6xl mb-4">📷</div>
-                  <p className="text-slate-500 dark:text-slate-400">
-                    Chưa có kết quả quét
-                  </p>
+                  <p className="text-slate-500 dark:text-slate-400">Chưa có kết quả quét</p>
                   <p className="text-sm text-slate-400 dark:text-slate-500 mt-2">
                     Hãy bắt đầu quét để xem kết quả
                   </p>
@@ -393,7 +386,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
                     className="flex-1 px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200"
                   >
                     <option value="">-- Chọn sản phẩm --</option>
-                    {ctx.pinProducts?.map((product) => (
+                    {ctx.pinProducts?.map((product: PinProduct) => (
                       <option key={product.id} value={product.id}>
                         {product.name} ({product.sku})
                       </option>
@@ -420,9 +413,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
 
               {error && (
                 <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
-                  <p className="text-sm text-red-700 dark:text-red-300">
-                    ⚠️ {error}
-                  </p>
+                  <p className="text-sm text-red-700 dark:text-red-300">⚠️ {error}</p>
                 </div>
               )}
             </div>
@@ -463,9 +454,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
               ) : (
                 <div className="text-center py-12">
                   <div className="text-6xl mb-4">📱</div>
-                  <p className="text-slate-500 dark:text-slate-400">
-                    Chưa có QR Code
-                  </p>
+                  <p className="text-slate-500 dark:text-slate-400">Chưa có QR Code</p>
                   <p className="text-sm text-slate-400 dark:text-slate-500 mt-2">
                     Nhập nội dung và nhấn "Tạo QR Code"
                   </p>
@@ -484,9 +473,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <h4 className="font-semibold text-slate-700 dark:text-slate-300">
-                Quét mã:
-              </h4>
+              <h4 className="font-semibold text-slate-700 dark:text-slate-300">Quét mã:</h4>
               <ul className="text-sm text-slate-600 dark:text-slate-400 space-y-1 list-disc list-inside">
                 <li>Cho phép truy cập camera khi được yêu cầu</li>
                 <li>Đưa mã QR/Barcode vào khung hình</li>
@@ -495,9 +482,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
               </ul>
             </div>
             <div className="space-y-2">
-              <h4 className="font-semibold text-slate-700 dark:text-slate-300">
-                Tạo QR:
-              </h4>
+              <h4 className="font-semibold text-slate-700 dark:text-slate-300">Tạo QR:</h4>
               <ul className="text-sm text-slate-600 dark:text-slate-400 space-y-1 list-disc list-inside">
                 <li>Nhập SKU sản phẩm hoặc nội dung bất kỳ</li>
                 <li>Hoặc chọn nhanh từ danh sách sản phẩm</li>

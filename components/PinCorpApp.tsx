@@ -6,16 +6,15 @@ import MaterialManager from "./MaterialManager";
 import ProductionManagerWrapper from "./ProductionManagerWrapper";
 import PinProductManager from "./PinProductManager";
 import PinSalesManager from "./PinSalesManager";
-import PinReportManager from "./PinReportManagerNew";
-import PinRepairManager from "./PinRepairManagerNew";
+import PinReportManager from "./PinReportManager";
+import PinRepairManager from "./PinRepairManager";
 import PinGoodsReceipt from "./PinGoodsReceipt";
-import PinGoodsReceiptNew from "./PinGoodsReceiptNew";
 import CostReportDashboard from "./CostReportDashboard";
 import PredictiveDashboard from "./PredictiveDashboard";
 import PinFinancialManager from "./PinFinancialManager";
 import PinProductionReset from "./PinProductionReset";
 import PinSettings from "./PinSettings";
-import ReceivablesNew from "./ReceivablesNew";
+import Receivables from "./Receivables";
 import AdvancedAnalyticsDashboard from "./AdvancedAnalyticsDashboard";
 import { CashTransaction, PinSale } from "../types";
 
@@ -83,23 +82,9 @@ const PinCorpApp: React.FC<PinCorpAppProps> = ({ onSwitchApp }) => {
               <Route
                 path="/materials/goods-receipt/new"
                 element={
-                  <PinGoodsReceiptNew
-                    suppliers={appContext.suppliers}
-                    setSuppliers={appContext.setSuppliers}
-                    currentUser={appContext.currentUser!}
-                  />
-                }
-              />
-              <Route
-                path="/materials/goods-receipt/old"
-                element={
                   <PinGoodsReceipt
-                    materials={appContext.pinMaterials}
-                    setMaterials={appContext.setPinMaterials}
                     suppliers={appContext.suppliers}
                     setSuppliers={appContext.setSuppliers}
-                    paymentSources={appContext.paymentSources}
-                    setPaymentSources={appContext.setPaymentSources}
                     currentUser={appContext.currentUser!}
                   />
                 }
@@ -171,7 +156,7 @@ const PinCorpApp: React.FC<PinCorpAppProps> = ({ onSwitchApp }) => {
                 }
               />
               <Route path="/financial" element={<PinFinancialManager />} />
-              <Route path="/receivables" element={<ReceivablesNew />} />
+              <Route path="/receivables" element={<Receivables />} />
               <Route path="/settings" element={<PinSettings />} />
               <Route
                 path="/analytics"

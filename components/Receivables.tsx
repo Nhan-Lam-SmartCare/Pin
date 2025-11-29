@@ -1,194 +1,58 @@
-import React, { useMemo, useState } from "react";
+import React, { useState, useMemo } from "react";
 import { usePinContext } from "../contexts/PinContext";
 import type { CashTransaction } from "../types";
-import {
-  MagnifyingGlassIcon,
-  EllipsisVerticalIcon,
-  PlusIcon,
-  BanknotesIcon,
-} from "./common/Icons";
 import DebtCollectionModal from "./DebtCollectionModal";
 import SupplierPaymentModal from "./SupplierPaymentModal";
+import { Card, StatsCard, CardGrid, type StatsCardProps } from "./ui/Card";
+import { DataTable } from "./ui/Table";
+import { Badge } from "./ui/Badge";
+import { Button } from "./ui/Button";
+import { Icon, type IconName } from "./common/Icon";
 
-const fmt = (n: number) =>
-  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
-    Math.max(0, Number(n) || 0)
-  );
-
-// Unified row type for receivables
-type Row = {
+interface Row {
   id: string;
-  kind: "workorder" | "sale";
   date: string;
   customerName: string;
   customerPhone?: string;
-  title: string; // e.g., Đơn Sửa Chữa: 1.SC..., Đơn Hàng: ...
-  summary: string; // short line beneath title
-  details: string[]; // bullet-like lines (products, repair details...)
+  title: string;
+  summary?: string;
+  details: string[];
   technician?: string;
-  amount: number; // total
-  paid: number; // sum cash tx
-  debt: number; // amount - paid
-};
+  kind?: "workorder" | "sale";
+  amount: number;
+  paid: number;
+  debt: number;
+}
 
-export default function Receivables() {
+interface SupplierRow {
+  id: string;
+  date: string;
+  customerName: string;
+  title: string;
+  details: string[];
+  amount: number;
+  paid: number;
+  debt: number;
+  ordersCount?: number;
+}
+
+const fmt = (val: number) =>
+  val.toLocaleString("vi-VN", { maximumFractionDigits: 0 });
+
+export default function ReceivablesNew() {
+  const {
+    pinSales,
+    cashTransactions,
+    suppliers,
+    currentUser,
+    addCashTransaction,
+  } = usePinContext();
+
   const ctx = usePinContext();
-  const pinRepairOrders = ctx.pinRepairOrders || [];
-  const sales = ctx.pinSales || [];
-  const cashTransactions = ctx.cashTransactions || [];
-  const currentBranchId = (ctx as any).currentBranchId;
-  const addCashTransaction = ctx.addCashTransaction;
-  const currentUser = ctx.currentUser;
-  const suppliers = ctx.suppliers || [];
+  const workOrders = ctx.pinRepairOrders || [];
+  const sales = pinSales || [];
   const goodsReceipts = (ctx as any).goodsReceipts || [];
-
-  // Build lookup maps for quick sum of payments
-
-  // Calculate payments made to repair orders
-  // Priority: use partialPaymentAmount from order (this is the source of truth)
-  const paidByRepair = useMemo(() => {
-    const m = new Map<string, number>();
-    // From repair orders themselves - partialPaymentAmount is the total paid so far
-    for (const r of pinRepairOrders || []) {
-      // partialPaymentAmount already includes all payments (deposit + subsequent payments)
-      const paidAmt = r.partialPaymentAmount || r.depositAmount || 0;
-      m.set(r.id, paidAmt);
-    }
-    return m;
-  }, [pinRepairOrders]);
-
-  // Calculate payments made to sales - use paidAmount from sale record
-  const paidBySale = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const s of sales || []) {
-      // paidAmount is the source of truth for how much has been paid
-      const paidAmt = s.paidAmount || 0;
-      m.set(s.id, paidAmt);
-    }
-    return m;
-  }, [sales]);
-
-  const rows: Row[] = useMemo(() => {
-    const list: Row[] = [];
-
-    // Repair orders (use pinRepairOrders)
-    (pinRepairOrders || [])
-      .filter(
-        (r: any) =>
-          (!currentBranchId || r.branchId === currentBranchId) &&
-          (Number(r.total) || 0) > 0
-      )
-      .forEach((r: any) => {
-        // Check payment status - only include unpaid or partial
-        const status = r.paymentStatus || "unpaid";
-        if (status === "paid") return;
-
-        // Calculate paid amount: use paidByRepair if exists, otherwise use order's own fields
-        // paidByRepair already includes partialPaymentAmount + depositAmount + cash transactions
-        const paidFromMap = paidByRepair.get(r.id);
-        const paid = paidFromMap !== undefined ? paidFromMap : 0;
-        const debt = Math.max(0, (Number(r.total) || 0) - paid);
-        if (debt <= 0) return;
-
-        const details: string[] = [];
-        if (r.materialsUsed && r.materialsUsed.length) {
-          details.push(
-            `Vật liệu: ` +
-              r.materialsUsed
-                .map((m: any) => `${m.quantity} x ${m.materialName}`)
-                .join("; ")
-          );
-        }
-        if (r.laborCost) {
-          details.push(`Công sửa: ${fmt(r.laborCost)}`);
-        }
-        const summary = r.issueDescription || r.deviceName || "";
-        list.push({
-          id: r.id,
-          kind: "workorder",
-          date: r.creationDate,
-          customerName: r.customerName,
-          customerPhone: r.customerPhone,
-          title: `Phiếu Sửa Chữa: ${r.id}`,
-          summary,
-          details,
-          technician: r.technicianName,
-          amount: Number(r.total) || 0,
-          paid,
-          debt,
-        });
-      });
-
-    // Sales - check paymentStatus
-    (sales || [])
-      .filter(
-        (s: any) =>
-          (!currentBranchId || s.branchId === currentBranchId) &&
-          (Number(s.total) || 0) > 0
-      )
-      .forEach((s: any) => {
-        // Check payment status - only include debt or partial
-        const status = s.paymentStatus || "paid";
-        if (status === "paid") return;
-
-        // Use paidAmount from sale record (source of truth)
-        const paidFromMap = paidBySale.get(s.id);
-        const paidAmt = paidFromMap !== undefined ? paidFromMap : 0;
-        const debt = Math.max(0, (Number(s.total) || 0) - paidAmt);
-        if (debt <= 0) return;
-
-        const details: string[] = [];
-        // Parse items if it's a string (from DB)
-        let items = s.items;
-        if (typeof items === "string") {
-          try {
-            items = JSON.parse(items);
-          } catch {
-            items = [];
-          }
-        }
-        if (items && items.length) {
-          details.push(
-            `Sản phẩm: ` +
-              items
-                .map(
-                  (it: any) =>
-                    `${it.quantity} x ${it.name || it.partName || "SP"}`
-                )
-                .join("; ")
-          );
-        }
-
-        // Parse customer if it's a string
-        let customer = s.customer;
-        if (typeof customer === "string") {
-          try {
-            customer = JSON.parse(customer);
-          } catch {
-            customer = {};
-          }
-        }
-
-        list.push({
-          id: s.id,
-          kind: "sale",
-          date: s.date,
-          customerName: customer?.name || "Khách lẻ",
-          customerPhone: customer?.phone,
-          title: `Đơn Hàng: ${s.code || s.id}`,
-          summary: "",
-          details,
-          amount: Number(s.total) || 0,
-          paid: paidAmt,
-          debt,
-        });
-      });
-
-    // Sort by date desc
-    return list.sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
-  }, [pinRepairOrders, sales, paidByRepair, paidBySale, currentBranchId]);
+  const currentBranchId = (ctx as any).currentBranchId;
 
   const [activeTab, setActiveTab] = useState<"customers" | "suppliers">(
     "customers"
@@ -197,34 +61,152 @@ export default function Receivables() {
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [showCollectModal, setShowCollectModal] = useState(false);
   const [showSupplierPayModal, setShowSupplierPayModal] = useState(false);
+  const [preSelectedDebtId, setPreSelectedDebtId] = useState<
+    string | undefined
+  >(undefined);
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter((r) => {
-      return (
-        r.customerName.toLowerCase().includes(q) ||
-        (r.customerPhone || "").includes(q) ||
-        r.title.toLowerCase().includes(q) ||
-        r.summary.toLowerCase().includes(q) ||
-        r.details.some((d) => d.toLowerCase().includes(q))
+  // Calculate customer receivables (from workorders and sales)
+  const customerRows = useMemo(() => {
+    const paidByWO = new Map<string, number>();
+    for (const t of cashTransactions || []) {
+      if (t.type !== "income" || !t.workOrderId) continue;
+      if (currentBranchId && t.branchId !== currentBranchId) continue;
+      paidByWO.set(
+        t.workOrderId,
+        (paidByWO.get(t.workOrderId) || 0) + (Number(t.amount) || 0)
       );
-    });
-  }, [rows, query]);
+    }
+    const paidBySale = new Map<string, number>();
+    for (const t of cashTransactions || []) {
+      if (t.type !== "income" || !t.saleId) continue;
+      if (currentBranchId && t.branchId !== currentBranchId) continue;
+      paidBySale.set(
+        t.saleId,
+        (paidBySale.get(t.saleId) || 0) + (Number(t.amount) || 0)
+      );
+    }
 
-  // Suppliers tab data aggregation
-  type SupplierRow = {
-    id: string;
-    date: string;
-    customerName: string; // supplier name
-    title: string;
-    details: string[];
-    amount: number;
-    paid: number;
-    debt: number;
-  };
+    const arr: Row[] = [];
 
-  const supplierRows: SupplierRow[] = useMemo(() => {
+    for (const wo of workOrders || []) {
+      if (
+        currentBranchId &&
+        (wo as any).branchId &&
+        (wo as any).branchId !== currentBranchId
+      )
+        continue;
+
+      // Only show debt for completed/returned orders
+      const status = (wo as any).status;
+      if (status !== "Trả máy" && status !== "Đã sửa xong") continue;
+
+      const total = Number((wo as any).total ?? 0);
+      if (total <= 0) continue;
+
+      // Calculate paid based on paymentStatus or manually calculate
+      let paid = 0;
+      let debt = 0;
+
+      const paymentStatus = (wo as any).paymentStatus;
+      const depositAmount = Number((wo as any).depositAmount ?? 0);
+
+      if (paymentStatus === "paid") {
+        // Fully paid, no debt - skip
+        continue;
+      } else if (paymentStatus === "partial" || paymentStatus === "unpaid") {
+        // Partial payment or unpaid - include deposit
+        const partialPayment = Number((wo as any).partialPaymentAmount ?? 0);
+        paid = depositAmount + partialPayment;
+        debt = Math.max(0, total - paid);
+      } else {
+        // Unknown payment status - calculate from all sources
+        const paidFromCash = paidByWO.get(wo.id) || 0;
+        const paidFromPartial = Number((wo as any).partialPaymentAmount ?? 0);
+        paid = depositAmount + paidFromCash + paidFromPartial;
+        debt = Math.max(0, total - paid);
+      }
+
+      if (debt <= 0) continue;
+
+      const details: string[] = [];
+      if ((wo as any).deviceModel)
+        details.push(`Thiết bị: ${(wo as any).deviceModel}`);
+      if ((wo as any).issueDescription)
+        details.push(`Vấn đề: ${(wo as any).issueDescription}`);
+      if ((wo as any).partsUsed?.length) {
+        const p = (wo as any).partsUsed
+          .slice(0, 3)
+          .map((x: any) => x.partName || x.part_name)
+          .join(", ");
+        details.push(`Linh kiện: ${p}`);
+      }
+
+      arr.push({
+        id: wo.id,
+        date:
+          (wo as any).createdDate ||
+          (wo as any).created_at ||
+          new Date().toISOString(),
+        customerName: (wo as any).customerName || "",
+        customerPhone: (wo as any).customerPhone,
+        title: `Phiếu sửa chữa: ${wo.id}`,
+        summary: (wo as any).issueDescription,
+        details,
+        technician: (wo as any).technician,
+        kind: "workorder",
+        amount: total,
+        paid,
+        debt,
+      });
+    }
+
+    for (const sale of sales || []) {
+      if (
+        currentBranchId &&
+        (sale as any).branchId &&
+        (sale as any).branchId !== currentBranchId
+      )
+        continue;
+      const total = Number((sale as any).total ?? 0);
+      if (total <= 0) continue;
+      const paid = paidBySale.get(sale.id) || 0;
+      const debt = Math.max(0, total - paid);
+      if (debt <= 0) continue;
+
+      const details: string[] = [];
+      if ((sale as any).items?.length) {
+        const items = (sale as any).items.slice(0, 4).map((itm: any) => {
+          const name = itm.productName || itm.product_name || "N/A";
+          const qty = itm.quantity || 1;
+          return `${name} x${qty}`;
+        });
+        details.push(...items);
+      }
+
+      arr.push({
+        id: sale.id,
+        date:
+          (sale as any).saleDate ||
+          (sale as any).created_at ||
+          new Date().toISOString(),
+        customerName: (sale as any).customerName || "",
+        customerPhone: (sale as any).customerPhone,
+        title: `Đơn hàng: ${sale.code || sale.id}`,
+        details,
+        kind: "sale",
+        amount: total,
+        paid,
+        debt,
+      });
+    }
+
+    return arr.sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+  }, [workOrders, sales, cashTransactions, currentBranchId]);
+
+  // Calculate supplier payables (from goods receipts)
+  const supplierRows = useMemo(() => {
     const totalBySup = new Map<
       string,
       { total: number; latest: string; count: number }
@@ -256,6 +238,7 @@ export default function Receivables() {
       if (d.getTime() > l.getTime()) prev.latest = d.toISOString();
       totalBySup.set(gr.supplierId, prev);
     }
+
     const paidBySup = new Map<string, number>();
     for (const t of cashTransactions || []) {
       if (t.type !== "expense") continue;
@@ -265,6 +248,7 @@ export default function Receivables() {
       if (!key) continue;
       paidBySup.set(key, (paidBySup.get(key) || 0) + (Number(t.amount) || 0));
     }
+
     const arr: SupplierRow[] = [];
     for (const [supId, info] of totalBySup.entries()) {
       const sup = (suppliers || []).find((s: any) => s.id === supId);
@@ -286,12 +270,25 @@ export default function Receivables() {
         amount: info.total,
         paid,
         debt,
+        ordersCount: info.count,
       });
     }
     return arr.sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
     );
   }, [goodsReceipts, cashTransactions, suppliers, currentBranchId]);
+
+  // Filter by search query
+  const customerFiltered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return customerRows;
+    return customerRows.filter(
+      (r) =>
+        r.customerName.toLowerCase().includes(q) ||
+        r.customerPhone?.toLowerCase().includes(q) ||
+        r.title.toLowerCase().includes(q)
+    );
+  }, [customerRows, query]);
 
   const supplierFiltered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -303,23 +300,101 @@ export default function Receivables() {
     );
   }, [supplierRows, query]);
 
-  const activeList: Array<Row | SupplierRow> = (
-    activeTab === "customers" ? filtered : supplierFiltered
-  ) as any[];
+  const activeList: Array<Row | SupplierRow> =
+    activeTab === "customers" ? customerFiltered : supplierFiltered;
 
-  const totalDebt = (activeList as any[]).reduce((s, r: any) => s + r.debt, 0);
+  // Calculate stats
+  const totalCustomerDebt = customerRows.reduce((s, r) => s + r.debt, 0);
+  const totalSupplierDebt = supplierRows.reduce((s, r) => s + r.debt, 0);
+  const totalDebt = activeList.reduce((s, r: any) => s + r.debt, 0);
+
   const selectedIds = Object.keys(selected).filter((k) => selected[k]);
-  const selectedDebt = (activeList as any[])
+  const selectedDebt = activeList
     .filter((r: any) => selectedIds.includes(r.id))
     .reduce((s, r: any) => s + r.debt, 0);
 
+  const activeSummaryCards = useMemo<
+    Array<{
+      title: string;
+      value: string | number;
+      iconName: IconName;
+      variant: StatsCardProps["variant"];
+    }>
+  >(() => {
+    if (activeTab === "customers") {
+      const uniqueCustomers = new Set(
+        customerRows.map(
+          (row) => `${row.customerPhone || ""}-${row.customerName || ""}`
+        )
+      ).size;
+      const pendingOrders = customerRows.filter(
+        (row) => row.kind === "workorder"
+      ).length;
+
+      return [
+        {
+          title: "Tổng công nợ KH",
+          value: `${fmt(totalCustomerDebt)} đ`,
+          iconName: "money",
+          variant: "danger",
+        },
+        {
+          title: "Khách hàng đang nợ",
+          value: uniqueCustomers,
+          iconName: "customers",
+          variant: "primary",
+        },
+        {
+          title: "Phiếu sửa chưa thu",
+          value: pendingOrders,
+          iconName: "orders",
+          variant: "warning",
+        },
+      ];
+    }
+
+    const pendingReceipts = supplierRows.reduce(
+      (sum, row) => sum + (row.ordersCount || 0),
+      0
+    );
+
+    return [
+      {
+        title: "Tổng công nợ NCC",
+        value: `${fmt(totalSupplierDebt)} đ`,
+        iconName: "money",
+        variant: "danger",
+      },
+      {
+        title: "Nhà cung cấp đang nợ",
+        value: supplierRows.length,
+        iconName: "stock",
+        variant: "primary",
+      },
+      {
+        title: "Đơn nhập chưa thanh toán",
+        value: pendingReceipts,
+        iconName: "orders",
+        variant: "warning",
+      },
+    ];
+  }, [
+    activeTab,
+    customerRows,
+    supplierRows,
+    totalCustomerDebt,
+    totalSupplierDebt,
+  ]);
+
   const toggleAll = (checked: boolean) => {
     const next: Record<string, boolean> = {};
-    if (checked) (activeList as any[]).forEach((r: any) => (next[r.id] = true));
+    if (checked) activeList.forEach((r: any) => (next[r.id] = true));
     setSelected(next);
   };
-  const toggleOne = (id: string, checked: boolean) =>
+
+  const toggleOne = (id: string, checked: boolean) => {
     setSelected((p) => ({ ...p, [id]: checked }));
+  };
 
   const handleCollectAllSelected = async () => {
     if (!currentUser) {
@@ -331,238 +406,447 @@ export default function Receivables() {
       !window.confirm(
         `Xác nhận thu đủ cho ${selectedIds.length} đơn, tổng ${fmt(
           selectedDebt
-        )}?`
+        )} đ?`
       )
-    )
+    ) {
       return;
+    }
 
     const now = new Date().toISOString();
-    for (const row of filtered.filter((r) => selectedIds.includes(r.id))) {
-      const amount = row.debt;
-      if (amount <= 0) continue;
-      const tx: CashTransaction = {
-        id: `CT-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        type: "income",
-        date: now,
-        amount,
-        contact: {
-          id: row.customerPhone || row.customerName,
-          name: row.customerName,
-        },
-        notes: `Thu nợ cho ${
-          row.kind === "workorder" ? "phiếu sửa chữa" : "đơn hàng"
-        } #${row.id}`,
-        paymentSourceId: "cash", // default cash; can extend UI later
-        branchId: currentBranchId,
-        category: row.kind === "workorder" ? "service_income" : "sale_income",
-        ...(row.kind === "workorder"
-          ? { workOrderId: row.id }
-          : { saleId: row.id }),
-      };
-      await addCashTransaction(tx);
+
+    if (activeTab === "customers") {
+      // Collect from customers
+      for (const row of customerFiltered.filter((r) =>
+        selectedIds.includes(r.id)
+      )) {
+        const amount = row.debt;
+        if (amount <= 0) continue;
+        const tx: CashTransaction = {
+          id: `CT-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          type: "income",
+          date: now,
+          amount,
+          contact: {
+            id: row.customerPhone || row.customerName,
+            name: row.customerName,
+          },
+          notes: `Thu nợ cho ${
+            row.kind === "workorder" ? "phiếu sửa chữa" : "đơn hàng"
+          } #${row.id}`,
+          paymentSourceId: "cash",
+          branchId: currentBranchId,
+          category: row.kind === "workorder" ? "service_income" : "sale_income",
+          ...(row.kind === "workorder"
+            ? { workOrderId: row.id }
+            : { saleId: row.id }),
+        };
+        await addCashTransaction(tx);
+      }
+      setSelected({});
+      alert("Đã ghi nhận thu nợ cho các đơn đã chọn.");
+    } else {
+      // Pay suppliers
+      for (const row of supplierFiltered.filter((r) =>
+        selectedIds.includes(r.id)
+      )) {
+        const amount = row.debt;
+        if (amount <= 0) continue;
+        const tx: CashTransaction = {
+          id: `CT-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          type: "expense",
+          date: now,
+          amount,
+          contact: {
+            id: row.id,
+            name: row.customerName,
+          },
+          notes: `Thanh toán công nợ NCC ${row.customerName}`,
+          paymentSourceId: "cash",
+          branchId: currentBranchId,
+          category: "inventory_purchase",
+        };
+        await addCashTransaction(tx);
+      }
+      setSelected({});
+      alert("Đã ghi nhận thanh toán cho các nhà cung cấp đã chọn.");
     }
-    // Clear selection after done
-    setSelected({});
-    alert("Đã ghi nhận thu nợ cho các đơn đã chọn.");
   };
 
-  return (
-    <div className="p-1">
-      <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
-        {/* Toolbar + Tabs */}
-        <div className="p-2 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
-          <div className="flex items-center gap-2">
-            <button
-              className={`px-3 py-1.5 rounded text-sm font-semibold ${
-                activeTab === "customers"
-                  ? "bg-sky-600 text-white"
-                  : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200"
-              }`}
-              onClick={() => setActiveTab("customers")}
-            >
-              Công nợ khách hàng
-            </button>
-            <button
-              className={`px-3 py-1.5 rounded text-sm font-semibold ${
-                activeTab === "suppliers"
-                  ? "bg-sky-600 text-white"
-                  : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200"
-              }`}
-              onClick={() => setActiveTab("suppliers")}
-            >
-              Công nợ nhà cung cấp
-            </button>
+  // DataTable columns for customers
+  const customerColumns = [
+    {
+      key: "select" as const,
+      label: "",
+      width: "40px",
+      render: (row: Row) => (
+        <input
+          type="checkbox"
+          checked={!!selected[row.id]}
+          onChange={(e) => toggleOne(row.id, e.target.checked)}
+          className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+        />
+      ),
+    },
+    {
+      key: "customerName" as const,
+      label: "Khách hàng",
+      sortable: true,
+      render: (row: Row) => (
+        <div className="space-y-1">
+          <div className="font-semibold text-slate-800 dark:text-slate-100">
+            {row.customerName}
           </div>
-          <div className="flex-1 flex items-center gap-2 bg-slate-50 dark:bg-slate-900 rounded-md px-2 py-1">
-            <MagnifyingGlassIcon className="w-5 h-5 text-slate-400" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={
-                activeTab === "customers"
-                  ? "Tìm SĐT / Tên KH / Tên sản phẩm / IMEI"
-                  : "Tìm tên / SĐT nhà cung cấp"
-              }
-              className="flex-1 bg-transparent outline-none text-sm py-1"
-            />
-          </div>
-          {/* Placeholder for future filters */}
-          <div className="hidden sm:block w-px h-6 bg-slate-200 dark:bg-slate-700" />
-          <div className="ml-auto text-sm">
-            Tổng công nợ:{" "}
-            <span className="font-semibold text-rose-600">
-              {fmt(totalDebt)}
-            </span>
-          </div>
-          <button
-            className="ml-2 inline-flex items-center gap-1 bg-sky-600 hover:bg-sky-700 text-white text-sm font-semibold px-3 py-2 rounded"
-            onClick={() =>
-              activeTab === "customers"
-                ? setShowCollectModal(true)
-                : setShowSupplierPayModal(true)
-            }
-          >
-            <PlusIcon className="w-4 h-4" />
-            {activeTab === "customers" ? "Thu nợ" : "Chi trả nợ"}
-          </button>
-          <button className="p-2 rounded hover:bg-slate-50 dark:hover:bg-slate-700">
-            <EllipsisVerticalIcon className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Table header */}
-        <div className="px-3 sm:px-4 py-2 text-xs uppercase tracking-wide text-slate-500 grid grid-cols-12 gap-3">
-          <div className="col-span-5 sm:col-span-5 flex items-center gap-3">
-            <input
-              type="checkbox"
-              checked={
-                selectedIds.length === activeList.length &&
-                activeList.length > 0
-              }
-              onChange={(e) => toggleAll(e.target.checked)}
-            />
-            <span>
-              {activeTab === "customers" ? "Khách hàng nợ" : "Nhà cung cấp"}
-            </span>
-          </div>
-          <div className="col-span-3 sm:col-span-4">Nội dung</div>
-          <div className="col-span-4 sm:col-span-3 grid grid-cols-3 text-right">
-            <div>Số tiền</div>
-            <div>Đã trả</div>
-            <div>Còn nợ</div>
+          {row.customerPhone && (
+            <div className="text-sm text-slate-500">{row.customerPhone}</div>
+          )}
+          <div className="text-xs text-blue-600">{row.title}</div>
+          <div className="text-xs text-slate-500">
+            {new Date(row.date).toLocaleDateString("vi-VN")}
           </div>
         </div>
-
-        {/* Selection summary bar */}
-        {selectedIds.length > 0 && activeTab === "customers" && (
-          <div className="px-3 sm:px-4 py-2 bg-amber-50 dark:bg-amber-900/20 border-t border-b border-amber-200 dark:border-amber-700 flex items-center justify-between text-sm">
-            <div>Đã chọn {selectedIds.length} đơn</div>
-            <button
-              onClick={handleCollectAllSelected}
-              className="inline-flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white font-semibold px-3 py-1.5 rounded"
-              title="Trả hết nợ"
-            >
-              <BanknotesIcon className="w-5 h-5" /> Trả hết nợ (
-              {fmt(selectedDebt)})
-            </button>
-          </div>
-        )}
-
-        {/* Rows */}
-        <div>
-          {(activeList as any[]).map((r: any, idx: number) => (
-            <div
-              key={r.id}
-              className={`grid grid-cols-12 gap-3 items-start px-3 sm:px-4 py-3 border-t border-slate-200 dark:border-slate-700 ${
-                idx % 2 === 1 ? "bg-slate-50/60 dark:bg-slate-900/40" : ""
-              }`}
-            >
-              {/* Left: customer */}
-              <div className="col-span-5 sm:col-span-5">
-                <div className="flex items-start gap-3">
-                  <input
-                    type="checkbox"
-                    checked={!!selected[r.id]}
-                    onChange={(e) => toggleOne(r.id, e.target.checked)}
-                    className="mt-1"
-                  />
-                  <div>
-                    <div className="font-semibold text-slate-800 dark:text-slate-100">
-                      {r.customerName}
-                    </div>
-                    {activeTab === "customers" && r.customerPhone && (
-                      <div className="text-sm text-slate-500">
-                        Phone: {r.customerPhone}
-                      </div>
-                    )}
-                    <div className="text-xs text-sky-600 cursor-pointer hover:underline">
-                      {r.title}
-                    </div>
-                    {r.date && (
-                      <div className="text-xs text-slate-500">
-                        Ngày tạo đơn:{" "}
-                        {new Date(r.date).toLocaleDateString("vi-VN")}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Middle: content */}
-              <div className="col-span-3 sm:col-span-4 text-sm text-slate-700 dark:text-slate-300">
-                {r.summary && (
-                  <div>
-                    {r.summary}{" "}
-                    {r.kind === "workorder" && (
-                      <span className="text-emerald-600">(Kiểm tra)</span>
-                    )}
-                  </div>
-                )}
-                {r.details.length > 0 && (
-                  <div className="mt-1 space-y-0.5">
-                    {r.details.slice(0, 6).map((d: string, i: number) => (
-                      <div key={i} className="text-xs leading-snug">
-                        {d}
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {r.technician && (
-                  <div className="mt-1 text-xs text-slate-500">
-                    NV.Kỹ thuật: {r.technician}
-                  </div>
-                )}
-              </div>
-
-              {/* Right: numbers */}
-              <div className="col-span-4 sm:col-span-3 grid grid-cols-3 text-right text-sm">
-                <div className="font-medium text-slate-800 dark:text-slate-100">
-                  {fmt(r.amount)}
-                </div>
-                <div className="text-slate-600">{fmt(r.paid)}</div>
-                <div className="font-bold text-rose-600">{fmt(r.debt)}</div>
-              </div>
-
-              {/* Row actions */}
-              <div className="absolute right-2 sm:right-3">
-                <button className="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700">
-                  <EllipsisVerticalIcon className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-          ))}
-
-          {activeList.length === 0 && (
-            <div className="p-6 text-center text-slate-500">
-              Không có công nợ.
+      ),
+    },
+    {
+      key: "details" as const,
+      label: "Chi tiết",
+      render: (row: Row) => (
+        <div className="space-y-1">
+          {row.summary && (
+            <div className="text-sm text-slate-700 dark:text-slate-300">
+              {row.summary}
+              {row.kind === "workorder" && (
+                <Badge variant="success" className="ml-2">
+                  Kiểm tra
+                </Badge>
+              )}
             </div>
           )}
+          {row.details.length > 0 && (
+            <div className="space-y-0.5">
+              {row.details.slice(0, 3).map((d, i) => (
+                <div
+                  key={i}
+                  className="text-xs text-slate-600 dark:text-slate-400"
+                >
+                  {d}
+                </div>
+              ))}
+            </div>
+          )}
+          {row.technician && (
+            <div className="text-xs text-slate-500">NV: {row.technician}</div>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "amount" as const,
+      label: "Tổng tiền",
+      sortable: true,
+      align: "right" as const,
+      render: (row: Row) => (
+        <span className="font-medium text-slate-800 dark:text-slate-100">
+          {fmt(row.amount)}
+        </span>
+      ),
+    },
+    {
+      key: "paid" as const,
+      label: "Đã trả",
+      sortable: true,
+      align: "right" as const,
+      render: (row: Row) => (
+        <span className="text-slate-600 dark:text-slate-400">
+          {fmt(row.paid)}
+        </span>
+      ),
+    },
+    {
+      key: "debt" as const,
+      label: "Còn nợ",
+      sortable: true,
+      align: "right" as const,
+      render: (row: Row) => (
+        <span className="font-bold text-rose-600">{fmt(row.debt)}</span>
+      ),
+    },
+  ];
+
+  // DataTable columns for suppliers
+  const supplierColumns = [
+    {
+      key: "select" as const,
+      label: "",
+      width: "40px",
+      render: (row: SupplierRow) => (
+        <input
+          type="checkbox"
+          checked={!!selected[row.id]}
+          onChange={(e) => toggleOne(row.id, e.target.checked)}
+          className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+        />
+      ),
+    },
+    {
+      key: "customerName" as const,
+      label: "Nhà cung cấp",
+      sortable: true,
+      render: (row: SupplierRow) => (
+        <div className="space-y-1">
+          <div className="font-semibold text-slate-800 dark:text-slate-100">
+            {row.customerName}
+          </div>
+          <div className="text-xs text-blue-600">{row.title}</div>
+          <div className="text-xs text-slate-500">
+            {new Date(row.date).toLocaleDateString("vi-VN")}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "details" as const,
+      label: "Chi tiết",
+      render: (row: SupplierRow) => (
+        <div className="space-y-0.5">
+          {row.details.map((d, i) => (
+            <div key={i} className="text-sm text-slate-600 dark:text-slate-400">
+              {d}
+            </div>
+          ))}
+        </div>
+      ),
+    },
+    {
+      key: "amount" as const,
+      label: "Tổng tiền",
+      sortable: true,
+      align: "right" as const,
+      render: (row: SupplierRow) => (
+        <span className="font-medium text-slate-800 dark:text-slate-100">
+          {fmt(row.amount)}
+        </span>
+      ),
+    },
+    {
+      key: "paid" as const,
+      label: "Đã trả",
+      sortable: true,
+      align: "right" as const,
+      render: (row: SupplierRow) => (
+        <span className="text-slate-600 dark:text-slate-400">
+          {fmt(row.paid)}
+        </span>
+      ),
+    },
+    {
+      key: "debt" as const,
+      label: "Còn nợ",
+      sortable: true,
+      align: "right" as const,
+      render: (row: SupplierRow) => (
+        <span className="font-bold text-rose-600">{fmt(row.debt)}</span>
+      ),
+    },
+  ];
+
+  return (
+    <div className="p-4 sm:p-6 space-y-6 animate-fade-in">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
+            Quản lý Công Nợ
+          </h1>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+            Theo dõi công nợ khách hàng và nhà cung cấp
+          </p>
         </div>
       </div>
-      {/* Modal: Thu nợ khách hàng */}
+
+      {/* Stats Cards */}
+      <CardGrid cols={3}>
+        <StatsCard
+          title="Tổng công nợ"
+          value={`${fmt(totalCustomerDebt + totalSupplierDebt)} đ`}
+          iconName="money"
+          variant="primary"
+        />
+        <StatsCard
+          title="Công nợ khách hàng"
+          value={`${fmt(totalCustomerDebt)} đ`}
+          iconName="customers"
+          trend={{
+            value: customerRows.length,
+            label: "khoản",
+          }}
+          variant="success"
+        />
+        <StatsCard
+          title="Công nợ nhà cung cấp"
+          value={`${fmt(totalSupplierDebt)} đ`}
+          iconName="stock"
+          trend={{
+            value: supplierRows.length,
+            label: "khoản",
+          }}
+          variant="warning"
+        />
+      </CardGrid>
+
+      {/* Main Card */}
+      <Card>
+        <div className="p-4 border-b border-slate-200 dark:border-slate-700 space-y-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => {
+                  setActiveTab("customers");
+                  setSelected({});
+                }}
+                className={`flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  activeTab === "customers"
+                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                    : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+                }`}
+              >
+                <Icon
+                  name="customers"
+                  size="sm"
+                  tone={activeTab === "customers" ? "primary" : "muted"}
+                  className="mr-2"
+                />
+                Công nợ khách hàng ({customerRows.length})
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("suppliers");
+                  setSelected({});
+                }}
+                className={`flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  activeTab === "suppliers"
+                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                    : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+                }`}
+              >
+                <Icon
+                  name="stock"
+                  size="sm"
+                  tone={activeTab === "suppliers" ? "primary" : "muted"}
+                  className="mr-2"
+                />
+                Công nợ nhà cung cấp ({supplierRows.length})
+              </button>
+            </div>
+            <div className="lg:ml-auto text-sm text-slate-600 dark:text-slate-400">
+              Tổng công nợ đang hiển thị:
+              <span className="ml-1 font-semibold text-rose-600">
+                {fmt(totalDebt)} đ
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="primary"
+                onClick={() => {
+                  if (activeTab === "customers") {
+                    // Nếu có chọn 1 công nợ, tự động điền vào modal
+                    const firstSelectedId =
+                      selectedIds.length === 1 ? selectedIds[0] : undefined;
+                    setPreSelectedDebtId(firstSelectedId);
+                    setShowCollectModal(true);
+                  } else {
+                    setShowSupplierPayModal(true);
+                  }
+                }}
+                className="whitespace-nowrap"
+              >
+                <Icon
+                  name={activeTab === "customers" ? "success" : "money"}
+                  size="sm"
+                  tone="contrast"
+                  className="mr-2"
+                />
+                {activeTab === "customers" ? "Thu nợ" : "Thanh toán NCC"}
+              </Button>
+              {selectedIds.length > 0 && (
+                <Button
+                  variant="secondary"
+                  onClick={() => setSelected({})}
+                  className="whitespace-nowrap"
+                >
+                  Xóa lựa chọn
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Search and Actions */}
+        <div className="p-4 border-b border-slate-200 dark:border-slate-700">
+          <div className="flex flex-col sm:flex-row gap-3">
+            {/* Search */}
+            <div className="flex-1 relative">
+              <Icon
+                name="search"
+                size="md"
+                tone="muted"
+                className="absolute left-3 top-1/2 -translate-y-1/2"
+              />
+              <input
+                type="text"
+                placeholder={
+                  activeTab === "customers"
+                    ? "Tìm theo tên, SĐT..."
+                    : "Tìm theo tên nhà cung cấp..."
+                }
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            {/* Bulk Actions */}
+            {selectedIds.length > 0 && (
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-slate-600 dark:text-slate-400">
+                  Đã chọn {selectedIds.length} ({fmt(selectedDebt)} đ)
+                </span>
+                <Button variant="primary" onClick={handleCollectAllSelected}>
+                  <Icon
+                    name="success"
+                    size="sm"
+                    tone="contrast"
+                    className="mr-2"
+                  />
+                  {activeTab === "customers" ? "Thu nợ" : "Thanh toán"}
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* DataTable */}
+        <div className="p-0 sm:p-4">
+          <DataTable
+            data={activeList}
+            columns={
+              activeTab === "customers"
+                ? (customerColumns as any)
+                : (supplierColumns as any)
+            }
+            keyExtractor={(row: any) => row.id}
+            emptyMessage="Không có công nợ"
+          />
+        </div>
+      </Card>
+
+      {/* Modals */}
       <DebtCollectionModal
         open={showCollectModal}
-        onClose={() => setShowCollectModal(false)}
+        onClose={() => {
+          setShowCollectModal(false);
+          setPreSelectedDebtId(undefined);
+        }}
+        preSelectedDebtId={preSelectedDebtId}
       />
       <SupplierPaymentModal
         open={showSupplierPayModal}

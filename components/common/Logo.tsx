@@ -20,13 +20,14 @@ export const Logo: React.FC<LogoProps> = ({
   className = "",
   rounded = false,
 }) => {
-  const { storeSettings, currentBranchId } = usePinStandaloneContext();
+  const { storeSettings } = usePinStandaloneContext();
   const [broken, setBroken] = useState(false);
+  const currentBranchId = "main"; // Default to main branch
 
   const computedSrc = useMemo(() => {
     if (src) return src;
     const branch = storeSettings?.branches?.find?.(
-      (b) => b.id === currentBranchId
+      (b: { id: string; name: string; logoUrl?: string }) => b.id === currentBranchId
     );
     // Prefer branch-specific logoUrl, else global default path in public/
     return (branch?.logoUrl || "/nhan-lam-logo.png") as string;
@@ -38,7 +39,7 @@ export const Logo: React.FC<LogoProps> = ({
     // Fallback: simple initials circle when image not available
     const initials = (storeSettings?.name || "SmartCare")
       .split(" ")
-      .map((w) => w[0])
+      .map((w: string) => w[0])
       .join("")
       .slice(0, 2)
       .toUpperCase();
@@ -61,9 +62,7 @@ export const Logo: React.FC<LogoProps> = ({
       width={size}
       height={size}
       onError={() => setBroken(true)}
-      className={`${
-        rounded ? "rounded-full" : "rounded-md"
-      } object-contain ${className}`}
+      className={`${rounded ? "rounded-full" : "rounded-md"} object-contain ${className}`}
       style={{ maxHeight: size }}
     />
   );

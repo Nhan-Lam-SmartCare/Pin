@@ -5,9 +5,7 @@ export interface ProductionAdminService {
   resetProductionData: (options: Record<string, boolean>) => Promise<void>;
 }
 
-export function createProductionAdminService(
-  ctx: PinContextType | any
-): ProductionAdminService {
+export function createProductionAdminService(ctx: PinContextType | any): ProductionAdminService {
   return {
     resetProductionData: async (options) => {
       if (IS_OFFLINE_MODE) {
@@ -63,18 +61,12 @@ export function createProductionAdminService(
             break;
           }
           if (!rows || rows.length === 0) break;
-          const ids = rows.map((r: any) => r.id).filter(Boolean);
-          const { error: delErr } = await supabase
-            .from(tableName)
-            .delete()
-            .in("id", ids);
+          const ids = rows.map((r: { id: string }) => r.id).filter(Boolean);
+          const { error: delErr } = await supabase.from(tableName).delete().in("id", ids);
           if (delErr) {
             console.error(`❌ Bulk delete failed on ${tableName}:`, delErr);
             for (const id of ids) {
-              const { error } = await supabase
-                .from(tableName)
-                .delete()
-                .eq("id", id);
+              const { error } = await supabase.from(tableName).delete().eq("id", id);
               if (error) console.error(`❌ Failed to delete ${id}`, error);
               else totalDeleted++;
             }
@@ -134,9 +126,7 @@ export function createProductionAdminService(
 
         // MotoCare optional resets when running from full AppContext via PinContext
         const isMotoCareReset =
-          (options as any).workOrders ||
-          (options as any).parts ||
-          (options as any).transactions;
+          (options as any).workOrders || (options as any).parts || (options as any).transactions;
         if ((options as any).workOrders) {
           await deleteAllFromTable("motocare_workorders");
           ctx.setWorkOrders?.([]);
@@ -159,9 +149,7 @@ export function createProductionAdminService(
         }
         if (
           isMotoCareReset &&
-          (((options as any).transactions as boolean) ||
-            (options as any).parts ||
-            options.sales)
+          (((options as any).transactions as boolean) || (options as any).parts || options.sales)
         ) {
           await deleteAllFromTable("goods_receipts");
           ctx.setGoodsReceipts?.([]);
@@ -171,10 +159,11 @@ export function createProductionAdminService(
           message: "Đã reset dữ liệu production thành công!",
           type: "success",
         });
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
         console.error("❌ Reset failed:", error);
         ctx.addToast?.({
-          message: `Lỗi reset data: ${error?.message || String(error)}`,
+          message: `Lỗi reset data: ${errorMessage}`,
           type: "error",
         });
       }

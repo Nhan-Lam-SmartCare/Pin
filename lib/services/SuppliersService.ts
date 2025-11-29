@@ -6,12 +6,26 @@ export interface SuppliersService {
   upsertSupplier: (supplier: Supplier) => Promise<void>;
 }
 
+interface DBSupplier {
+  id?: string;
+  name: string;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  notes?: string | null;
+  created_at?: string;
+}
+
+function isValidUUID(id: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+}
+
 export function createSuppliersService(ctx: PinContextType): SuppliersService {
   return {
     upsertSupplier: async (supplier) => {
       if (IS_OFFLINE_MODE) {
-        ctx.setSuppliers((prev: any) => {
-          const idx = prev.findIndex((s: any) => s.id === supplier.id);
+        ctx.setSuppliers((prev: Supplier[]) => {
+          const idx = prev.findIndex((s) => s.id === supplier.id);
           if (idx > -1) {
             const next = [...prev];
             next[idx] = supplier;
@@ -23,16 +37,17 @@ export function createSuppliersService(ctx: PinContextType): SuppliersService {
       }
 
       try {
-        // Validate UUID format before sending
-        const uuidRegex =
-          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        const isValidUUID = uuidRegex.test(supplier.id);
-
-        const payload: any = { ...supplier };
+        const payload: DBSupplier = {
+          name: supplier.name,
+          phone: supplier.phone ?? null,
+          email: supplier.email ?? null,
+          address: supplier.address ?? null,
+          notes: supplier.notes ?? null,
+        };
 
         // Only include id if it's a valid UUID, let DB generate otherwise
-        if (!isValidUUID) {
-          delete payload.id;
+        if (isValidUUID(supplier.id)) {
+          payload.id = supplier.id;
         }
 
         const { error } = await supabase.from("pin_suppliers").upsert(payload);
@@ -44,10 +59,9 @@ export function createSuppliersService(ctx: PinContextType): SuppliersService {
           });
           return;
         }
-        ctx.setSuppliers((prev: any) => {
-          const idx = prev.findIndex((s: any) => s.id === supplier.id);
-          if (idx > -1)
-            return prev.map((s: any) => (s.id === supplier.id ? supplier : s));
+        ctx.setSuppliers((prev: Supplier[]) => {
+          const idx = prev.findIndex((s) => s.id === supplier.id);
+          if (idx > -1) return prev.map((s) => (s.id === supplier.id ? supplier : s));
           return [supplier, ...prev];
         });
         ctx.addToast?.({
@@ -55,11 +69,12 @@ export function createSuppliersService(ctx: PinContextType): SuppliersService {
           message: supplier.name,
           type: "success",
         });
-      } catch (e: any) {
+      } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
         console.error("Exception upserting supplier:", e);
         ctx.addToast?.({
           title: "Lỗi lưu nhà cung cấp",
-          message: e?.message || String(e),
+          message: errorMessage,
           type: "error",
         });
       }

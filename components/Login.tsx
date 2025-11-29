@@ -1,14 +1,15 @@
 ﻿import React, { useState } from "react";
 import { WrenchScrewdriverIcon, CpuChipIcon } from "./common/Icons";
 import Logo from "./common/Logo";
-import {
-  runNetworkDiagnostics,
-  formatDiagnosticResults,
-} from "../lib/utils/networkDiagnostics";
+import { runNetworkDiagnostics, formatDiagnosticResults } from "../lib/utils/networkDiagnostics";
 import { TroubleshootingTips } from "./common/TroubleshootingTips";
 
+interface LoginError {
+  message?: string;
+}
+
 interface LoginProps {
-  onLogin: (email: string, password: string) => Promise<{ error: any }>;
+  onLogin: (email: string, password: string) => Promise<{ error: LoginError | null }>;
 }
 
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
@@ -33,21 +34,17 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           errorMsg.includes("ECONNREFUSED") ||
           errorMsg.includes("ERR_NETWORK")
         ) {
-          setError(
-            "Không thể kết nối đến server. Vui lòng kiểm tra kết nối internet và thử lại."
-          );
+          setError("Không thể kết nối đến server. Vui lòng kiểm tra kết nối internet và thử lại.");
         } else if (errorMsg.includes("Invalid login credentials")) {
           setError("Email hoặc mật khẩu không đúng. Vui lòng thử lại.");
         } else if (errorMsg.includes("Email not confirmed")) {
           setError("Email chưa được xác thực. Vui lòng kiểm tra email.");
         } else {
-          setError(
-            "Không thể đăng nhập. Vui lòng kiểm tra thông tin và thử lại."
-          );
+          setError("Không thể đăng nhập. Vui lòng kiểm tra thông tin và thử lại.");
         }
       }
-    } catch (e: any) {
-      const errorMsg = e?.message || "";
+    } catch (e: unknown) {
+      const errorMsg = e instanceof Error ? e.message : "";
       if (
         errorMsg.includes("Failed to fetch") ||
         errorMsg.includes("NetworkError") ||
@@ -87,8 +84,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           "✅ Tất cả kiểm tra đều OK!\n\nNếu vẫn không đăng nhập được, vui lòng:\n• Kiểm tra email/mật khẩu\n• Xóa cache trình duyệt (Ctrl+Shift+Del)\n• Thử trình duyệt khác"
         );
       }
-    } catch (e: any) {
-      setError("Không thể chạy diagnostics: " + e.message);
+    } catch (e: unknown) {
+      setError("Không thể chạy diagnostics: " + (e instanceof Error ? e.message : String(e)));
     }
     setDiagnosing(false);
   };
@@ -105,9 +102,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100">
             PinCorp
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2">
-            Đăng nhập vào tài khoản của bạn
-          </p>
+          <p className="text-slate-500 dark:text-slate-400 mt-2">Đăng nhập vào tài khoản của bạn</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">

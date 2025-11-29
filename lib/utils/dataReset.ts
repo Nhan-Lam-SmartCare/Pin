@@ -88,10 +88,24 @@ export const createBackupBeforeReset = () => {
   return `pin_corp_backup_${timestamp}`;
 };
 
+interface DataStatsContext {
+  pinMaterials?: unknown[];
+  pinBOMs?: unknown[];
+  productionOrders?: unknown[];
+  pinProducts?: unknown[];
+  pinCustomers?: unknown[];
+  pinSales?: unknown[];
+  pinRepairOrders?: unknown[];
+  pinCartItems?: unknown[];
+  fixedAssets?: unknown[];
+  capitalInvestments?: unknown[];
+  cashTransactions?: unknown[];
+}
+
 /**
  * Thống kê dữ liệu sẽ bị xóa
  */
-export const getDataStats = (context: any) => {
+export const getDataStats = (context: DataStatsContext) => {
   return {
     materials: context.pinMaterials?.length || 0,
     boms: context.pinBOMs?.length || 0,

@@ -25,11 +25,7 @@ export interface BarcodeService {
 
   // QR Code Generator
   generateQRCode: (text: string, size?: number) => Promise<string>;
-  downloadQRCode: (
-    text: string,
-    filename: string,
-    size?: number
-  ) => Promise<void>;
+  downloadQRCode: (text: string, filename: string, size?: number) => Promise<void>;
 
   // Barcode utilities
   parseProductCode: (code: string) => {
@@ -77,10 +73,11 @@ export function createBarcodeService(): BarcodeService {
         );
 
         scanning = true;
-      } catch (error: any) {
+      } catch (error: unknown) {
         scanning = false;
         if (onError) {
-          onError(error?.message || "Failed to start scanner");
+          const errorMessage = error instanceof Error ? error.message : "Failed to start scanner";
+          onError(errorMessage);
         }
         throw error;
       }
@@ -165,9 +162,7 @@ export function createBarcodeService(): BarcodeService {
 
         const link = document.createElement("a");
         link.href = dataUrl;
-        link.download = filename.endsWith(".png")
-          ? filename
-          : `${filename}.png`;
+        link.download = filename.endsWith(".png") ? filename : `${filename}.png`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -187,11 +182,7 @@ export function createBarcodeService(): BarcodeService {
       }
 
       // Check if it's a UUID or ID
-      if (
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-          code
-        )
-      ) {
+      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(code)) {
         return {
           type: "product_id",
           value: code,

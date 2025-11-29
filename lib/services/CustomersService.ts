@@ -6,13 +6,26 @@ export interface CustomersService {
   upsertPinCustomer: (customer: PinCustomer) => Promise<void>;
 }
 
+interface DBPinCustomer {
+  id?: string;
+  name: string;
+  phone: string;
+  address?: string | null;
+  notes?: string | null;
+}
+
+function isValidUUID(id: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(id);
+}
+
 export function createCustomersService(ctx: PinContextType): CustomersService {
   return {
     upsertPinCustomer: async (customer) => {
       // Optimistic/offline-first
       if (IS_OFFLINE_MODE) {
-        ctx.setPinCustomers((prev: any[]) => {
-          const idx = prev.findIndex((c: any) => c.id === customer.id);
+        ctx.setPinCustomers((prev: PinCustomer[]) => {
+          const idx = prev.findIndex((c) => c.id === customer.id);
           if (idx > -1) {
             const next = [...prev];
             next[idx] = customer;
@@ -24,13 +37,8 @@ export function createCustomersService(ctx: PinContextType): CustomersService {
       }
 
       try {
-        // Validate UUID format before sending
-        const uuidRegex =
-          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        const isValidUUID = uuidRegex.test(customer.id);
-
         // Minimal normalization for DB
-        const payload: any = {
+        const payload: DBPinCustomer = {
           name: customer.name,
           phone: customer.phone,
           address: customer.address ?? null,
@@ -38,7 +46,7 @@ export function createCustomersService(ctx: PinContextType): CustomersService {
         };
 
         // Only include id if it's a valid UUID
-        if (isValidUUID) {
+        if (isValidUUID(customer.id)) {
           payload.id = customer.id;
         }
 
@@ -51,10 +59,9 @@ export function createCustomersService(ctx: PinContextType): CustomersService {
           });
           return;
         }
-        ctx.setPinCustomers((prev: any[]) => {
-          const idx = prev.findIndex((c: any) => c.id === customer.id);
-          if (idx > -1)
-            return prev.map((c: any) => (c.id === customer.id ? customer : c));
+        ctx.setPinCustomers((prev: PinCustomer[]) => {
+          const idx = prev.findIndex((c) => c.id === customer.id);
+          if (idx > -1) return prev.map((c) => (c.id === customer.id ? customer : c));
           return [customer, ...prev];
         });
         ctx.addToast?.({
@@ -62,11 +69,12 @@ export function createCustomersService(ctx: PinContextType): CustomersService {
           message: customer.name,
           type: "success",
         });
-      } catch (e: any) {
+      } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
         console.error("Exception upserting pin_customer:", e);
         ctx.addToast?.({
           title: "Lỗi lưu khách hàng",
-          message: e?.message || String(e),
+          message: errorMessage,
           type: "error",
         });
       }

@@ -1,6 +1,39 @@
 import type { PinContextType } from "../../contexts/types";
-import type { FixedAsset, CapitalInvestment } from "../../types";
+import type { FixedAsset, CapitalInvestment, CashTransaction } from "../../types";
+import type { DBFixedAsset, DBCapitalInvestment } from "../../types/database";
 import { supabase, IS_OFFLINE_MODE } from "../../supabaseClient";
+
+// UUID validation helper
+const isValidUUID = (id: string): boolean =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
+// Convert FixedAsset to DB format
+const toDBFixedAsset = (asset: FixedAsset): DBFixedAsset => ({
+  name: asset.name,
+  category: asset.category,
+  purchase_price: asset.purchasePrice,
+  current_value: asset.currentValue ?? asset.purchasePrice,
+  purchase_date: asset.purchaseDate,
+  useful_life: asset.usefulLife,
+  salvage_value: asset.salvageValue,
+  depreciation_method: asset.depreciationMethod,
+  location: asset.location ?? null,
+  description: asset.description ?? null,
+  status: asset.status ?? "active",
+  branch_id: asset.branchId ?? null,
+  created_at: asset.created_at ?? new Date().toISOString(),
+});
+
+// Convert CapitalInvestment to DB format
+const toDBCapitalInvestment = (investment: CapitalInvestment): DBCapitalInvestment => ({
+  amount: investment.amount,
+  description: investment.description || null,
+  source: investment.source,
+  date: investment.date,
+  interest_rate: investment.interestRate ?? null,
+  branch_id: investment.branchId || null,
+  created_at: investment.created_at || new Date().toISOString(),
+});
 
 export interface FinanceService {
   // Fixed assets
@@ -17,9 +50,7 @@ export interface FinanceService {
   }) => Promise<number>;
 }
 
-export function createFinanceService(
-  ctx: PinContextType | any
-): FinanceService {
+export function createFinanceService(ctx: PinContextType): FinanceService {
   return {
     upsertPinFixedAsset: async (asset) => {
       if (IS_OFFLINE_MODE) {
@@ -45,35 +76,14 @@ export function createFinanceService(
       }
 
       try {
-        // Validate UUID format
-        const uuidRegex =
-          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        const isValidUUID = uuidRegex.test(asset.id);
-
-        const payload: any = {
-          name: asset.name,
-          category: asset.category,
-          purchase_price: asset.purchasePrice,
-          current_value: asset.currentValue ?? asset.purchasePrice,
-          purchase_date: asset.purchaseDate,
-          useful_life: asset.usefulLife,
-          salvage_value: asset.salvageValue,
-          depreciation_method: asset.depreciationMethod,
-          location: asset.location ?? null,
-          description: asset.description ?? null,
-          status: asset.status ?? "active",
-          branch_id: (asset as any).branchId || null,
-          created_at: asset.created_at ?? new Date().toISOString(),
-        };
+        const payload: DBFixedAsset = toDBFixedAsset(asset);
 
         // Only include id if valid UUID
-        if (isValidUUID) {
+        if (isValidUUID(asset.id)) {
           payload.id = asset.id;
         }
 
-        const { error } = await supabase
-          .from("pin_fixed_assets")
-          .upsert([payload]);
+        const { error } = await supabase.from("pin_fixed_assets").upsert([payload]);
         if (error) {
           ctx.addToast?.({
             title: "Lỗi lưu tài sản",
@@ -92,11 +102,12 @@ export function createFinanceService(
           message: asset.name,
           type: "success",
         });
-      } catch (e: any) {
+      } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
         console.error("Exception upserting fixed asset:", e);
         ctx.addToast?.({
           title: "Lỗi lưu tài sản",
-          message: e?.message || String(e),
+          message: errorMessage,
           type: "error",
         });
       }
@@ -104,9 +115,7 @@ export function createFinanceService(
 
     deletePinFixedAsset: async (assetId) => {
       if (IS_OFFLINE_MODE) {
-        ctx.setFixedAssets?.((prev: FixedAsset[]) =>
-          prev.filter((a) => a.id !== assetId)
-        );
+        ctx.setFixedAssets?.((prev: FixedAsset[]) => prev.filter((a) => a.id !== assetId));
         return;
       }
       if (!ctx.currentUser) {
@@ -118,10 +127,7 @@ export function createFinanceService(
         return;
       }
       try {
-        const { error } = await supabase
-          .from("pin_fixed_assets")
-          .delete()
-          .eq("id", assetId);
+        const { error } = await supabase.from("pin_fixed_assets").delete().eq("id", assetId);
         if (error) {
           ctx.addToast?.({
             title: "Lỗi xoá tài sản",
@@ -130,19 +136,18 @@ export function createFinanceService(
           });
           return;
         }
-        ctx.setFixedAssets?.((prev: FixedAsset[]) =>
-          prev.filter((a) => a.id !== assetId)
-        );
+        ctx.setFixedAssets?.((prev: FixedAsset[]) => prev.filter((a) => a.id !== assetId));
         ctx.addToast?.({
           title: "Đã xoá tài sản",
           message: assetId,
           type: "success",
         });
-      } catch (e: any) {
+      } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
         console.error("Exception deleting fixed asset:", e);
         ctx.addToast?.({
           title: "Lỗi xoá tài sản",
-          message: e?.message || String(e),
+          message: errorMessage,
           type: "error",
         });
       }
@@ -170,29 +175,14 @@ export function createFinanceService(
         return;
       }
       try {
-        // Validate UUID format
-        const uuidRegex =
-          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        const isValidUUID = uuidRegex.test(investment.id);
-
-        const payload: any = {
-          amount: investment.amount,
-          description: investment.description || null,
-          source: investment.source,
-          date: investment.date,
-          interest_rate: investment.interestRate ?? null,
-          branch_id: (investment as any).branchId || null,
-          created_at: investment.created_at || new Date().toISOString(),
-        };
+        const payload: DBCapitalInvestment = toDBCapitalInvestment(investment);
 
         // Only include id if valid UUID
-        if (isValidUUID) {
+        if (isValidUUID(investment.id)) {
           payload.id = investment.id;
         }
 
-        const { error } = await supabase
-          .from("pin_capital_investments")
-          .upsert([payload]);
+        const { error } = await supabase.from("pin_capital_investments").upsert([payload]);
         if (error) {
           ctx.addToast?.({
             title: "Lỗi lưu vốn đầu tư",
@@ -203,8 +193,7 @@ export function createFinanceService(
         }
         ctx.setCapitalInvestments?.((prev: CapitalInvestment[]) => {
           const idx = prev.findIndex((i) => i.id === investment.id);
-          if (idx > -1)
-            return prev.map((i) => (i.id === investment.id ? investment : i));
+          if (idx > -1) return prev.map((i) => (i.id === investment.id ? investment : i));
           return [investment, ...prev];
         });
         ctx.addToast?.({
@@ -212,18 +201,19 @@ export function createFinanceService(
           message: investment.description || investment.id,
           type: "success",
         });
-      } catch (e: any) {
+      } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
         console.error("Exception upserting capital investment:", e);
         ctx.addToast?.({
           title: "Lỗi lưu vốn đầu tư",
-          message: e?.message || String(e),
+          message: errorMessage,
           type: "error",
         });
       }
     },
     deletePinCapitalInvestment: async (investmentId: string) => {
       if (IS_OFFLINE_MODE) {
-        ctx.setCapitalInvestments?.((prev: any[]) =>
+        ctx.setCapitalInvestments?.((prev: CapitalInvestment[]) =>
           prev.filter((i) => i.id !== investmentId)
         );
         return;
@@ -251,7 +241,7 @@ export function createFinanceService(
           });
           return;
         }
-        ctx.setCapitalInvestments?.((prev: any[]) =>
+        ctx.setCapitalInvestments?.((prev: CapitalInvestment[]) =>
           prev.filter((i) => i.id !== investmentId)
         );
         ctx.addToast?.({
@@ -259,11 +249,12 @@ export function createFinanceService(
           message: investmentId,
           type: "success",
         });
-      } catch (e: any) {
+      } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
         console.error("Exception deleting capital investment:", e);
         ctx.addToast?.({
           title: "Lỗi xoá vốn đầu tư",
-          message: e?.message || String(e),
+          message: errorMessage,
           type: "error",
         });
       }
@@ -274,7 +265,7 @@ export function createFinanceService(
       try {
         // Update local state first for responsiveness
         if (filter?.id || filter?.saleId || filter?.workOrderId) {
-          ctx.setCashTransactions?.((prev: any[]) =>
+          ctx.setCashTransactions?.((prev: CashTransaction[]) =>
             prev.filter((t) =>
               (filter.id && t.id !== filter.id) ||
               (filter.saleId && t.saleId !== filter.saleId) ||
@@ -295,8 +286,7 @@ export function createFinanceService(
           .select("id", { count: "exact", head: true });
         if (filter.id) countQuery = countQuery.eq("id", filter.id);
         if (filter.saleId) countQuery = countQuery.eq("saleid", filter.saleId);
-        if (filter.workOrderId)
-          countQuery = countQuery.eq("workorderid", filter.workOrderId);
+        if (filter.workOrderId) countQuery = countQuery.eq("workorderid", filter.workOrderId);
         const { error: countErr, count } = await countQuery;
         if (countErr) {
           ctx.addToast?.({
@@ -311,8 +301,7 @@ export function createFinanceService(
         let delQuery = supabase.from("cashtransactions").delete();
         if (filter.id) delQuery = delQuery.eq("id", filter.id);
         if (filter.saleId) delQuery = delQuery.eq("saleid", filter.saleId);
-        if (filter.workOrderId)
-          delQuery = delQuery.eq("workorderid", filter.workOrderId);
+        if (filter.workOrderId) delQuery = delQuery.eq("workorderid", filter.workOrderId);
         const { error: delErr } = await delQuery;
         if (delErr) {
           ctx.addToast?.({
@@ -323,10 +312,11 @@ export function createFinanceService(
           return 0;
         }
         return typeof count === "number" ? count : 0;
-      } catch (e: any) {
+      } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
         ctx.addToast?.({
           title: "Lỗi xoá sổ quỹ",
-          message: e?.message || String(e),
+          message: errorMessage,
           type: "error",
         });
         return 0;
