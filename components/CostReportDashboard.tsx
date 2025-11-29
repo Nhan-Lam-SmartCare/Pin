@@ -138,23 +138,23 @@ const CostReportDashboard: React.FC<CostReportDashboardProps> = ({
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-1 space-y-2">
       {/* Header */}
       <div className="flex justify-between items-center">
-        <div className="flex items-center space-x-3">
-          <DocumentChartBarIcon className="w-8 h-8 text-blue-600" />
+        <div className="flex items-center space-x-2">
+          <DocumentChartBarIcon className="w-6 h-6 text-blue-600" />
           <div>
-            <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
+            <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">
               Báo cáo Chi phí Sản xuất
             </h1>
-            <p className="text-slate-600 dark:text-slate-400">
+            <p className="text-slate-600 dark:text-slate-400 text-sm">
               Phân tích ước tính vs thực tế chi phí sản xuất
             </p>
           </div>
         </div>
 
         {/* Filters */}
-        <div className="flex space-x-3">
+        <div className="flex space-x-2">
           <div className="flex items-center space-x-2">
             <Cog6ToothIcon className="w-4 h-4 text-slate-500" />
             <select

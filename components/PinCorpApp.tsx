@@ -64,7 +64,7 @@ const PinCorpApp: React.FC<PinCorpAppProps> = ({ onSwitchApp }) => {
         </div>
 
         <div className="flex-1 flex flex-col min-h-0">
-          <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 pb-24 md:pb-8">
+          <main className="flex-1 overflow-y-auto p-2 sm:p-3 lg:p-4 pb-24 md:pb-4">
             <Routes>
               {/* FIX: Pass all required props to components */}
               <Route path="/" element={<Navigate to="/reports" replace />} />

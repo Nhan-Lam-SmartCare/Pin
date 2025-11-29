@@ -128,11 +128,11 @@ const PinReportManager: React.FC<PinReportManagerProps> = ({
   }, [sales, orders, startDate, endDate]);
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100">
+    <div className="space-y-2 p-1">
+      <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">
         Báo cáo Doanh thu & Lợi nhuận
       </h1>
-      <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border dark:border-slate-700 flex flex-col sm:flex-row gap-4 items-center">
+      <div className="bg-white dark:bg-slate-800 p-2 rounded-lg shadow-sm border dark:border-slate-700 flex flex-col sm:flex-row gap-2 items-center">
         <div className="flex-1 w-full">
           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
             Từ ngày

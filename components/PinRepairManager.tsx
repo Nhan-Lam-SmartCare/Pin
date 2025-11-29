@@ -1126,11 +1126,11 @@ export const PinRepairManager: React.FC = () => {
   const totalPages = Math.ceil((pinRepairOrders?.length || 0) / itemsPerPage);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-4 sm:p-6">
-      <div className="w-full max-w-[98%] mx-auto">
+    <div className="bg-slate-50 dark:bg-slate-950 p-1">
+      <div className="w-full">
         {/* Header with title and action button */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
+          <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">
             Quản lý Sửa chữa
           </h1>
           <button

@@ -211,14 +211,16 @@ const FinancialDashboard: React.FC = () => {
   const isNetCashPositive = financialMetrics.netCashFlow >= 0;
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-1 space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
             Báo cáo Tài chính Tổng hợp
           </h1>
-          <p className="text-gray-600">Theo dõi vốn, tài sản, và dòng tiền</p>
+          <p className="text-gray-600 dark:text-gray-400 text-sm">
+            Theo dõi vốn, tài sản, và dòng tiền
+          </p>
         </div>
         <div className="flex space-x-2">
           <select

@@ -383,31 +383,31 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
 
   return (
     <>
-      <div className="space-y-6">
+      <div className="space-y-2 p-1">
         {/* Header */}
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center space-y-4 lg:space-y-0 animate-fadeIn">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center space-y-2 lg:space-y-0 animate-fadeIn">
           <div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               📊 Production Dashboard
             </h1>
-            <p className="text-slate-600 dark:text-slate-400 mt-2 text-lg">
+            <p className="text-slate-600 dark:text-slate-400 text-sm">
               Quản lý trực quan quy trình sản xuất với Kanban Board
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+          <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
             <input
               type="text"
               placeholder="🔍 Tìm kiếm lệnh sản xuất..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="px-5 py-4 border-2 border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 text-base font-medium focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all duration-200 shadow-sm"
+              className="px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
             />
 
             <button
               onClick={onCreateOrder}
               disabled={!currentUser}
-              className={`flex items-center gap-2 px-6 py-4 font-semibold rounded-xl shadow-lg transition-all duration-200 transform ${
+              className={`flex items-center gap-1 px-4 py-2 font-medium rounded-lg shadow-sm transition-all ${
                 currentUser
                   ? "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-blue-500/30 hover:shadow-xl hover:-translate-y-0.5"
                   : "bg-blue-300 text-white/80 cursor-not-allowed opacity-50"

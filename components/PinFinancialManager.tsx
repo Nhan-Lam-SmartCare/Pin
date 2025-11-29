@@ -551,28 +551,28 @@ const PinFinancialManager: React.FC = () => {
   };
 
   return (
-    <div className="p-6 space-y-6 bg-slate-50 dark:bg-slate-900 min-h-screen">
+    <div className="p-1 space-y-2 bg-slate-50 dark:bg-slate-900">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">
             💰 Quản lý Tài chính PIN Corp
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-gray-600 dark:text-gray-400 text-sm">
             Theo dõi vốn, tài sản cố định và dòng tiền
           </p>
         </div>
-        <div className="flex space-x-3">
+        <div className="flex space-x-2">
           <button
             onClick={() => setShowAddTransaction(true)}
-            className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+            className="flex items-center space-x-1 px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
           >
             <Plus className="w-4 h-4" />
             <span>Thu & Chi</span>
           </button>
           <button
             onClick={() => setShowAddCapital(true)}
-            className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            className="flex items-center space-x-1 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
           >
             <Plus className="w-4 h-4" />
             <span>Đầu tư Vốn</span>

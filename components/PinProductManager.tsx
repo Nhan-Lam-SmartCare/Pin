@@ -277,7 +277,7 @@ const PinProductManager: React.FC<PinProductManagerProps> = ({
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-3 p-1">
       {/* Advanced deletion modal */}
       <ProductDeletionModal
         product={deletionModalProduct}

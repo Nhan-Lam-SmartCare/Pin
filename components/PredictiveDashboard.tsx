@@ -141,16 +141,16 @@ const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-1 space-y-2">
       {/* Header */}
       <div className="flex justify-between items-center">
-        <div className="flex items-center space-x-3">
-          <CpuChipIcon className="w-8 h-8 text-purple-600" />
+        <div className="flex items-center space-x-2">
+          <CpuChipIcon className="w-6 h-6 text-purple-600" />
           <div>
-            <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
+            <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">
               🔮 Dashboard Dự đoán Thông minh
             </h1>
-            <p className="text-slate-600 dark:text-slate-400">
+            <p className="text-slate-600 dark:text-slate-400 text-sm">
               AI-powered cost prediction và smart inventory management
             </p>
           </div>
