@@ -1016,11 +1016,12 @@ const PinGoodsReceiptNew: React.FC<PinGoodsReceiptNewProps> = ({
       setReceiptItems([]);
       setSelectedSupplierId(null);
       setSupplierSearch("");
-      setAmountPaid(0);
+      setIsDebt(false);
+      setDebtAmount(0);
       setDiscount(0);
       setTax(0);
       setNotes("");
-      setPaymentMethod("");
+      setPaymentMethod("cash");
     } catch (error) {
       alert("Lỗi khi nhập hàng: " + (error as Error).message);
     }
