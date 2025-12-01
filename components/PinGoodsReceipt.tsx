@@ -537,9 +537,13 @@ const PinGoodsReceiptNew: React.FC<PinGoodsReceiptNewProps> = ({
   }, [supplierSearch, suppliers]);
 
   const filteredProducts = useMemo(() => {
-    if (!productSearch.trim()) return materials || [];
+    const allMaterials = materials || [];
+    if (!productSearch.trim()) {
+      // Khi không có từ khóa tìm kiếm, hiển thị 20 sản phẩm gần nhất
+      return allMaterials.slice(0, 20);
+    }
     const search = productSearch.toLowerCase();
-    return (materials || [])
+    return allMaterials
       .filter(
         (m: PinMaterial) =>
           m.name.toLowerCase().includes(search) ||
@@ -1125,7 +1129,24 @@ const PinGoodsReceiptNew: React.FC<PinGoodsReceiptNewProps> = ({
                           Tạo sản phẩm mới
                         </div>
                       </button>
-                    ) : null}
+                    ) : (
+                      <div className="px-4 py-4 text-center">
+                        <div className="text-slate-500 dark:text-slate-400 mb-3">
+                          Chưa có sản phẩm nào trong kho
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowProductModal(true);
+                            setShowProductDropdown(false);
+                          }}
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-sm"
+                        >
+                          <PlusIcon className="w-4 h-4" />
+                          Tạo sản phẩm mới
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
