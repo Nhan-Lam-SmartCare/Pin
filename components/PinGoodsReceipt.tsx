@@ -799,80 +799,84 @@ const PinGoodsReceiptNew: React.FC<PinGoodsReceiptNewProps> = ({
       setMaterials(updatedMaterials);
 
       // Save NEW Materials to Supabase FIRST to get real UUIDs
-      if (upsertPinMaterial) {
-        const savedMaterialIds: string[] = [];
-        
-        for (const item of receiptItems) {
-          if (item.isNew) {
-            const localId = materialIdMap.get(item.internalId);
-            const materialToSave = updatedMaterials.find(
-              (m) => m.id === localId
-            );
-            if (materialToSave) {
-              try {
-                // Insert directly to get the real UUID back
-                const { data: insertedData, error: insertError } = await supabase
-                  .from("pin_materials")
-                  .insert({
-                    name: materialToSave.name,
-                    sku: materialToSave.sku,
-                    unit: materialToSave.unit,
-                    purchase_price: materialToSave.purchasePrice ?? 0,
-                    retail_price: materialToSave.retailPrice ?? 0,
-                    wholesale_price: materialToSave.wholesalePrice ?? 0,
-                    stock: materialToSave.stock ?? 0,
-                    committed_quantity: 0,
-                    supplier: materialToSave.supplier || null,
-                    description: materialToSave.description || null,
-                    updated_at: new Date().toISOString(),
-                  })
-                  .select("id")
-                  .single();
-
-                if (insertError) {
-                  console.error("Error inserting material:", insertError);
-                  // If duplicate SKU, try to fetch existing
-                  if (insertError.code === "23505") {
-                    const { data: existingData } = await supabase
-                      .from("pin_materials")
-                      .select("id")
-                      .eq("sku", materialToSave.sku)
-                      .single();
-                    if (existingData?.id) {
-                      savedMaterialIds.push(existingData.id);
-                      materialIdMap.set(item.internalId, existingData.id);
-                      const historyIdx = newHistoryRecords.findIndex(
-                        (h) => h.materialId === localId
-                      );
-                      if (historyIdx >= 0) {
-                        newHistoryRecords[historyIdx].materialId = existingData.id;
-                      }
-                    }
-                  }
-                } else if (insertedData?.id) {
-                  savedMaterialIds.push(insertedData.id);
-                  // Update mapping with real UUID from database
-                  materialIdMap.set(item.internalId, insertedData.id);
-                  // Update history records with real UUID
-                  const historyIdx = newHistoryRecords.findIndex(
-                    (h) => h.materialId === localId
-                  );
-                  if (historyIdx >= 0) {
-                    newHistoryRecords[historyIdx].materialId = insertedData.id;
-                  }
-                }
-              } catch (err) {
-                console.error("Error saving material:", err);
-              }
-            }
+      // Collect all new materials to insert in batch for better reliability
+      const newMaterialsToInsert: Array<{item: ReceiptItem; localId: string; material: PinMaterial}> = [];
+      
+      for (const item of receiptItems) {
+        if (item.isNew) {
+          const localId = materialIdMap.get(item.internalId);
+          const materialToSave = updatedMaterials.find((m) => m.id === localId);
+          if (localId && materialToSave) {
+            newMaterialsToInsert.push({ item, localId, material: materialToSave });
           }
         }
+      }
 
-        // Save UPDATED materials
+      // Insert each new material one by one with proper error handling
+      for (const { item, localId, material } of newMaterialsToInsert) {
+        try {
+          console.log(`Inserting material: ${material.name} (SKU: ${material.sku})`);
+          
+          const { data: insertedData, error: insertError } = await supabase
+            .from("pin_materials")
+            .insert({
+              name: material.name,
+              sku: material.sku,
+              unit: material.unit,
+              purchase_price: material.purchasePrice ?? 0,
+              retail_price: material.retailPrice ?? 0,
+              wholesale_price: material.wholesalePrice ?? 0,
+              stock: material.stock ?? 0,
+              committed_quantity: 0,
+              supplier: material.supplier || null,
+              description: material.description || null,
+              updated_at: new Date().toISOString(),
+            })
+            .select("id")
+            .single();
+
+          if (insertError) {
+            console.error(`Error inserting material ${material.name}:`, insertError);
+            // If duplicate SKU, try to fetch existing and update stock
+            if (insertError.code === "23505") {
+              const { data: existingData } = await supabase
+                .from("pin_materials")
+                .select("id, stock")
+                .eq("sku", material.sku)
+                .single();
+              if (existingData?.id) {
+                // Update stock of existing material
+                const newStock = (existingData.stock || 0) + (material.stock || 0);
+                await supabase
+                  .from("pin_materials")
+                  .update({ stock: newStock })
+                  .eq("id", existingData.id);
+                  
+                // Update history record with existing ID
+                const historyIdx = newHistoryRecords.findIndex((h) => h.materialId === localId);
+                if (historyIdx >= 0) {
+                  newHistoryRecords[historyIdx].materialId = existingData.id;
+                }
+                console.log(`Updated existing material ${material.name} with new stock: ${newStock}`);
+              }
+            }
+          } else if (insertedData?.id) {
+            console.log(`Successfully inserted material ${material.name} with ID: ${insertedData.id}`);
+            // Update history records with real UUID from database
+            const historyIdx = newHistoryRecords.findIndex((h) => h.materialId === localId);
+            if (historyIdx >= 0) {
+              newHistoryRecords[historyIdx].materialId = insertedData.id;
+            }
+          }
+        } catch (err) {
+          console.error(`Exception saving material ${material.name}:`, err);
+        }
+      }
+
+      // Save UPDATED materials (existing materials with stock change)
+      if (upsertPinMaterial) {
         const updatedMaterialsToSave = updatedMaterials.filter((mat) => {
-          return receiptItems.some(
-            (item) => !item.isNew && item.materialId === mat.id
-          );
+          return receiptItems.some((item) => !item.isNew && item.materialId === mat.id);
         });
 
         for (const mat of updatedMaterialsToSave) {
