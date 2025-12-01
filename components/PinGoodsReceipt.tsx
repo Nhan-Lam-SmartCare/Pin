@@ -1358,18 +1358,18 @@ const PinGoodsReceiptNew: React.FC<PinGoodsReceiptNewProps> = ({
           <div className="p-4 border-t border-slate-700 grid grid-cols-2 gap-3">
             <button
               type="button"
-              onClick={handleSaveReceipt}
+              onClick={() => navigate("/materials")}
               className="flex items-center justify-center gap-2 px-4 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition-colors"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
-              LƯU NHÁP
+              HỦY BỎ
             </button>
             <button
               type="button"
-              onClick={handleSubmitReceipt}
-              disabled={receiptItems.length === 0 || !selectedSupplierId}
+              onClick={handleFinalizeReceipt}
+              disabled={receiptItems.length === 0 || !selectedSupplierId || !paymentMethod}
               className="flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 disabled:from-slate-600 disabled:to-slate-600 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-all"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
