@@ -1,6 +1,6 @@
 /**
  * PIN Corp Financial Management
- * Comprehensive financial tracking for capital, assets, and cash flow
+ * Quản lý sổ quỹ, khoản vay và các giao dịch tài chính
  */
 
 import React, { useState, useMemo, useEffect } from "react";
@@ -21,7 +21,17 @@ import {
   ChartPieIcon as PieChart,
   PencilSquareIcon,
   TrashIcon,
+  CreditCardIcon,
+  CurrencyDollarIcon,
+  BookOpenIcon,
+  BriefcaseIcon,
 } from "./common/Icons";
+
+// Type definitions
+type TabKey = "cashbook" | "loans" | "assets" | "capital";
+type TransactionFilterType = "all" | "income" | "expense";
+type PaymentSource = "all" | "cash" | "bank";
+type TimeFilter = "today" | "7days" | "30days" | "all";
 
 const PinFinancialManager: React.FC = () => {
   const pinContext = usePinContext();
@@ -35,50 +45,157 @@ const PinFinancialManager: React.FC = () => {
     currentUser,
     addToast,
     deletePinCapitalInvestment,
-    // FIX: Thêm các function từ context để sử dụng trong handlers
+    deleteCashTransaction,
     upsertPinFixedAsset,
     deletePinFixedAsset,
     upsertPinCapitalInvestment,
   } = pinContext;
 
-  const [activeTab, setActiveTab] = useState<"overview" | "assets" | "capital" | "cashflow">(() => {
-    // Load saved tab from localStorage
+  // Main tab state
+  const [activeTab, setActiveTab] = useState<TabKey>(() => {
     const saved = localStorage.getItem("pinFinancialActiveTab");
-    return (saved as any) || "overview";
+    return (saved as TabKey) || "cashbook";
   });
 
-  // Save activeTab to localStorage whenever it changes
+  // Save activeTab to localStorage
   useEffect(() => {
     localStorage.setItem("pinFinancialActiveTab", activeTab);
   }, [activeTab]);
+
+  // Filter states for Cashbook
+  const [transactionFilter, setTransactionFilter] = useState<TransactionFilterType>("all");
+  const [paymentSourceFilter, setPaymentSourceFilter] = useState<PaymentSource>("all");
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>("30days");
+
+  // Modal states
   const [showAddAsset, setShowAddAsset] = useState(false);
   const [showAddCapital, setShowAddCapital] = useState(false);
-  // Toggle to view all apps vs PIN-only; default to PIN-only
+  const [showAddTransaction, setShowAddTransaction] = useState(false);
+  const [showAddLoan, setShowAddLoan] = useState(false);
+
+  // Edit states
+  const [editingAsset, setEditingAsset] = useState<FixedAsset | null>(null);
+  const [editingInvestment, setEditingInvestment] = useState<CapitalInvestment | null>(null);
+  const [editingTransaction, setEditingTransaction] = useState<CashTransaction | null>(null);
+
+  // Show all apps toggle
   const [showAllApps, setShowAllApps] = useState<boolean>(() => {
     const saved = localStorage.getItem("pinFinanceShowAllApps");
-    return saved ? saved === "1" : false;
+    return saved ? saved === "1" : true;
   });
+
   useEffect(() => {
     localStorage.setItem("pinFinanceShowAllApps", showAllApps ? "1" : "0");
   }, [showAllApps]);
-  // Default filter: only show PIN-related cash transactions in this screen
-  const pinCashTransactions = useMemo((): CashTransaction[] => {
-    if (showAllApps) return cashTransactions || [];
-    const isPinTx = (tx: CashTransaction) => {
-      // Exclude obvious MotoCare work orders
-      if (tx.workOrderId && String(tx.workOrderId).startsWith("LTN-SC")) {
-        return false;
-      }
-      const notes: string = tx.notes || "";
-      const hasAppTag = /#app:(pin|pincorp)/i.test(notes);
-      const isPinSale = tx.saleId && String(tx.saleId).startsWith("LTN-BH");
-      return hasAppTag || isPinSale;
+
+  // Filter cash transactions
+  const filteredCashTransactions = useMemo((): CashTransaction[] => {
+    let transactions = cashTransactions || [];
+
+    // Filter by app if not showing all
+    if (!showAllApps) {
+      transactions = transactions.filter((tx) => {
+        if (tx.workOrderId && String(tx.workOrderId).startsWith("LTN-SC")) {
+          return false;
+        }
+        const notes: string = tx.notes || "";
+        const hasAppTag = /#app:(pin|pincorp)/i.test(notes);
+        const isPinSale = tx.saleId && String(tx.saleId).startsWith("LTN-BH");
+        return hasAppTag || isPinSale;
+      });
+    }
+
+    // Filter by transaction type
+    if (transactionFilter === "income") {
+      transactions = transactions.filter((tx) => tx.amount > 0);
+    } else if (transactionFilter === "expense") {
+      transactions = transactions.filter((tx) => tx.amount < 0);
+    }
+
+    // Filter by payment source
+    if (paymentSourceFilter !== "all") {
+      transactions = transactions.filter((tx) => {
+        const source = tx.paymentSourceId?.toLowerCase() || "cash";
+        if (paymentSourceFilter === "cash") {
+          return source === "cash" || source === "tien_mat" || source === "tiền mặt";
+        } else {
+          return source === "bank" || source === "ngan_hang" || source === "ngân hàng";
+        }
+      });
+    }
+
+    // Filter by time
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    if (timeFilter === "today") {
+      transactions = transactions.filter((tx) => new Date(tx.date) >= startOfToday);
+    } else if (timeFilter === "7days") {
+      const sevenDaysAgo = new Date(startOfToday);
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      transactions = transactions.filter((tx) => new Date(tx.date) >= sevenDaysAgo);
+    } else if (timeFilter === "30days") {
+      const thirtyDaysAgo = new Date(startOfToday);
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      transactions = transactions.filter((tx) => new Date(tx.date) >= thirtyDaysAgo);
+    }
+
+    // Sort by date descending
+    return [...transactions].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+  }, [cashTransactions, showAllApps, transactionFilter, paymentSourceFilter, timeFilter]);
+  // Calculate cashbook summary
+  const cashbookSummary = useMemo(() => {
+    const transactions = filteredCashTransactions;
+
+    const totalIncome = transactions
+      .filter((tx) => tx.amount > 0)
+      .reduce((sum, tx) => sum + tx.amount, 0);
+
+    const totalExpense = Math.abs(
+      transactions.filter((tx) => tx.amount < 0).reduce((sum, tx) => sum + tx.amount, 0)
+    );
+
+    const difference = totalIncome - totalExpense;
+
+    // Calculate by payment source
+    const cashBalance = transactions
+      .filter((tx) => {
+        const source = tx.paymentSourceId?.toLowerCase() || "cash";
+        return source === "cash" || source === "tien_mat" || source === "tiền mặt";
+      })
+      .reduce((sum, tx) => sum + tx.amount, 0);
+
+    const bankBalance = transactions
+      .filter((tx) => {
+        const source = tx.paymentSourceId?.toLowerCase() || "";
+        return source === "bank" || source === "ngan_hang" || source === "ngân hàng";
+      })
+      .reduce((sum, tx) => sum + tx.amount, 0);
+
+    return {
+      totalIncome,
+      totalExpense,
+      difference,
+      cashBalance,
+      bankBalance,
     };
-    return (cashTransactions || []).filter(isPinTx);
-  }, [cashTransactions, showAllApps]);
-  const [showCapitalModal, setShowCapitalModal] = useState(false);
-  const [editingAsset, setEditingAsset] = useState<FixedAsset | null>(null);
-  const [editingInvestment, setEditingInvestment] = useState<CapitalInvestment | null>(null);
+  }, [filteredCashTransactions]);
+
+  // Form states for adding transactions
+  const [newTransaction, setNewTransaction] = useState({
+    type: "income" as "income" | "expense",
+    amount: 0,
+    description: "",
+    category: "",
+    date: new Date().toISOString().split("T")[0],
+    notes: "",
+    contactName: "",
+    paymentSource: "cash" as "cash" | "bank",
+  });
+
+  // Form states for adding assets
   const [newAsset, setNewAsset] = useState({
     name: "",
     category: "equipment" as const,
@@ -90,6 +207,8 @@ const PinFinancialManager: React.FC = () => {
     location: "",
     description: "",
   });
+
+  // Form states for adding capital
   const [newCapital, setNewCapital] = useState({
     source: "Vốn chủ sở hữu" as "Vốn chủ sở hữu" | "Vay ngân hàng",
     amount: 0,
@@ -98,21 +217,7 @@ const PinFinancialManager: React.FC = () => {
     interestRate: undefined as number | undefined,
   });
 
-  const [showAddTransaction, setShowAddTransaction] = useState(false);
-  const [newTransaction, setNewTransaction] = useState({
-    type: "income" as "income" | "expense",
-    amount: 0,
-    description: "",
-    category: "",
-    date: new Date().toISOString().split("T")[0],
-    notes: "",
-    contactName: "",
-  });
-
-  // Capital investments are now loaded by AppContext.fetchData
-  // No need for separate useEffect here
-
-  // Calculate current financial position using available data
+  // Calculate financial summary for assets and capital
   const financialSummary = useMemo(() => {
     const currentDate = new Date();
 
@@ -129,63 +234,124 @@ const PinFinancialManager: React.FC = () => {
       0
     );
 
-    // Calculate current month cash flow from transactions
-    const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-    const monthlyIncome = pinCashTransactions
-      .filter((tx) => new Date(tx.date) >= startOfMonth && tx.amount > 0)
-      .reduce((sum, tx) => sum + tx.amount, 0);
-
-    const monthlyExpenses = Math.abs(
-      pinCashTransactions
-        .filter((tx) => new Date(tx.date) >= startOfMonth && tx.amount < 0)
-        .reduce((sum, tx) => sum + tx.amount, 0)
-    );
-
-    const netCashFlow = monthlyIncome - monthlyExpenses;
-
-    // Calculate working capital (simplified)
-    const currentCash = pinCashTransactions.reduce((sum, tx) => sum + tx.amount, 0);
+    // Calculate asset depreciation
+    const assetDepreciation = fixedAssets.reduce((total, asset) => {
+      if (asset.status === "disposed" || asset.status === "sold") return total;
+      const depreciation = FinancialAnalyticsService.calculateDepreciation(asset, currentDate);
+      return total + depreciation;
+    }, 0);
 
     return {
       totalAssetValue,
       totalCapitalInvested,
-      currentCash,
-      monthlyIncome,
-      monthlyExpenses,
-      netCashFlow,
-      workingCapital: currentCash, // Simplified - would need more data for accurate calculation
-      assetDepreciation: fixedAssets.reduce((total, asset) => {
-        if (asset.status === "disposed" || asset.status === "sold") return total;
-        const depreciation = FinancialAnalyticsService.calculateDepreciation(asset, currentDate);
-        return total + depreciation;
-      }, 0),
+      assetDepreciation,
+      assetCount: fixedAssets.filter((a) => a.status === "active").length,
     };
-  }, [fixedAssets, capitalInvestments, pinCashTransactions]);
+  }, [fixedAssets, capitalInvestments]);
 
-  // Asset breakdown by category
-  const assetBreakdown = useMemo(() => {
-    const breakdown = fixedAssets.reduce(
-      (acc, asset) => {
-        if (asset.status === "disposed" || asset.status === "sold") return acc;
+  // Handler: Add/Edit Transaction
+  const handleAddTransaction = async () => {
+    if (!newTransaction.description || !newTransaction.amount) {
+      addToast({
+        id: Date.now().toString(),
+        message: "Vui lòng điền đầy đủ thông tin",
+        type: "error",
+      });
+      return;
+    }
 
-        const bookValue = FinancialAnalyticsService.calculateBookValue(asset);
-        if (!acc[asset.category]) acc[asset.category] = 0;
-        acc[asset.category] += bookValue;
-        return acc;
-      },
-      {} as Record<string, number>
-    );
+    try {
+      const appTag = "#app:pincorp";
+      const taggedNotes = `${newTransaction.notes ? newTransaction.notes + " " : ""}${appTag}`;
+      const transaction = {
+        id:
+          editingTransaction?.id ||
+          `tx_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+        amount:
+          newTransaction.type === "expense"
+            ? -Math.abs(newTransaction.amount)
+            : Math.abs(newTransaction.amount),
+        description: newTransaction.description,
+        category:
+          newTransaction.category || (newTransaction.type === "income" ? "revenue" : "expense"),
+        date: newTransaction.date,
+        notes: taggedNotes,
+        createdBy: currentUser?.id || "",
+        createdAt: editingTransaction?.createdAt || new Date().toISOString(),
+        branchId: "main",
+        paymentSourceId: newTransaction.paymentSource === "bank" ? "bank" : "cash",
+        type: newTransaction.type === "income" ? "income" : "expense",
+        contact: {
+          id: "",
+          name: newTransaction.contactName || "",
+        },
+      };
 
-    return Object.entries(breakdown).map(([category, value]) => ({
-      category: category.replace("_", " ").toUpperCase(),
-      value,
-      percentage:
-        financialSummary.totalAssetValue > 0 ? (value / financialSummary.totalAssetValue) * 100 : 0,
-      count: fixedAssets.filter((a) => a.category === category && a.status === "active").length,
-    }));
-  }, [fixedAssets, financialSummary.totalAssetValue]);
+      await addCashTransaction(transaction as any);
 
-  // Add/Edit Asset Function
+      addToast({
+        id: Date.now().toString(),
+        message: `Đã ${editingTransaction ? "cập nhật" : "ghi nhận"} ${
+          newTransaction.type === "income" ? "thu" : "chi"
+        } ${formatCurrency(Math.abs(newTransaction.amount))}`,
+        type: "success",
+      });
+
+      resetTransactionForm();
+    } catch (error) {
+      addToast({
+        id: Date.now().toString(),
+        message: "Lỗi khi ghi nhận giao dịch",
+        type: "error",
+      });
+    }
+  };
+
+  // Handler: Delete Transaction
+  const handleDeleteTransaction = async (transactionId: string) => {
+    if (!confirm("Bạn có chắc chắn muốn xóa giao dịch này?")) {
+      return;
+    }
+
+    try {
+      if (deleteCashTransaction) {
+        await deleteCashTransaction(transactionId);
+      } else {
+        const { error } = await supabase.from("cash_transactions").delete().eq("id", transactionId);
+        if (error) throw error;
+      }
+
+      addToast({
+        id: Date.now().toString(),
+        message: "Đã xóa giao dịch thành công",
+        type: "success",
+      });
+    } catch (error) {
+      addToast({
+        id: Date.now().toString(),
+        message: "Lỗi khi xóa giao dịch",
+        type: "error",
+      });
+    }
+  };
+
+  // Reset transaction form
+  const resetTransactionForm = () => {
+    setNewTransaction({
+      type: "income",
+      amount: 0,
+      description: "",
+      category: "",
+      date: new Date().toISOString().split("T")[0],
+      notes: "",
+      contactName: "",
+      paymentSource: "cash",
+    });
+    setEditingTransaction(null);
+    setShowAddTransaction(false);
+  };
+
+  // Handler: Add/Edit Asset
   const handleAddAsset = async () => {
     if (!currentUser || !newAsset.name.trim()) {
       addToast({
@@ -215,11 +381,9 @@ const PinFinancialManager: React.FC = () => {
     };
 
     try {
-      // FIX: Sử dụng upsertPinFixedAsset từ context đã destructure
       if (upsertPinFixedAsset) {
         await upsertPinFixedAsset(asset as any);
       } else {
-        // Fallback: Directly update local state and save to supabase
         const { error } = await supabase.from("pin_fixed_assets").upsert(asset);
         if (error) throw error;
         setFixedAssets((prev: any[]) => {
@@ -235,20 +399,7 @@ const PinFinancialManager: React.FC = () => {
         type: "success",
       });
 
-      // Reset form
-      setNewAsset({
-        name: "",
-        category: "equipment",
-        purchasePrice: 0,
-        purchaseDate: new Date().toISOString().split("T")[0],
-        usefulLife: 5,
-        salvageValue: 0,
-        depreciationMethod: "straight_line",
-        location: "",
-        description: "",
-      });
-      setEditingAsset(null);
-      setShowAddAsset(false);
+      resetAssetForm();
     } catch (error) {
       addToast({
         id: Date.now().toString(),
@@ -258,7 +409,53 @@ const PinFinancialManager: React.FC = () => {
     }
   };
 
-  // Add/Edit Capital Investment Function
+  // Handler: Delete Asset
+  const handleDeleteAsset = async (assetId: string) => {
+    if (!confirm("Bạn có chắc chắn muốn xóa tài sản này?")) {
+      return;
+    }
+
+    try {
+      if (deletePinFixedAsset) {
+        await deletePinFixedAsset(assetId);
+      } else {
+        const { error } = await supabase.from("pin_fixed_assets").delete().eq("id", assetId);
+        if (error) throw error;
+        setFixedAssets((prev: any[]) => prev.filter((a: any) => a.id !== assetId));
+      }
+
+      addToast({
+        id: Date.now().toString(),
+        message: "Đã xóa tài sản thành công",
+        type: "success",
+      });
+    } catch (error) {
+      addToast({
+        id: Date.now().toString(),
+        message: "Lỗi khi xóa tài sản",
+        type: "error",
+      });
+    }
+  };
+
+  // Reset asset form
+  const resetAssetForm = () => {
+    setNewAsset({
+      name: "",
+      category: "equipment",
+      purchasePrice: 0,
+      purchaseDate: new Date().toISOString().split("T")[0],
+      usefulLife: 5,
+      salvageValue: 0,
+      depreciationMethod: "straight_line",
+      location: "",
+      description: "",
+    });
+    setEditingAsset(null);
+    setShowAddAsset(false);
+  };
+
+  // Handler: Add/Edit Capital Investment
   const handleAddCapital = async () => {
     if (!currentUser || newCapital.amount <= 0) {
       addToast({
@@ -283,11 +480,9 @@ const PinFinancialManager: React.FC = () => {
     };
 
     try {
-      // FIX: Sử dụng upsertPinCapitalInvestment từ context đã destructure
       if (upsertPinCapitalInvestment) {
         await upsertPinCapitalInvestment(investment as any);
       } else {
-        // Fallback: Directly update local state and save to supabase
         const { error } = await supabase.from("pin_capital_investments").upsert(investment);
         if (error) throw error;
         setCapitalInvestments((prev: any[]) => {
@@ -299,22 +494,11 @@ const PinFinancialManager: React.FC = () => {
 
       addToast({
         id: Date.now().toString(),
-        message: `Đã ${
-          isEditing ? "cập nhật" : "ghi nhận"
-        } đầu tư ${formatCurrency(investment.amount)}`,
+        message: `Đã ${isEditing ? "cập nhật" : "ghi nhận"} đầu tư ${formatCurrency(investment.amount)}`,
         type: "success",
       });
 
-      // Reset form
-      setNewCapital({
-        source: "Vốn chủ sở hữu",
-        amount: 0,
-        description: "",
-        date: new Date().toISOString().split("T")[0],
-        interestRate: undefined,
-      });
-      setEditingInvestment(null);
-      setShowAddCapital(false);
+      resetCapitalForm();
     } catch (error) {
       addToast({
         id: Date.now().toString(),
@@ -324,111 +508,13 @@ const PinFinancialManager: React.FC = () => {
     }
   };
 
-  const handleAddTransaction = async () => {
-    if (!newTransaction.description || !newTransaction.amount) {
-      addToast({
-        id: Date.now().toString(),
-        message: "Vui lòng điền đầy đủ thông tin",
-        type: "error",
-      });
-      return;
-    }
-
-    try {
-      const appTag = "#app:pincorp";
-      const taggedNotes = `${newTransaction.notes ? newTransaction.notes + " " : ""}${appTag}`;
-      const transaction = {
-        id: `tx_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-        amount:
-          newTransaction.type === "expense"
-            ? -Math.abs(newTransaction.amount)
-            : Math.abs(newTransaction.amount),
-        description: newTransaction.description,
-        category:
-          newTransaction.category || (newTransaction.type === "income" ? "revenue" : "expense"),
-        date: newTransaction.date,
-        notes: taggedNotes,
-        createdBy: currentUser?.id || "",
-        createdAt: new Date().toISOString(),
-        branchId: "main",
-        paymentSourceId: "cash",
-        type: newTransaction.type === "income" ? "income" : "expense",
-        contact: {
-          id: "",
-          name: newTransaction.contactName || "",
-        },
-      };
-
-      // Use context's addCashTransaction function
-      await addCashTransaction(transaction as any);
-
-      addToast({
-        id: Date.now().toString(),
-        message: `Đã ghi nhận ${
-          newTransaction.type === "income" ? "thu" : "chi"
-        } ${formatCurrency(Math.abs(newTransaction.amount))}`,
-        type: "success",
-      });
-
-      // Reset form
-      setNewTransaction({
-        type: "income",
-        amount: 0,
-        description: "",
-        category: "",
-        date: new Date().toISOString().split("T")[0],
-        notes: "",
-        contactName: "",
-      });
-      setShowAddTransaction(false);
-    } catch (error) {
-      addToast({
-        id: Date.now().toString(),
-        message: "Lỗi khi ghi nhận giao dịch",
-        type: "error",
-      });
-    }
-  };
-
-  // Delete Asset
-  const handleDeleteAsset = async (assetId: string) => {
-    if (!confirm("Bạn có chắc chắn muốn xóa tài sản này?")) {
-      return;
-    }
-
-    try {
-      // FIX: Sử dụng deletePinFixedAsset từ context đã destructure
-      if (deletePinFixedAsset) {
-        await deletePinFixedAsset(assetId);
-      } else {
-        // Fallback
-        const { error } = await supabase.from("pin_fixed_assets").delete().eq("id", assetId);
-        if (error) throw error;
-        setFixedAssets((prev: any[]) => prev.filter((a: any) => a.id !== assetId));
-      }
-
-      addToast({
-        id: Date.now().toString(),
-        message: "Đã xóa tài sản thành công",
-        type: "success",
-      });
-    } catch (error) {
-      addToast({
-        id: Date.now().toString(),
-        message: "Lỗi khi xóa tài sản",
-        type: "error",
-      });
-    }
-  };
-
-  // Delete Investment
+  // Handler: Delete Investment
   const handleDeleteInvestment = async (investmentId: string) => {
     if (!confirm("Bạn có chắc chắn muốn xóa khoản đầu tư này?")) {
       return;
     }
 
     try {
-      // Use centralized delete function from AppContext
       await deletePinCapitalInvestment(investmentId);
 
       addToast({
@@ -446,44 +532,58 @@ const PinFinancialManager: React.FC = () => {
     }
   };
 
-  // Cash flow trends (last 12 months)
-  const cashFlowTrends = useMemo(() => {
-    const trends = [];
-    const currentDate = new Date();
+  // Reset capital form
+  const resetCapitalForm = () => {
+    setNewCapital({
+      source: "Vốn chủ sở hữu",
+      amount: 0,
+      description: "",
+      date: new Date().toISOString().split("T")[0],
+      interestRate: undefined,
+    });
+    setEditingInvestment(null);
+    setShowAddCapital(false);
+  };
 
-    for (let i = 11; i >= 0; i--) {
-      const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
-      const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() - i + 1, 0);
+  // Format helpers
+  const formatCurrency = (amount: number) => {
+    return (
+      new Intl.NumberFormat("vi-VN", {
+        style: "decimal",
+        maximumFractionDigits: 0,
+      }).format(amount) + " đ"
+    );
+  };
 
-      const monthlyIncome = pinCashTransactions
-        .filter((tx) => {
-          const txDate = new Date(tx.date);
-          return txDate >= monthStart && txDate <= monthEnd && tx.amount > 0;
-        })
-        .reduce((sum, tx) => sum + tx.amount, 0);
+  const formatNumber = (num: number) => {
+    return new Intl.NumberFormat("vi-VN").format(num);
+  };
 
-      const monthlyExpenses = Math.abs(
-        pinCashTransactions
-          .filter((tx) => {
-            const txDate = new Date(tx.date);
-            return txDate >= monthStart && txDate <= monthEnd && tx.amount < 0;
-          })
-          .reduce((sum, tx) => sum + tx.amount, 0)
-      );
+  // Get category label in Vietnamese
+  const getCategoryLabel = (category: string) => {
+    const labels: Record<string, string> = {
+      sales: "Bán hàng",
+      service: "Dịch vụ",
+      services: "Dịch vụ",
+      revenue: "Doanh thu",
+      other_income: "Thu khác",
+      materials: "Nguyên liệu",
+      equipment: "Thiết bị",
+      utilities: "Tiện ích",
+      salary: "Lương",
+      salaries: "Lương nhân viên",
+      expense: "Chi phí",
+      other_expense: "Chi khác",
+    };
+    return labels[category] || category || "Khác";
+  };
 
-      trends.push({
-        month: monthStart.toLocaleDateString("vi-VN", {
-          month: "short",
-          year: "numeric",
-        }),
-        income: monthlyIncome,
-        expenses: monthlyExpenses,
-        net: monthlyIncome - monthlyExpenses,
-      });
-    }
-
-    return trends;
-  }, [pinCashTransactions]);
+  // Get payment source label
+  const getPaymentSourceLabel = (source: string) => {
+    const s = source?.toLowerCase() || "cash";
+    if (s === "bank" || s === "ngan_hang" || s === "ngân hàng") return "Ngân hàng";
+    return "Tiền mặt";
+  };
 
   if (!currentUser) {
     return (
@@ -496,391 +596,549 @@ const PinFinancialManager: React.FC = () => {
     );
   }
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    }).format(amount);
-  };
-
-  const formatNumber = (num: number) => {
-    return new Intl.NumberFormat("vi-VN").format(num);
-  };
+  // Tab config
+  const tabs = [
+    { key: "cashbook" as TabKey, label: "Sổ quỹ", icon: BookOpenIcon },
+    { key: "loans" as TabKey, label: "Khoản vay", icon: CreditCardIcon },
+    { key: "assets" as TabKey, label: "TSCĐ", icon: Building },
+    { key: "capital" as TabKey, label: "Vốn", icon: CurrencyDollarIcon },
+  ];
 
   return (
-    <div className="p-1 space-y-2 bg-slate-50 dark:bg-slate-900">
+    <div className="p-4 space-y-4 bg-slate-900 min-h-screen">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-            💰 Quản lý Tài chính PIN Corp
+          <h1 className="text-xl font-bold text-white flex items-center gap-2">
+            <span className="text-2xl">💰</span> Quản lý Tài chính
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 text-sm">
-            Theo dõi vốn, tài sản cố định và dòng tiền
+          <p className="text-gray-400 text-sm mt-1">
+            Quản lý sổ quỹ, khoản vay và các giao dịch tài chính
           </p>
         </div>
-        <div className="flex space-x-2">
-          <button
-            onClick={() => setShowAddTransaction(true)}
-            className="flex items-center space-x-1 px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Thu & Chi</span>
-          </button>
-          <button
-            onClick={() => setShowAddCapital(true)}
-            className="flex items-center space-x-1 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Đầu tư Vốn</span>
-          </button>
-          <button
-            onClick={() => setShowAddAsset(true)}
-            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Thêm Tài sản</span>
-          </button>
+
+        {/* Tab Navigation as Pills */}
+        <div className="flex items-center gap-2 bg-slate-800/50 rounded-full p-1">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+                activeTab === tab.key
+                  ? "bg-blue-600 text-white shadow-lg"
+                  : "text-gray-400 hover:text-white hover:bg-slate-700/50"
+              }`}
+            >
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  activeTab === tab.key ? "bg-green-400" : "bg-gray-500"
+                }`}
+              />
+              {tab.label}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Tab Navigation */}
-      <div className="border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center justify-between">
-          <nav className="flex space-x-8">
-            {[
-              { key: "overview", label: "Tổng quan", icon: PieChart },
-              { key: "assets", label: "Tài sản cố định", icon: Building },
-              { key: "capital", label: "Đầu tư vốn", icon: DollarSign },
-              { key: "cashflow", label: "Dòng tiền", icon: Wallet },
-            ].map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.key}
-                  onClick={() => setActiveTab(tab.key as any)}
-                  className={`flex items-center space-x-2 py-2 px-1 border-b-2 font-medium text-sm ${
-                    activeTab === tab.key
-                      ? "border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-400"
-                      : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600"
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
-          </nav>
-          {/* App Filter Toggle */}
-          <label className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-300">
-            <input
-              type="checkbox"
-              checked={showAllApps}
-              onChange={(e) => setShowAllApps(e.target.checked)}
-              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-            />
-            <span>Hiển thị tất cả giao dịch (mọi app)</span>
-          </label>
-        </div>
-      </div>
+      {/* ====== CASHBOOK TAB ====== */}
+      {activeTab === "cashbook" && (
+        <div className="space-y-4">
+          {/* Section Title */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-white">Sổ quỹ</h2>
+              <p className="text-gray-400 text-sm">Theo dõi thu chi tiền mặt và chuyển khoản</p>
+            </div>
+            <button
+              onClick={() => setShowAddTransaction(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-white text-slate-900 rounded-lg hover:bg-gray-100 transition-colors font-medium"
+            >
+              <Plus className="w-4 h-4" />
+              Thêm giao dịch
+            </button>
+          </div>
 
-      {/* Overview Tab */}
-      {activeTab === "overview" && (
-        <div className="space-y-6">
-          {/* Key Financial Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* Total Assets */}
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                    Tổng Giá trị Tài sản
-                  </p>
-                  <p className="text-2xl font-semibold text-gray-900 dark:text-white">
-                    {formatCurrency(financialSummary.totalAssetValue)}
-                  </p>
-                </div>
-                <div className="p-3 bg-blue-50 dark:bg-blue-900/50 rounded-full">
-                  <Building className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                </div>
+          {/* Summary Cards */}
+          <div className="grid grid-cols-5 gap-4">
+            {/* Thu (Income) */}
+            <div className="bg-gradient-to-br from-teal-600/20 to-teal-700/10 border border-teal-500/30 rounded-xl p-4">
+              <div className="flex items-center gap-2 text-teal-400 text-sm mb-2">
+                <TrendingUp className="w-4 h-4" />
+                Thu
               </div>
-              <div className="mt-4">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500 dark:text-gray-400">Khấu hao tích lũy:</span>
-                  <span className="text-red-600 dark:text-red-400">
-                    {formatCurrency(financialSummary.assetDepreciation)}
-                  </span>
-                </div>
-              </div>
+              <p className="text-2xl font-bold text-teal-400">
+                {formatCurrency(cashbookSummary.totalIncome)}
+              </p>
             </div>
 
-            {/* Capital Invested */}
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                    Tổng Vốn Đầu tư
-                  </p>
-                  <p className="text-2xl font-semibold text-gray-900 dark:text-white">
-                    {formatCurrency(financialSummary.totalCapitalInvested)}
-                  </p>
-                </div>
-                <div className="p-3 bg-green-50 dark:bg-green-900/50 rounded-full">
-                  <DollarSign className="w-6 h-6 text-green-600 dark:text-green-400" />
-                </div>
+            {/* Chi (Expense) */}
+            <div className="bg-gradient-to-br from-red-600/20 to-red-700/10 border border-red-500/30 rounded-xl p-4">
+              <div className="flex items-center gap-2 text-red-400 text-sm mb-2">
+                <TrendingDown className="w-4 h-4" />
+                Chi
               </div>
-              <div className="mt-4">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500 dark:text-gray-400">Số dự án:</span>
-                  <span className="font-medium text-gray-900 dark:text-white">
-                    {formatNumber(capitalInvestments.length)}
-                  </span>
-                </div>
-              </div>
+              <p className="text-2xl font-bold text-red-400">
+                -{formatCurrency(cashbookSummary.totalExpense)}
+              </p>
             </div>
 
-            {/* Current Cash */}
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                    Tiền mặt Hiện tại
-                  </p>
-                  <p
-                    className={`text-2xl font-semibold ${
-                      financialSummary.currentCash >= 0
-                        ? "text-gray-900 dark:text-white"
-                        : "text-red-600 dark:text-red-400"
-                    }`}
-                  >
-                    {formatCurrency(financialSummary.currentCash)}
-                  </p>
-                </div>
-                <div
-                  className={`p-3 rounded-full ${
-                    financialSummary.currentCash >= 0
-                      ? "bg-green-50 dark:bg-green-900/50"
-                      : "bg-red-50 dark:bg-red-900/50"
-                  }`}
-                >
-                  <Wallet
-                    className={`w-6 h-6 ${
-                      financialSummary.currentCash >= 0
-                        ? "text-green-600 dark:text-green-400"
-                        : "text-red-600 dark:text-red-400"
-                    }`}
-                  />
-                </div>
+            {/* Chênh lệch (Difference) */}
+            <div className="bg-gradient-to-br from-purple-600/20 to-purple-700/10 border border-purple-500/30 rounded-xl p-4">
+              <div className="flex items-center gap-2 text-purple-400 text-sm mb-2">
+                <DollarSign className="w-4 h-4" />
+                Chênh lệch
               </div>
-              <div className="mt-4">
-                <div className="flex items-center space-x-1">
-                  {financialSummary.currentCash >= 0 ? (
-                    <CheckCircle className="w-4 h-4 text-green-500 dark:text-green-400" />
-                  ) : (
-                    <AlertTriangle className="w-4 h-4 text-red-500 dark:text-red-400" />
-                  )}
-                  <span
-                    className={`text-sm ${
-                      financialSummary.currentCash >= 0
-                        ? "text-green-600 dark:text-green-400"
-                        : "text-red-600 dark:text-red-400"
-                    }`}
-                  >
-                    {financialSummary.currentCash >= 0 ? "Thanh khoản tốt" : "Cần bổ sung tiền mặt"}
-                  </span>
-                </div>
-              </div>
+              <p
+                className={`text-2xl font-bold ${cashbookSummary.difference >= 0 ? "text-purple-400" : "text-red-400"}`}
+              >
+                {formatCurrency(cashbookSummary.difference)}
+              </p>
             </div>
 
-            {/* Monthly Cash Flow */}
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                    Dòng Tiền Tháng
-                  </p>
-                  <p
-                    className={`text-2xl font-semibold ${
-                      financialSummary.netCashFlow >= 0
-                        ? "text-gray-900 dark:text-white"
-                        : "text-red-600 dark:text-red-400"
-                    }`}
-                  >
-                    {formatCurrency(financialSummary.netCashFlow)}
-                  </p>
-                </div>
-                <div
-                  className={`p-3 rounded-full ${
-                    financialSummary.netCashFlow >= 0
-                      ? "bg-green-50 dark:bg-green-900/50"
-                      : "bg-red-50 dark:bg-red-900/50"
-                  }`}
-                >
-                  {financialSummary.netCashFlow >= 0 ? (
-                    <TrendingUp className="w-6 h-6 text-green-600 dark:text-green-400" />
-                  ) : (
-                    <TrendingDown className="w-6 h-6 text-red-600 dark:text-red-400" />
-                  )}
-                </div>
+            {/* Tiền mặt (Cash) */}
+            <div className="bg-gradient-to-br from-yellow-600/20 to-yellow-700/10 border border-yellow-500/30 rounded-xl p-4">
+              <div className="flex items-center gap-2 text-yellow-400 text-sm mb-2">
+                <Wallet className="w-4 h-4" />
+                Tiền mặt
               </div>
-              <div className="mt-4 space-y-1">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500 dark:text-gray-400">Thu nhập:</span>
-                  <span className="text-green-600 dark:text-green-400">
-                    {formatCurrency(financialSummary.monthlyIncome)}
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500 dark:text-gray-400">Chi phí:</span>
-                  <span className="text-red-600 dark:text-red-400">
-                    {formatCurrency(financialSummary.monthlyExpenses)}
-                  </span>
-                </div>
+              <p
+                className={`text-2xl font-bold ${cashbookSummary.cashBalance >= 0 ? "text-yellow-400" : "text-red-400"}`}
+              >
+                {formatCurrency(cashbookSummary.cashBalance)}
+              </p>
+            </div>
+
+            {/* Ngân hàng (Bank) */}
+            <div className="bg-gradient-to-br from-blue-600/20 to-blue-700/10 border border-blue-500/30 rounded-xl p-4">
+              <div className="flex items-center gap-2 text-blue-400 text-sm mb-2">
+                <Building className="w-4 h-4" />
+                Ngân hàng
               </div>
+              <p
+                className={`text-2xl font-bold ${cashbookSummary.bankBalance >= 0 ? "text-blue-400" : "text-red-400"}`}
+              >
+                {formatCurrency(cashbookSummary.bankBalance)}
+              </p>
             </div>
           </div>
 
-          {/* Asset Breakdown */}
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Cơ cấu Tài sản theo Loại
-            </h3>
-            {assetBreakdown.length > 0 ? (
-              <div className="space-y-4">
-                {assetBreakdown.map((item, index) => (
-                  <div key={index} className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div
-                        className={`w-4 h-4 rounded-full`}
-                        style={{
-                          backgroundColor: `hsl(${index * 60}, 70%, 50%)`,
-                        }}
-                      />
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">
-                        {item.category}
-                      </span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        ({item.count} tài sản)
-                      </span>
-                    </div>
-                    <div className="flex items-center space-x-4">
-                      <div className="w-32 bg-gray-200 dark:bg-gray-600 rounded-full h-2">
-                        <div
-                          className="h-2 rounded-full"
-                          style={{
-                            width: `${Math.min(item.percentage, 100)}%`,
-                            backgroundColor: `hsl(${index * 60}, 70%, 50%)`,
-                          }}
-                        />
-                      </div>
-                      <span className="text-sm text-gray-600 dark:text-gray-400 w-16 text-right">
-                        {item.percentage.toFixed(1)}%
-                      </span>
-                      <span className="text-sm font-medium text-gray-900 dark:text-white w-32 text-right">
-                        {formatCurrency(item.value)}
-                      </span>
-                    </div>
-                  </div>
+          {/* Filters */}
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="flex items-center gap-2 text-gray-400 text-sm">
+              <span>Loại:</span>
+              <div className="flex gap-1 bg-slate-800 rounded-lg p-1">
+                {[
+                  { key: "all", label: "Tất cả" },
+                  { key: "income", label: "Thu" },
+                  { key: "expense", label: "Chi" },
+                ].map((opt) => (
+                  <button
+                    key={opt.key}
+                    onClick={() => setTransactionFilter(opt.key as TransactionFilterType)}
+                    className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
+                      transactionFilter === opt.key
+                        ? "bg-blue-600 text-white"
+                        : "text-gray-400 hover:text-white hover:bg-slate-700"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
                 ))}
               </div>
-            ) : (
-              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                <Building className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                <p>Chưa có tài sản cố định nào</p>
+            </div>
+
+            <div className="flex items-center gap-2 text-gray-400 text-sm">
+              <span>Nguồn tiền:</span>
+              <select
+                value={paymentSourceFilter}
+                onChange={(e) => setPaymentSourceFilter(e.target.value as PaymentSource)}
+                className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">Tất cả</option>
+                <option value="cash">Tiền mặt</option>
+                <option value="bank">Ngân hàng</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2 text-gray-400 text-sm">
+              <span>Thời gian:</span>
+              <div className="flex gap-1 bg-slate-800 rounded-lg p-1">
+                {[
+                  { key: "today", label: "Hôm nay" },
+                  { key: "7days", label: "7 ngày" },
+                  { key: "30days", label: "30 ngày" },
+                  { key: "all", label: "Tất cả" },
+                ].map((opt) => (
+                  <button
+                    key={opt.key}
+                    onClick={() => setTimeFilter(opt.key as TimeFilter)}
+                    className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
+                      timeFilter === opt.key
+                        ? "bg-blue-600 text-white"
+                        : "text-gray-400 hover:text-white hover:bg-slate-700"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
               </div>
-            )}
+            </div>
           </div>
 
-          {/* Cash Flow Trends */}
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Xu hướng Dòng tiền 12 tháng
-            </h3>
-            <div className="space-y-3">
-              {cashFlowTrends.map((trend, index) => (
-                <div key={index} className="flex items-center justify-between py-2">
-                  <div className="w-20 text-sm text-gray-600 dark:text-gray-400">{trend.month}</div>
-                  <div className="flex-1 flex items-center space-x-4 px-4">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 bg-green-500 rounded-full" />
-                      <span className="text-xs text-gray-600 dark:text-gray-400 w-16">
-                        Thu nhập
-                      </span>
-                      <span className="text-sm font-medium text-green-600 dark:text-green-400 w-24 text-right">
-                        {formatCurrency(trend.income)}
-                      </span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 bg-red-500 rounded-full" />
-                      <span className="text-xs text-gray-600 dark:text-gray-400 w-16">Chi phí</span>
-                      <span className="text-sm font-medium text-red-600 dark:text-red-400 w-24 text-right">
-                        {formatCurrency(trend.expenses)}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="w-32 text-right">
-                    <span
-                      className={`text-sm font-medium ${
-                        trend.net >= 0
-                          ? "text-green-600 dark:text-green-400"
-                          : "text-red-600 dark:text-red-400"
-                      }`}
-                    >
-                      {formatCurrency(trend.net)}
-                    </span>
-                  </div>
-                </div>
-              ))}
+          {/* Transactions Table */}
+          <div className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full">
+                <thead>
+                  <tr className="border-b border-slate-700">
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      Ngày
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      Loại
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      Danh mục
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      Đối tượng
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      Nội dung
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      Nguồn tiền
+                    </th>
+                    <th className="px-6 py-4 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      Số tiền
+                    </th>
+                    <th className="px-6 py-4 text-center text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      Thao tác
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-700">
+                  {filteredCashTransactions.length > 0 ? (
+                    filteredCashTransactions.map((tx) => (
+                      <tr key={tx.id} className="hover:bg-slate-700/30 transition-colors">
+                        <td className="px-6 py-4 text-sm text-white">
+                          {new Date(tx.date).toLocaleDateString("vi-VN")}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span
+                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                              tx.amount > 0
+                                ? "bg-teal-500/20 text-teal-400"
+                                : "bg-red-500/20 text-red-400"
+                            }`}
+                          >
+                            {tx.amount > 0 ? "↑ Thu" : "↓ Chi"}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-300">
+                          {getCategoryLabel(tx.category || "")}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-300">
+                          {typeof tx.contact === "object" && tx.contact?.name
+                            ? tx.contact.name
+                            : "--"}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-white max-w-xs truncate">
+                          {tx.description || tx.notes || "--"}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-300">
+                          {getPaymentSourceLabel(tx.paymentSourceId || "cash")}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <span
+                            className={`text-sm font-semibold ${
+                              tx.amount > 0 ? "text-teal-400" : "text-red-400"
+                            }`}
+                          >
+                            {tx.amount > 0 ? "+" : ""}
+                            {formatCurrency(tx.amount)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => {
+                                setNewTransaction({
+                                  type: tx.amount > 0 ? "income" : "expense",
+                                  amount: Math.abs(tx.amount),
+                                  description: tx.description || "",
+                                  category: tx.category || "",
+                                  date: tx.date,
+                                  notes: tx.notes || "",
+                                  contactName:
+                                    typeof tx.contact === "object" && tx.contact?.name
+                                      ? tx.contact.name
+                                      : "",
+                                  paymentSource: tx.paymentSourceId === "bank" ? "bank" : "cash",
+                                });
+                                setEditingTransaction(tx);
+                                setShowAddTransaction(true);
+                              }}
+                              className="p-2 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded-lg transition-colors"
+                              title="Chỉnh sửa"
+                            >
+                              <PencilSquareIcon className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteTransaction(tx.id)}
+                              className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors"
+                              title="Xóa"
+                            >
+                              <TrashIcon className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={8} className="px-6 py-12 text-center">
+                        <Wallet className="w-12 h-12 text-gray-500 mx-auto mb-3" />
+                        <p className="text-gray-400">Chưa có giao dịch nào</p>
+                        <button
+                          onClick={() => setShowAddTransaction(true)}
+                          className="mt-3 text-blue-400 hover:text-blue-300 text-sm"
+                        >
+                          + Thêm giao dịch đầu tiên
+                        </button>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
       )}
 
-      {/* Assets Tab */}
-      {activeTab === "assets" && (
-        <div className="space-y-6">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Danh sách Tài sản Cố định
-                </h3>
-                <span className="text-sm text-gray-500 dark:text-gray-400">
-                  Tổng cộng: {formatNumber(fixedAssets.length)} tài sản
-                </span>
-              </div>
+      {/* ====== LOANS TAB ====== */}
+      {activeTab === "loans" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-white">Khoản vay</h2>
+              <p className="text-gray-400 text-sm">Quản lý các khoản vay ngân hàng</p>
             </div>
+            <button
+              onClick={() => {
+                setNewCapital({
+                  ...newCapital,
+                  source: "Vay ngân hàng",
+                });
+                setShowAddCapital(true);
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-white text-slate-900 rounded-lg hover:bg-gray-100 transition-colors font-medium"
+            >
+              <Plus className="w-4 h-4" />
+              Thêm khoản vay
+            </button>
+          </div>
+
+          {/* Loan Summary */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-gradient-to-br from-orange-600/20 to-orange-700/10 border border-orange-500/30 rounded-xl p-4">
+              <div className="text-orange-400 text-sm mb-2">Tổng dư nợ</div>
+              <p className="text-2xl font-bold text-orange-400">
+                {formatCurrency(
+                  capitalInvestments
+                    .filter(
+                      (i) => (i as any).type === "loan" || (i as any).source === "Vay ngân hàng"
+                    )
+                    .reduce((sum, i) => sum + i.amount, 0)
+                )}
+              </p>
+            </div>
+            <div className="bg-gradient-to-br from-cyan-600/20 to-cyan-700/10 border border-cyan-500/30 rounded-xl p-4">
+              <div className="text-cyan-400 text-sm mb-2">Số khoản vay</div>
+              <p className="text-2xl font-bold text-cyan-400">
+                {
+                  capitalInvestments.filter(
+                    (i) => (i as any).type === "loan" || (i as any).source === "Vay ngân hàng"
+                  ).length
+                }
+              </p>
+            </div>
+            <div className="bg-gradient-to-br from-pink-600/20 to-pink-700/10 border border-pink-500/30 rounded-xl p-4">
+              <div className="text-pink-400 text-sm mb-2">Lãi suất TB</div>
+              <p className="text-2xl font-bold text-pink-400">
+                {(() => {
+                  const loans = capitalInvestments.filter(
+                    (i) =>
+                      ((i as any).type === "loan" || (i as any).source === "Vay ngân hàng") &&
+                      (i as any).interestRate
+                  );
+                  if (loans.length === 0) return "0%";
+                  const avg =
+                    loans.reduce((sum, l) => sum + ((l as any).interestRate || 0), 0) /
+                    loans.length;
+                  return `${avg.toFixed(1)}%`;
+                })()}
+              </p>
+            </div>
+          </div>
+
+          {/* Loans Table */}
+          <div className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-700">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                      Tài sản
+              <table className="min-w-full">
+                <thead>
+                  <tr className="border-b border-slate-700">
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase">
+                      Ngày
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                      Loại
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase">
+                      Mô tả
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                      Ngày mua
+                    <th className="px-6 py-4 text-right text-xs font-medium text-gray-400 uppercase">
+                      Số tiền
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                      Giá gốc
+                    <th className="px-6 py-4 text-right text-xs font-medium text-gray-400 uppercase">
+                      Lãi suất
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                      Giá trị hiện tại
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                      Khấu hao (%)
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Trạng thái
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-6 py-4 text-center text-xs font-medium text-gray-400 uppercase">
                       Thao tác
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                <tbody className="divide-y divide-slate-700">
+                  {capitalInvestments
+                    .filter(
+                      (i) => (i as any).type === "loan" || (i as any).source === "Vay ngân hàng"
+                    )
+                    .map((loan) => (
+                      <tr key={loan.id} className="hover:bg-slate-700/30 transition-colors">
+                        <td className="px-6 py-4 text-sm text-white">
+                          {new Date(loan.date).toLocaleDateString("vi-VN")}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-300">
+                          {(loan as any).description || (loan as any).notes || "Khoản vay"}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-right font-semibold text-orange-400">
+                          {formatCurrency(loan.amount)}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-right text-gray-300">
+                          {(loan as any).interestRate ? `${(loan as any).interestRate}%/năm` : "--"}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => {
+                                setNewCapital({
+                                  source: "Vay ngân hàng",
+                                  amount: loan.amount,
+                                  description:
+                                    (loan as any).description || (loan as any).notes || "",
+                                  date: loan.date,
+                                  interestRate: (loan as any).interestRate,
+                                });
+                                setEditingInvestment(loan);
+                                setShowAddCapital(true);
+                              }}
+                              className="p-2 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded-lg"
+                            >
+                              <PencilSquareIcon className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteInvestment(loan.id)}
+                              className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg"
+                            >
+                              <TrashIcon className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  {capitalInvestments.filter(
+                    (i) => (i as any).type === "loan" || (i as any).source === "Vay ngân hàng"
+                  ).length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-12 text-center">
+                        <CreditCardIcon className="w-12 h-12 text-gray-500 mx-auto mb-3" />
+                        <p className="text-gray-400">Chưa có khoản vay nào</p>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ====== ASSETS TAB (TSCĐ) ====== */}
+      {activeTab === "assets" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-white">Tài sản cố định</h2>
+              <p className="text-gray-400 text-sm">Quản lý tài sản, thiết bị và khấu hao</p>
+            </div>
+            <button
+              onClick={() => setShowAddAsset(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-white text-slate-900 rounded-lg hover:bg-gray-100 transition-colors font-medium"
+            >
+              <Plus className="w-4 h-4" />
+              Thêm tài sản
+            </button>
+          </div>
+
+          {/* Asset Summary */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-gradient-to-br from-blue-600/20 to-blue-700/10 border border-blue-500/30 rounded-xl p-4">
+              <div className="text-blue-400 text-sm mb-2">Tổng giá trị tài sản</div>
+              <p className="text-2xl font-bold text-blue-400">
+                {formatCurrency(financialSummary.totalAssetValue)}
+              </p>
+            </div>
+            <div className="bg-gradient-to-br from-green-600/20 to-green-700/10 border border-green-500/30 rounded-xl p-4">
+              <div className="text-green-400 text-sm mb-2">Số tài sản</div>
+              <p className="text-2xl font-bold text-green-400">{financialSummary.assetCount}</p>
+            </div>
+            <div className="bg-gradient-to-br from-red-600/20 to-red-700/10 border border-red-500/30 rounded-xl p-4">
+              <div className="text-red-400 text-sm mb-2">Khấu hao tích lũy</div>
+              <p className="text-2xl font-bold text-red-400">
+                {formatCurrency(financialSummary.assetDepreciation)}
+              </p>
+            </div>
+          </div>
+
+          {/* Assets Table */}
+          <div className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full">
+                <thead>
+                  <tr className="border-b border-slate-700">
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase">
+                      Tài sản
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase">
+                      Loại
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase">
+                      Ngày mua
+                    </th>
+                    <th className="px-6 py-4 text-right text-xs font-medium text-gray-400 uppercase">
+                      Giá gốc
+                    </th>
+                    <th className="px-6 py-4 text-right text-xs font-medium text-gray-400 uppercase">
+                      Giá trị hiện tại
+                    </th>
+                    <th className="px-6 py-4 text-center text-xs font-medium text-gray-400 uppercase">
+                      Khấu hao
+                    </th>
+                    <th className="px-6 py-4 text-center text-xs font-medium text-gray-400 uppercase">
+                      Trạng thái
+                    </th>
+                    <th className="px-6 py-4 text-center text-xs font-medium text-gray-400 uppercase">
+                      Thao tác
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-700">
                   {fixedAssets.map((asset) => {
                     const currentDate = new Date();
                     const bookValue = FinancialAnalyticsService.calculateBookValue(
@@ -891,79 +1149,59 @@ const PinFinancialManager: React.FC = () => {
                     const depreciationRate = ((depreciation / asset.purchasePrice) * 100).toFixed(
                       1
                     );
-                    const ageInYears =
-                      (currentDate.getTime() - new Date(asset.purchaseDate).getTime()) /
-                      (365.25 * 24 * 60 * 60 * 1000);
 
                     return (
-                      <tr key={asset.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                      <tr key={asset.id} className="hover:bg-slate-700/30 transition-colors">
                         <td className="px-6 py-4">
-                          <div>
-                            <div className="text-sm font-medium text-gray-900 dark:text-white">
-                              {asset.name}
-                            </div>
-                            <div className="text-sm text-gray-500 dark:text-gray-400">
-                              {asset.description}
-                            </div>
-                            {asset.serialNumber && (
-                              <div className="text-xs text-gray-400 dark:text-gray-500">
-                                SN: {asset.serialNumber}
-                              </div>
-                            )}
-                          </div>
+                          <div className="text-sm font-medium text-white">{asset.name}</div>
+                          {asset.description && (
+                            <div className="text-xs text-gray-400">{asset.description}</div>
+                          )}
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-white capitalize">
+                        <td className="px-6 py-4 text-sm text-gray-300 capitalize">
                           {asset.category.replace("_", " ")}
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
-                          <div>{new Date(asset.purchaseDate).toLocaleDateString("vi-VN")}</div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">
-                            {ageInYears.toFixed(1)} năm tuổi
-                          </div>
+                        <td className="px-6 py-4 text-sm text-gray-300">
+                          {new Date(asset.purchaseDate).toLocaleDateString("vi-VN")}
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
+                        <td className="px-6 py-4 text-sm text-right text-white">
                           {formatCurrency(asset.purchasePrice)}
                         </td>
-                        <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
+                        <td className="px-6 py-4 text-sm text-right font-semibold text-blue-400">
                           {formatCurrency(bookValue)}
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                          <div className="flex items-center space-x-2">
-                            <span>{depreciationRate}%</span>
-                            <div className="w-16 bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center justify-center gap-2">
+                            <div className="w-16 bg-slate-600 rounded-full h-2">
                               <div
-                                className="bg-red-500 dark:bg-red-400 h-2 rounded-full"
-                                style={{
-                                  width: `${Math.min(parseFloat(depreciationRate), 100)}%`,
-                                }}
+                                className="bg-red-500 h-2 rounded-full"
+                                style={{ width: `${Math.min(parseFloat(depreciationRate), 100)}%` }}
                               />
                             </div>
+                            <span className="text-xs text-gray-400">{depreciationRate}%</span>
                           </div>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-4 text-center">
                           <span
-                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
                               asset.status === "active"
-                                ? "bg-green-100 text-green-800"
+                                ? "bg-green-500/20 text-green-400"
                                 : asset.status === "under_maintenance"
-                                  ? "bg-yellow-100 text-yellow-800"
-                                  : "bg-red-100 text-red-800"
+                                  ? "bg-yellow-500/20 text-yellow-400"
+                                  : "bg-red-500/20 text-red-400"
                             }`}
                           >
                             {asset.status === "active"
                               ? "Hoạt động"
                               : asset.status === "under_maintenance"
                                 ? "Bảo trì"
-                                : asset.status === "disposed"
-                                  ? "Thanh lý"
-                                  : "Đã bán"}
+                                : "Thanh lý"}
                           </span>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center justify-center gap-2">
                             <button
                               onClick={() => {
-                                // Set form data with asset values
                                 setNewAsset({
                                   name: asset.name,
                                   category: asset.category as any,
@@ -979,753 +1217,226 @@ const PinFinancialManager: React.FC = () => {
                                 setEditingAsset(asset);
                                 setShowAddAsset(true);
                               }}
-                              className="p-2 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                              title="Chỉnh sửa"
+                              className="p-2 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded-lg"
                             >
-                              <PencilSquareIcon className="w-5 h-5" />
+                              <PencilSquareIcon className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => handleDeleteAsset(asset.id)}
-                              className="p-2 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                              title="Xóa"
+                              className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg"
                             >
-                              <TrashIcon className="w-5 h-5" />
+                              <TrashIcon className="w-4 h-4" />
                             </button>
                           </div>
                         </td>
                       </tr>
                     );
                   })}
+                  {fixedAssets.length === 0 && (
+                    <tr>
+                      <td colSpan={8} className="px-6 py-12 text-center">
+                        <Building className="w-12 h-12 text-gray-500 mx-auto mb-3" />
+                        <p className="text-gray-400">Chưa có tài sản cố định nào</p>
+                        <button
+                          onClick={() => setShowAddAsset(true)}
+                          className="mt-3 text-blue-400 hover:text-blue-300 text-sm"
+                        >
+                          + Thêm tài sản đầu tiên
+                        </button>
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
-            {fixedAssets.length === 0 && (
-              <div className="text-center py-12">
-                <Building className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                  Chưa có tài sản cố định
-                </h3>
-                <p className="text-gray-500 dark:text-gray-400 mb-4">
-                  Bắt đầu bằng cách thêm tài sản đầu tiên
-                </p>
-                <button
-                  onClick={() => setShowAddAsset(true)}
-                  className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Thêm Tài sản</span>
-                </button>
-              </div>
-            )}
           </div>
         </div>
       )}
 
-      {/* Capital Investments Tab */}
+      {/* ====== CAPITAL TAB (VỐN) ====== */}
       {activeTab === "capital" && (
-        <div className="space-y-6">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Danh sách Đầu tư Vốn
-                </h3>
-                <span className="text-sm text-gray-500 dark:text-gray-400">
-                  Tổng đầu tư: {formatCurrency(financialSummary.totalCapitalInvested)}
-                </span>
-              </div>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-white">Vốn đầu tư</h2>
+              <p className="text-gray-400 text-sm">Quản lý vốn chủ sở hữu và đầu tư</p>
             </div>
+            <button
+              onClick={() => {
+                setNewCapital({
+                  ...newCapital,
+                  source: "Vốn chủ sở hữu",
+                });
+                setShowAddCapital(true);
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-white text-slate-900 rounded-lg hover:bg-gray-100 transition-colors font-medium"
+            >
+              <Plus className="w-4 h-4" />
+              Thêm vốn
+            </button>
+          </div>
+
+          {/* Capital Summary */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-gradient-to-br from-emerald-600/20 to-emerald-700/10 border border-emerald-500/30 rounded-xl p-4">
+              <div className="text-emerald-400 text-sm mb-2">Tổng vốn đầu tư</div>
+              <p className="text-2xl font-bold text-emerald-400">
+                {formatCurrency(financialSummary.totalCapitalInvested)}
+              </p>
+            </div>
+            <div className="bg-gradient-to-br from-violet-600/20 to-violet-700/10 border border-violet-500/30 rounded-xl p-4">
+              <div className="text-violet-400 text-sm mb-2">Vốn chủ sở hữu</div>
+              <p className="text-2xl font-bold text-violet-400">
+                {formatCurrency(
+                  capitalInvestments
+                    .filter(
+                      (i) => (i as any).type !== "loan" && (i as any).source !== "Vay ngân hàng"
+                    )
+                    .reduce((sum, i) => sum + i.amount, 0)
+                )}
+              </p>
+            </div>
+          </div>
+
+          {/* Capital Table */}
+          <div className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-700">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+              <table className="min-w-full">
+                <thead>
+                  <tr className="border-b border-slate-700">
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase">
                       Ngày
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase">
                       Loại
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase">
                       Mô tả
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    <th className="px-6 py-4 text-right text-xs font-medium text-gray-400 uppercase">
                       Số tiền
                     </th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    <th className="px-6 py-4 text-center text-xs font-medium text-gray-400 uppercase">
                       Thao tác
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                  {capitalInvestments.map((investment) => (
-                    <tr
-                      key={investment.id}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                    >
-                      <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
-                        {new Date(investment.date).toLocaleDateString("vi-VN")}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">
-                          {(investment as any).type?.replace("_", " ") || "N/A"}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
-                        {(investment as any).description || (investment as any).notes || "-"}
-                      </td>
-                      <td className="px-6 py-4 text-sm font-bold text-right text-green-600 dark:text-green-400">
-                        {formatCurrency(investment.amount)}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => {
-                              // Set form data with investment values
-                              setNewCapital({
-                                source: ((investment as { type?: string }).type === "loan"
-                                  ? "Vay ngân hàng"
-                                  : "Vốn chủ sở hữu") as "Vốn chủ sở hữu" | "Vay ngân hàng",
-                                amount: investment.amount,
-                                description:
-                                  (investment as { description?: string }).description ||
-                                  (investment as { notes?: string }).notes ||
-                                  "",
-                                date: investment.date,
-                                interestRate: (investment as { interestRate?: number })
-                                  .interestRate,
-                              });
-                              setEditingInvestment(investment);
-                              setShowAddCapital(true);
-                            }}
-                            className="p-2 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                            title="Chỉnh sửa"
-                          >
-                            <PencilSquareIcon className="w-5 h-5" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteInvestment(investment.id)}
-                            className="p-2 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                            title="Xóa"
-                          >
-                            <TrashIcon className="w-5 h-5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            {capitalInvestments.length === 0 && (
-              <div className="text-center py-12">
-                <DollarSign className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                  Chưa có đầu tư vốn
-                </h3>
-                <p className="text-gray-500 dark:text-gray-400">
-                  Chưa có khoản đầu tư vốn nào được ghi nhận
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Cash Flow Tab */}
-      {activeTab === "cashflow" && (
-        <div className="space-y-6">
-          {/* Cash Flow Summary */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-              <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                Thu nhập Tháng này
-              </h4>
-              <p className="text-2xl font-semibold text-green-600 dark:text-green-400">
-                {formatCurrency(financialSummary.monthlyIncome)}
-              </p>
-            </div>
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-              <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                Chi phí Tháng này
-              </h4>
-              <p className="text-2xl font-semibold text-red-600 dark:text-red-400">
-                {formatCurrency(financialSummary.monthlyExpenses)}
-              </p>
-            </div>
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-              <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                Dòng tiền Ròng
-              </h4>
-              <p
-                className={`text-2xl font-semibold ${
-                  financialSummary.netCashFlow >= 0
-                    ? "text-green-600 dark:text-green-400"
-                    : "text-red-600 dark:text-red-400"
-                }`}
-              >
-                {formatCurrency(financialSummary.netCashFlow)}
-              </p>
-            </div>
-          </div>
-
-          {/* Recent Transactions */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Giao dịch Tiền mặt Gần đây
-              </h3>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-700">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                      Ngày
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                      Mô tả / Ghi chú
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                      Khách hàng/Người nhận
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                      Danh mục
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                      Số tiền
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                  {pinCashTransactions
-                    .slice(-10)
-                    .reverse()
-                    .map((transaction) => (
-                      <tr key={transaction.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
-                          {new Date(transaction.date).toLocaleDateString("vi-VN")}
+                <tbody className="divide-y divide-slate-700">
+                  {capitalInvestments
+                    .filter(
+                      (i) => (i as any).type !== "loan" && (i as any).source !== "Vay ngân hàng"
+                    )
+                    .map((investment) => (
+                      <tr key={investment.id} className="hover:bg-slate-700/30 transition-colors">
+                        <td className="px-6 py-4 text-sm text-white">
+                          {new Date(investment.date).toLocaleDateString("vi-VN")}
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
-                          <div className="font-medium">{transaction.description || "-"}</div>
-                          {transaction.notes && (
-                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                              {transaction.notes}
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
-                          {typeof transaction.contact === "object" && transaction.contact?.name
-                            ? transaction.contact.name
-                            : "-"}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-white capitalize">
-                          {transaction.category?.replace("_", " ") || "Khác"}
-                        </td>
-                        <td className="px-6 py-4 text-sm font-medium">
-                          <span
-                            className={
-                              transaction.amount >= 0
-                                ? "text-green-600 dark:text-green-400"
-                                : "text-red-600 dark:text-red-400"
-                            }
-                          >
-                            {formatCurrency(transaction.amount)}
+                        <td className="px-6 py-4">
+                          <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-400">
+                            Vốn chủ sở hữu
                           </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-300">
+                          {(investment as any).description ||
+                            (investment as any).notes ||
+                            "Vốn đầu tư"}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-right font-semibold text-emerald-400">
+                          {formatCurrency(investment.amount)}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => {
+                                setNewCapital({
+                                  source: "Vốn chủ sở hữu",
+                                  amount: investment.amount,
+                                  description:
+                                    (investment as any).description ||
+                                    (investment as any).notes ||
+                                    "",
+                                  date: investment.date,
+                                  interestRate: undefined,
+                                });
+                                setEditingInvestment(investment);
+                                setShowAddCapital(true);
+                              }}
+                              className="p-2 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded-lg"
+                            >
+                              <PencilSquareIcon className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteInvestment(investment.id)}
+                              className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg"
+                            >
+                              <TrashIcon className="w-4 h-4" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
+                  {capitalInvestments.filter(
+                    (i) => (i as any).type !== "loan" && (i as any).source !== "Vay ngân hàng"
+                  ).length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-12 text-center">
+                        <DollarSign className="w-12 h-12 text-gray-500 mx-auto mb-3" />
+                        <p className="text-gray-400">Chưa có khoản vốn nào</p>
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
-            {pinCashTransactions.length === 0 && (
-              <div className="text-center py-12">
-                <Wallet className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                  Chưa có giao dịch
-                </h3>
-                <p className="text-gray-500 dark:text-gray-400">
-                  Chưa có giao dịch tiền mặt nào được ghi nhận
-                </p>
-              </div>
-            )}
           </div>
         </div>
       )}
 
-      {/* Add Asset Modal */}
-      {showAddAsset && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-auto">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {editingAsset ? "✏️ Sửa Tài sản Cố định" : "➕ Thêm Tài sản Cố định"}
-              </h3>
-            </div>
-            <div className="p-6 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Tên tài sản *
-                  </label>
-                  <input
-                    type="text"
-                    value={newAsset.name}
-                    onChange={(e) => setNewAsset({ ...newAsset, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    placeholder="Nhập tên tài sản"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Danh mục
-                  </label>
-                  <select
-                    value={newAsset.category}
-                    onChange={(e) =>
-                      setNewAsset({
-                        ...newAsset,
-                        category: e.target.value as any,
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  >
-                    <option value="equipment">Thiết bị</option>
-                    <option value="vehicle">Phương tiện</option>
-                    <option value="furniture">Nội thất</option>
-                    <option value="building">Công trình</option>
-                    <option value="technology">Công nghệ</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Giá mua (VND) *
-                  </label>
-                  <input
-                    type="number"
-                    value={newAsset.purchasePrice}
-                    onChange={(e) =>
-                      setNewAsset({
-                        ...newAsset,
-                        purchasePrice: Number(e.target.value),
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    placeholder="0"
-                    min="0"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Ngày mua
-                  </label>
-                  <input
-                    type="date"
-                    value={newAsset.purchaseDate}
-                    onChange={(e) => setNewAsset({ ...newAsset, purchaseDate: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Tuổi thọ (năm)
-                  </label>
-                  <input
-                    type="number"
-                    value={newAsset.usefulLife}
-                    onChange={(e) =>
-                      setNewAsset({
-                        ...newAsset,
-                        usefulLife: Number(e.target.value),
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    min="1"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Phương pháp khấu hao
-                  </label>
-                  <select
-                    value={newAsset.depreciationMethod}
-                    onChange={(e) =>
-                      setNewAsset({
-                        ...newAsset,
-                        depreciationMethod: e.target.value as any,
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  >
-                    <option value="straight_line">Đường thẳng</option>
-                    <option value="declining_balance">Số dư giảm dần</option>
-                    <option value="sum_of_years">Tổng số năm</option>
-                    <option value="units_of_production">Đơn vị sản xuất</option>
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Vị trí
-                </label>
-                <input
-                  type="text"
-                  value={newAsset.location}
-                  onChange={(e) => setNewAsset({ ...newAsset, location: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder="Nhập vị trí tài sản"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Mô tả
-                </label>
-                <textarea
-                  value={newAsset.description}
-                  onChange={(e) => setNewAsset({ ...newAsset, description: e.target.value })}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder="Mô tả chi tiết tài sản"
-                />
-              </div>
-            </div>
-            <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3">
-              <button
-                onClick={() => {
-                  setShowAddAsset(false);
-                  setEditingAsset(null);
-                }}
-                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-600 hover:bg-gray-200 dark:hover:bg-gray-500 rounded-lg transition-colors"
-              >
-                Hủy
-              </button>
-              <button
-                onClick={handleAddAsset}
-                className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors"
-              >
-                Thêm Tài sản
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Add Capital Modal */}
-      {showAddCapital && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {editingInvestment ? "✏️ Sửa Đầu tư Vốn" : "💰 Ghi nhận Đầu tư Vốn"}
-              </h3>
-            </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Nguồn vốn *
-                </label>
-                <select
-                  value={newCapital.source}
-                  onChange={(e) =>
-                    setNewCapital({
-                      ...newCapital,
-                      source: e.target.value as any,
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                >
-                  <option value="Vốn chủ sở hữu">Vốn chủ sở hữu</option>
-                  <option value="Vay ngân hàng">Vay ngân hàng</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Số tiền (VND) *
-                </label>
-                <input
-                  type="number"
-                  value={newCapital.amount}
-                  onChange={(e) =>
-                    setNewCapital({
-                      ...newCapital,
-                      amount: Number(e.target.value),
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder="0"
-                  min="0"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Ngày đầu tư
-                </label>
-                <input
-                  type="date"
-                  value={newCapital.date}
-                  onChange={(e) => setNewCapital({ ...newCapital, date: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                />
-              </div>
-              {newCapital.source === "Vay ngân hàng" && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Lãi suất (% năm)
-                  </label>
-                  <input
-                    type="number"
-                    value={newCapital.interestRate || ""}
-                    onChange={(e) =>
-                      setNewCapital({
-                        ...newCapital,
-                        interestRate: e.target.value ? Number(e.target.value) : undefined,
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    placeholder="0"
-                    min="0"
-                    step="0.1"
-                  />
-                </div>
-              )}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Mô tả
-                </label>
-                <input
-                  type="text"
-                  value={newCapital.description}
-                  onChange={(e) =>
-                    setNewCapital({
-                      ...newCapital,
-                      description: e.target.value,
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder="Mô tả đầu tư"
-                />
-              </div>
-            </div>
-            <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3">
-              \n{" "}
-              <button
-                onClick={() => {
-                  setShowAddCapital(false);
-                  setEditingInvestment(null);
-                }}
-                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-600 hover:bg-gray-200 dark:hover:bg-gray-500 rounded-lg transition-colors"
-              >
-                Hủy
-              </button>
-              <button
-                onClick={handleAddCapital}
-                className="px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-lg transition-colors"
-              >
-                Ghi nhận Đầu tư
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Add Transaction Modal */}
+      {/* ====== ADD TRANSACTION MODAL ====== */}
       {showAddTransaction && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-                Thêm Giao dịch Thu Chi
-              </h3>
-            </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Loại giao dịch
-                </label>
-                <select
-                  value={newTransaction.type}
-                  onChange={(e) =>
-                    setNewTransaction({
-                      ...newTransaction,
-                      type: e.target.value as "income" | "expense",
-                    })
-                  }
-                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                >
-                  <option value="income">Thu nhập</option>
-                  <option value="expense">Chi phí</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Số tiền *
-                </label>
-                <input
-                  type="number"
-                  value={newTransaction.amount}
-                  onChange={(e) =>
-                    setNewTransaction({
-                      ...newTransaction,
-                      amount: parseFloat(e.target.value) || 0,
-                    })
-                  }
-                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder="Nhập số tiền..."
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Mô tả *
-                </label>
-                <input
-                  type="text"
-                  value={newTransaction.description}
-                  onChange={(e) =>
-                    setNewTransaction({
-                      ...newTransaction,
-                      description: e.target.value,
-                    })
-                  }
-                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder="Mô tả giao dịch..."
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Danh mục
-                </label>
-                <select
-                  value={newTransaction.category}
-                  onChange={(e) =>
-                    setNewTransaction({
-                      ...newTransaction,
-                      category: e.target.value,
-                    })
-                  }
-                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                >
-                  <option value="">Chọn danh mục</option>
-                  {newTransaction.type === "income" ? (
-                    <>
-                      <option value="sales">Bán hàng</option>
-                      <option value="services">Dịch vụ</option>
-                      <option value="other_income">Thu nhập khác</option>
-                    </>
-                  ) : (
-                    <>
-                      <option value="materials">Nguyên vật liệu</option>
-                      <option value="equipment">Thiết bị</option>
-                      <option value="utilities">Tiện ích</option>
-                      <option value="salaries">Lương nhân viên</option>
-                      <option value="other_expense">Chi phí khác</option>
-                    </>
-                  )}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Ngày giao dịch
-                </label>
-                <input
-                  type="date"
-                  value={newTransaction.date}
-                  onChange={(e) =>
-                    setNewTransaction({
-                      ...newTransaction,
-                      date: e.target.value,
-                    })
-                  }
-                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Ghi chú
-                </label>
-                <textarea
-                  value={newTransaction.notes}
-                  onChange={(e) =>
-                    setNewTransaction({
-                      ...newTransaction,
-                      notes: e.target.value,
-                    })
-                  }
-                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder="Ghi chú thêm..."
-                  rows={3}
-                />
-              </div>
-            </div>
-            <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex space-x-3">
-              <button
-                onClick={() => setShowAddTransaction(false)}
-                className="flex-1 px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-600 hover:bg-gray-200 dark:hover:bg-gray-500 rounded-lg transition-colors"
-              >
-                Hủy
-              </button>
-              <button
-                onClick={handleAddTransaction}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors"
-              >
-                Thêm giao dịch
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Add Transaction Modal */}
-      {showAddTransaction && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-                Thêm giao dịch mới
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-800 rounded-xl w-full max-w-md shadow-2xl border border-slate-700">
+            <div className="p-6 border-b border-slate-700">
+              <h3 className="text-lg font-semibold text-white">
+                {editingTransaction ? "✏️ Sửa giao dịch" : "➕ Thêm giao dịch mới"}
               </h3>
             </div>
             <div className="p-6 space-y-4">
               {/* Transaction Type */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Loại giao dịch <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Loại giao dịch
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
+                    type="button"
                     onClick={() => setNewTransaction((prev) => ({ ...prev, type: "income" }))}
                     className={`p-3 rounded-lg border text-center font-medium transition-colors ${
                       newTransaction.type === "income"
-                        ? "bg-green-50 dark:bg-green-900/20 border-green-500 text-green-700 dark:text-green-400"
-                        : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                        ? "bg-teal-500/20 border-teal-500 text-teal-400"
+                        : "border-slate-600 text-gray-400 hover:bg-slate-700"
                     }`}
                   >
-                    💰 Thu nhập
+                    ↑ Thu nhập
                   </button>
                   <button
-                    onClick={() =>
-                      setNewTransaction((prev) => ({
-                        ...prev,
-                        type: "expense",
-                      }))
-                    }
+                    type="button"
+                    onClick={() => setNewTransaction((prev) => ({ ...prev, type: "expense" }))}
                     className={`p-3 rounded-lg border text-center font-medium transition-colors ${
                       newTransaction.type === "expense"
-                        ? "bg-red-50 dark:bg-red-900/20 border-red-500 text-red-700 dark:text-red-400"
-                        : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                        ? "bg-red-500/20 border-red-500 text-red-400"
+                        : "border-slate-600 text-gray-400 hover:bg-slate-700"
                     }`}
                   >
-                    💸 Chi phí
+                    ↓ Chi phí
                   </button>
                 </div>
               </div>
 
               {/* Amount */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Số tiền <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Số tiền <span className="text-red-400">*</span>
                 </label>
                 <input
                   type="number"
@@ -1736,17 +1447,16 @@ const PinFinancialManager: React.FC = () => {
                       amount: parseFloat(e.target.value) || 0,
                     }))
                   }
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="0"
                   min="0"
-                  step="1000"
                 />
               </div>
 
               {/* Description */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Mô tả <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Nội dung <span className="text-red-400">*</span>
                 </label>
                 <input
                   type="text"
@@ -1757,35 +1467,14 @@ const PinFinancialManager: React.FC = () => {
                       description: e.target.value,
                     }))
                   }
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder="Nhập mô tả giao dịch"
-                />
-              </div>
-
-              {/* Contact Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Khách hàng / Người nhận
-                </label>
-                <input
-                  type="text"
-                  value={newTransaction.contactName}
-                  onChange={(e) =>
-                    setNewTransaction((prev) => ({
-                      ...prev,
-                      contactName: e.target.value,
-                    }))
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder="Tên khách hàng hoặc người nhận"
+                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Nhập nội dung giao dịch"
                 />
               </div>
 
               {/* Category */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Danh mục
-                </label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Danh mục</label>
                 <select
                   value={newTransaction.category}
                   onChange={(e) =>
@@ -1794,7 +1483,7 @@ const PinFinancialManager: React.FC = () => {
                       category: e.target.value,
                     }))
                   }
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="">Chọn danh mục</option>
                   {newTransaction.type === "income" ? (
@@ -1815,9 +1504,61 @@ const PinFinancialManager: React.FC = () => {
                 </select>
               </div>
 
+              {/* Payment Source */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Nguồn tiền</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setNewTransaction((prev) => ({ ...prev, paymentSource: "cash" }))
+                    }
+                    className={`p-3 rounded-lg border text-center font-medium transition-colors ${
+                      newTransaction.paymentSource === "cash"
+                        ? "bg-yellow-500/20 border-yellow-500 text-yellow-400"
+                        : "border-slate-600 text-gray-400 hover:bg-slate-700"
+                    }`}
+                  >
+                    💵 Tiền mặt
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setNewTransaction((prev) => ({ ...prev, paymentSource: "bank" }))
+                    }
+                    className={`p-3 rounded-lg border text-center font-medium transition-colors ${
+                      newTransaction.paymentSource === "bank"
+                        ? "bg-blue-500/20 border-blue-500 text-blue-400"
+                        : "border-slate-600 text-gray-400 hover:bg-slate-700"
+                    }`}
+                  >
+                    🏦 Ngân hàng
+                  </button>
+                </div>
+              </div>
+
+              {/* Contact Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Đối tượng (khách hàng/nhà cung cấp)
+                </label>
+                <input
+                  type="text"
+                  value={newTransaction.contactName}
+                  onChange={(e) =>
+                    setNewTransaction((prev) => ({
+                      ...prev,
+                      contactName: e.target.value,
+                    }))
+                  }
+                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Tên khách hàng hoặc nhà cung cấp"
+                />
+              </div>
+
               {/* Date */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
                   Ngày giao dịch
                 </label>
                 <input
@@ -1829,15 +1570,13 @@ const PinFinancialManager: React.FC = () => {
                       date: e.target.value,
                     }))
                   }
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
 
               {/* Notes */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Ghi chú
-                </label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Ghi chú</label>
                 <textarea
                   value={newTransaction.notes}
                   onChange={(e) =>
@@ -1846,25 +1585,284 @@ const PinFinancialManager: React.FC = () => {
                       notes: e.target.value,
                     }))
                   }
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  rows={3}
-                  placeholder="Ghi chú bổ sung (không bắt buộc)"
+                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  rows={2}
+                  placeholder="Ghi chú thêm (không bắt buộc)"
                 />
               </div>
             </div>
-            <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3">
+            <div className="p-6 border-t border-slate-700 flex gap-3">
               <button
-                onClick={() => setShowAddTransaction(false)}
-                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-600 hover:bg-gray-200 dark:hover:bg-gray-500 rounded-lg transition-colors"
+                onClick={resetTransactionForm}
+                className="flex-1 px-4 py-3 text-gray-300 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors font-medium"
               >
                 Hủy
               </button>
               <button
                 onClick={handleAddTransaction}
                 disabled={!newTransaction.description || !newTransaction.amount}
-                className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-400 rounded-lg transition-colors"
+                className="flex-1 px-4 py-3 bg-blue-600 text-white hover:bg-blue-700 disabled:bg-slate-600 disabled:text-gray-400 rounded-lg transition-colors font-medium"
               >
-                Thêm giao dịch
+                {editingTransaction ? "Cập nhật" : "Thêm giao dịch"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ====== ADD ASSET MODAL ====== */}
+      {showAddAsset && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-800 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-auto shadow-2xl border border-slate-700">
+            <div className="p-6 border-b border-slate-700">
+              <h3 className="text-lg font-semibold text-white">
+                {editingAsset ? "✏️ Sửa Tài sản Cố định" : "➕ Thêm Tài sản Cố định"}
+              </h3>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Tên tài sản <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={newAsset.name}
+                    onChange={(e) => setNewAsset({ ...newAsset, name: e.target.value })}
+                    className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Nhập tên tài sản"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Danh mục</label>
+                  <select
+                    value={newAsset.category}
+                    onChange={(e) =>
+                      setNewAsset({
+                        ...newAsset,
+                        category: e.target.value as any,
+                      })
+                    }
+                    className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="equipment">Thiết bị</option>
+                    <option value="vehicle">Phương tiện</option>
+                    <option value="furniture">Nội thất</option>
+                    <option value="building">Công trình</option>
+                    <option value="technology">Công nghệ</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Giá mua (VND) <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    value={newAsset.purchasePrice}
+                    onChange={(e) =>
+                      setNewAsset({
+                        ...newAsset,
+                        purchasePrice: Number(e.target.value),
+                      })
+                    }
+                    className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="0"
+                    min="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Ngày mua</label>
+                  <input
+                    type="date"
+                    value={newAsset.purchaseDate}
+                    onChange={(e) => setNewAsset({ ...newAsset, purchaseDate: e.target.value })}
+                    className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Tuổi thọ (năm)
+                  </label>
+                  <input
+                    type="number"
+                    value={newAsset.usefulLife}
+                    onChange={(e) =>
+                      setNewAsset({
+                        ...newAsset,
+                        usefulLife: Number(e.target.value),
+                      })
+                    }
+                    className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    min="1"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Phương pháp khấu hao
+                  </label>
+                  <select
+                    value={newAsset.depreciationMethod}
+                    onChange={(e) =>
+                      setNewAsset({
+                        ...newAsset,
+                        depreciationMethod: e.target.value as any,
+                      })
+                    }
+                    className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="straight_line">Đường thẳng</option>
+                    <option value="declining_balance">Số dư giảm dần</option>
+                    <option value="sum_of_years">Tổng số năm</option>
+                    <option value="units_of_production">Đơn vị sản xuất</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Vị trí</label>
+                <input
+                  type="text"
+                  value={newAsset.location}
+                  onChange={(e) => setNewAsset({ ...newAsset, location: e.target.value })}
+                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Nhập vị trí tài sản"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Mô tả</label>
+                <textarea
+                  value={newAsset.description}
+                  onChange={(e) => setNewAsset({ ...newAsset, description: e.target.value })}
+                  rows={3}
+                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Mô tả chi tiết tài sản"
+                />
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-slate-700 flex justify-end gap-3">
+              <button
+                onClick={resetAssetForm}
+                className="px-4 py-2.5 text-gray-300 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors font-medium"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleAddAsset}
+                className="px-4 py-2.5 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors font-medium"
+              >
+                {editingAsset ? "Cập nhật" : "Thêm Tài sản"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ====== ADD CAPITAL/LOAN MODAL ====== */}
+      {showAddCapital && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-800 rounded-xl w-full max-w-md shadow-2xl border border-slate-700">
+            <div className="p-6 border-b border-slate-700">
+              <h3 className="text-lg font-semibold text-white">
+                {editingInvestment
+                  ? "✏️ Sửa khoản " + (newCapital.source === "Vay ngân hàng" ? "vay" : "vốn")
+                  : newCapital.source === "Vay ngân hàng"
+                    ? "💳 Thêm Khoản vay"
+                    : "💰 Ghi nhận Đầu tư Vốn"}
+              </h3>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Nguồn vốn <span className="text-red-400">*</span>
+                </label>
+                <select
+                  value={newCapital.source}
+                  onChange={(e) =>
+                    setNewCapital({
+                      ...newCapital,
+                      source: e.target.value as any,
+                    })
+                  }
+                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="Vốn chủ sở hữu">Vốn chủ sở hữu</option>
+                  <option value="Vay ngân hàng">Vay ngân hàng</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Số tiền (VND) <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="number"
+                  value={newCapital.amount}
+                  onChange={(e) =>
+                    setNewCapital({
+                      ...newCapital,
+                      amount: Number(e.target.value),
+                    })
+                  }
+                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="0"
+                  min="0"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Ngày</label>
+                <input
+                  type="date"
+                  value={newCapital.date}
+                  onChange={(e) => setNewCapital({ ...newCapital, date: e.target.value })}
+                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              {newCapital.source === "Vay ngân hàng" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Lãi suất (% năm)
+                  </label>
+                  <input
+                    type="number"
+                    value={newCapital.interestRate || ""}
+                    onChange={(e) =>
+                      setNewCapital({
+                        ...newCapital,
+                        interestRate: e.target.value ? Number(e.target.value) : undefined,
+                      })
+                    }
+                    className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="0"
+                    min="0"
+                    step="0.1"
+                  />
+                </div>
+              )}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Mô tả</label>
+                <textarea
+                  value={newCapital.description}
+                  onChange={(e) =>
+                    setNewCapital({
+                      ...newCapital,
+                      description: e.target.value,
+                    })
+                  }
+                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  rows={3}
+                  placeholder="Mô tả chi tiết"
+                />
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-slate-700 flex justify-end gap-3">
+              <button
+                onClick={resetCapitalForm}
+                className="px-4 py-2.5 text-gray-300 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors font-medium"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleAddCapital}
+                className="px-4 py-2.5 bg-emerald-600 text-white hover:bg-emerald-700 rounded-lg transition-colors font-medium"
+              >
+                {editingInvestment ? "Cập nhật" : "Ghi nhận"}
               </button>
             </div>
           </div>
