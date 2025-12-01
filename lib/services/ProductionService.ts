@@ -5,6 +5,22 @@ import { generateProductSKU } from "../../lib/sku";
 
 let syncRunning = false;
 
+// Helper to convert date formats (dd/MM/yyyy -> yyyy-MM-dd for PostgreSQL)
+const toPostgresDate = (dateStr: string | undefined): string => {
+  if (!dateStr) return new Date().toISOString().split('T')[0];
+  // Check if already in ISO format
+  if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
+    return dateStr.split('T')[0];
+  }
+  // Convert from dd/MM/yyyy format
+  const parts = dateStr.split('/');
+  if (parts.length === 3) {
+    const [day, month, year] = parts;
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  }
+  return new Date().toISOString().split('T')[0];
+};
+
 export interface ProductionService {
   upsertBOM: (bom: PinBOM) => Promise<void>;
   deleteBOM: (bomId: string) => Promise<void>;
@@ -36,13 +52,16 @@ interface DBPinBOM {
 
 interface DBProductionOrder {
   id: string;
+  creation_date?: string;
   product_name: string;
   bom_id: string;
   quantity_produced: number;
   materials_cost: number;
+  additional_costs?: any[];
   total_cost: number;
   status: string;
   notes?: string | null;
+  user_name?: string | null;
 }
 
 function isValidUUID(v: string | undefined): boolean {
@@ -212,13 +231,16 @@ export function createProductionService(ctx: PinContextType): ProductionService 
       }
       const payload: DBProductionOrder = {
         id: order.id,
+        creation_date: toPostgresDate(order.creationDate),
         product_name: order.productName,
         bom_id: order.bomId,
         quantity_produced: Number(order.quantityProduced || 0),
         materials_cost: Number(order.materialsCost || 0),
+        additional_costs: order.additionalCosts || [],
         total_cost: Number(order.totalCost || 0),
         status,
         notes: order.notes || null,
+        user_name: order.userName || ctx.currentUser?.name || null,
       };
       const { error } = await supabase.from("pin_production_orders").upsert(payload);
       if (error) {

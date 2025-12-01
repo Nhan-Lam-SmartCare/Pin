@@ -275,8 +275,39 @@ export const PinProviderStandalone: React.FC<{ children: React.ReactNode }> = ({
           supabase.from("pin_customers").select("*"),
           supabase.from("pin_suppliers").select("*"),
         ]);
-        if (!fa.error) setFixedAssets((fa.data as FixedAsset[]) || []);
-        if (!ci.error) setCapitalInvestments((ci.data as CapitalInvestment[]) || []);
+        if (!fa.error) {
+          const mapDbAssetToUi = (row: DBRow): FixedAsset => ({
+            id: row.id as string,
+            name: row.name as string,
+            category: (row.category as FixedAsset["category"]) || "equipment",
+            description: (row.description || undefined) as string | undefined,
+            purchaseDate: (row.purchasedate || row.purchase_date || row.purchaseDate || new Date().toISOString()) as string,
+            purchasePrice: Number(row.purchaseprice ?? row.purchase_price ?? 0),
+            currentValue: Number(row.currentvalue ?? row.current_value ?? row.purchaseprice ?? row.purchase_price ?? 0),
+            depreciationMethod: (row.depreciationmethod || row.depreciation_method || "straight_line") as FixedAsset["depreciationMethod"],
+            usefulLife: Number(row.usefullife ?? row.useful_life ?? 5),
+            salvageValue: Number(row.salvagevalue ?? row.salvage_value ?? 0),
+            accumulatedDepreciation: Number(row.accumulateddepreciation ?? row.accumulated_depreciation ?? 0),
+            location: (row.location || undefined) as string | undefined,
+            status: (row.status as FixedAsset["status"]) || "active",
+            branchId: (row.branchid || row.branch_id || undefined) as string | undefined,
+            created_at: (row.created_at || row.createdat || undefined) as string | undefined,
+          });
+          setFixedAssets(((fa.data as DBRow[]) || []).map(mapDbAssetToUi));
+        }
+        if (!ci.error) {
+          const mapDbInvestToUi = (row: DBRow): CapitalInvestment => ({
+            id: row.id as string,
+            date: (row.date || row.created_at || new Date().toISOString()) as string,
+            amount: Number(row.amount ?? 0),
+            description: (row.description || "") as string,
+            source: (row.source as CapitalInvestment["source"]) || "Vốn chủ sở hữu",
+            interestRate: row.interestrate ?? row.interest_rate ?? undefined,
+            branchId: (row.branchid || row.branch_id || "main") as string,
+            created_at: (row.created_at || row.createdat || undefined) as string | undefined,
+          });
+          setCapitalInvestments(((ci.data as DBRow[]) || []).map(mapDbInvestToUi));
+        }
         if (!ct.error) {
           const mapDbCashTxToUi = (row: DBRow): CashTransaction => {
             let contact: Record<string, unknown> | null = null;
