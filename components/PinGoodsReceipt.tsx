@@ -1055,114 +1055,90 @@ const PinGoodsReceiptNew: React.FC<PinGoodsReceiptNewProps> = ({
                 <input
                   type="text"
                   value={productSearch}
-                  onChange={(e) => {
-                    setProductSearch(e.target.value);
-                    setShowProductDropdown(true);
-                  }}
+                  onChange={(e) => setProductSearch(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       handleAddProductFromSearch();
                     }
                   }}
-                  onFocus={() => setShowProductDropdown(true)}
-                  onBlur={() =>
-                    setTimeout(() => setShowProductDropdown(false), 200)
-                  }
                   placeholder="Tìm kiếm sản phẩm (Tên hoặc SKU)..."
                   className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg leading-5 bg-white dark:bg-slate-700 placeholder-slate-500 focus:outline-none focus:placeholder-slate-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out"
                 />
-
-                {/* Dropdown sản phẩm */}
-                {showProductDropdown && (
-                  <div className="absolute z-30 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl max-h-80 overflow-y-auto">
-                    {filteredProducts.length > 0 ? (
-                      <>
-                        {filteredProducts.map((product: PinMaterial) => (
-                          <button
-                            key={product.id}
-                            type="button"
-                            onClick={() => handleSelectProduct(product)}
-                            className="w-full text-left px-4 py-3 hover:bg-blue-50 dark:hover:bg-blue-900/30 border-b dark:border-slate-700 transition-colors"
-                          >
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <div className="font-semibold text-slate-900 dark:text-slate-100">
-                                  {product.name}
-                                </div>
-                                <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                                  SKU: {product.sku} | Tồn: {product.stock}{" "}
-                                  {product.unit}
-                                </div>
-                              </div>
-                              <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">
-                                {formatCurrency(product.purchasePrice || 0)}
-                              </div>
-                            </div>
-                          </button>
-                        ))}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowProductModal(true);
-                            setShowProductDropdown(false);
-                          }}
-                          className="w-full px-4 py-3 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-semibold flex items-center justify-center gap-2 border-t border-blue-100 dark:border-blue-800 transition-colors"
-                        >
-                          <PlusIcon className="w-5 h-5" />
-                          Tạo sản phẩm mới
-                        </button>
-                      </>
-                    ) : productSearch.trim() ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowProductModal(true);
-                          setShowProductDropdown(false);
-                        }}
-                        className="w-full px-4 py-4 text-center hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
-                      >
-                        <div className="text-slate-500 dark:text-slate-400 mb-2">
-                          Không tìm thấy sản phẩm "{productSearch}"
-                        </div>
-                        <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-sm">
-                          <PlusIcon className="w-4 h-4" />
-                          Tạo sản phẩm mới
-                        </div>
-                      </button>
-                    ) : (
-                      <div className="px-4 py-4 text-center">
-                        <div className="text-slate-500 dark:text-slate-400 mb-3">
-                          Chưa có sản phẩm nào trong kho
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowProductModal(true);
-                            setShowProductDropdown(false);
-                          }}
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-sm"
-                        >
-                          <PlusIcon className="w-4 h-4" />
-                          Tạo sản phẩm mới
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
 
               <button
                 onClick={() => setShowProductModal(true)}
-                className="hidden sm:flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600 font-medium text-sm transition-colors shadow-sm"
+                className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600 font-medium text-sm transition-colors shadow-sm"
               >
                 <PlusIcon className="w-5 h-5" />
                 Sản phẩm mới
               </button>
             </div>
 
-            {/* Product Table */}
-            <div className="flex-1 overflow-auto bg-white dark:bg-slate-800 relative">
-              {receiptItems.length > 0 ? (
+            {/* Split Content: Available Products + Selected Items */}
+            <div className="flex-1 flex flex-col overflow-hidden">
+              {/* Available Products Grid */}
+              <div className={`${receiptItems.length > 0 ? 'h-1/2' : 'flex-1'} overflow-auto border-b border-slate-200 dark:border-slate-700`}>
+                <div className="p-2 bg-slate-100 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-10">
+                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                    📦 Sản phẩm trong kho ({filteredProducts.length})
+                  </span>
+                </div>
+                {filteredProducts.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3">
+                    {filteredProducts.map((product: PinMaterial) => (
+                      <button
+                        key={product.id}
+                        type="button"
+                        onClick={() => handleSelectProduct(product)}
+                        className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all group text-left"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-slate-900 dark:text-slate-100 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                            {product.name}
+                          </div>
+                          <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                            SKU: {product.sku} | Tồn: <span className="font-medium text-green-600 dark:text-green-400">{product.stock}</span> {product.unit}
+                          </div>
+                        </div>
+                        <div className="ml-3 text-right shrink-0">
+                          <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                            {formatCurrency(product.purchasePrice || 0)}
+                          </div>
+                          <div className="text-xs text-slate-400 dark:text-slate-500">
+                            + Thêm
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center p-8 text-center">
+                    <div className="w-16 h-16 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center mb-3">
+                      <MagnifyingGlassIcon className="w-8 h-8 text-slate-400" />
+                    </div>
+                    <p className="text-slate-500 dark:text-slate-400 mb-3">
+                      {productSearch.trim() ? `Không tìm thấy "${productSearch}"` : 'Chưa có sản phẩm trong kho'}
+                    </p>
+                    <button
+                      onClick={() => setShowProductModal(true)}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-sm transition-colors"
+                    >
+                      <PlusIcon className="w-4 h-4 inline mr-1" />
+                      Tạo sản phẩm mới
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Selected Items Table */}
+              {receiptItems.length > 0 && (
+                <div className="h-1/2 overflow-auto">
+                  <div className="p-2 bg-orange-50 dark:bg-orange-900/20 border-b border-orange-200 dark:border-orange-800 sticky top-0 z-10">
+                    <span className="text-xs font-semibold text-orange-700 dark:text-orange-400 uppercase tracking-wider">
+                      🛒 Sản phẩm đã chọn ({receiptItems.length})
+                    </span>
+                  </div>
                 <div className="min-w-full inline-block align-middle">
                   <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
                     <thead className="bg-slate-50 dark:bg-slate-700 sticky top-0 z-10">
@@ -1363,51 +1339,7 @@ const PinGoodsReceiptNew: React.FC<PinGoodsReceiptNewProps> = ({
                     </div>
                   </details>
                 </div>
-              ) : (
-                <div className="h-full flex flex-col items-center justify-center p-8 text-center">
-                  <div className="w-24 h-24 bg-slate-50 dark:bg-slate-700/50 rounded-full flex items-center justify-center mb-4">
-                    <svg
-                      className="w-12 h-12 text-slate-300 dark:text-slate-500"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1.5}
-                        d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-                      />
-                    </svg>
-                  </div>
-                  <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100 mb-1">
-                    Chưa có sản phẩm nào
-                  </h3>
-                  <p className="text-slate-500 dark:text-slate-400 max-w-sm mx-auto mb-6">
-                    Sử dụng thanh tìm kiếm ở trên để thêm sản phẩm vào phiếu
-                    nhập kho này.
-                  </p>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() =>
-                        document
-                          .querySelector<HTMLInputElement>(
-                            'input[placeholder*="Tìm kiếm"]'
-                          )
-                          ?.focus()
-                      }
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-sm"
-                    >
-                      Tìm sản phẩm
-                    </button>
-                    <button
-                      onClick={() => setShowProductModal(true)}
-                      className="px-4 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600 rounded-lg font-medium transition-colors shadow-sm"
-                    >
-                      Tạo mới
-                    </button>
-                  </div>
-                </div>
+              </div>
               )}
             </div>
           </div>
