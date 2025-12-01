@@ -2038,7 +2038,7 @@ const MaterialEditModal: React.FC<{
                 </>
               ) : (
                 <>
-                  <Icon name="check" weight="bold" className="w-4 h-4" />
+                  <Icon name="check-circle" weight="bold" className="w-4 h-4" />
                   Lưu thay đổi
                 </>
               )}
