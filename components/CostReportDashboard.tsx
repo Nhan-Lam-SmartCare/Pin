@@ -11,9 +11,7 @@ import {
 } from "./common/Icons";
 
 const formatCurrency = (amount: number) =>
-  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
-    amount
-  );
+  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
 
 const formatDate = (dateStr: string) =>
   new Date(dateStr).toLocaleDateString("vi-VN", {
@@ -27,13 +25,10 @@ interface CostReportDashboardProps {
   materials: PinMaterial[];
 }
 
-const CostReportDashboard: React.FC<CostReportDashboardProps> = ({
-  orders,
-  materials,
-}) => {
-  const [selectedTimeRange, setSelectedTimeRange] = useState<
-    "week" | "month" | "quarter" | "all"
-  >("month");
+const CostReportDashboard: React.FC<CostReportDashboardProps> = ({ orders, materials }) => {
+  const [selectedTimeRange, setSelectedTimeRange] = useState<"week" | "month" | "quarter" | "all">(
+    "month"
+  );
   const [sortBy, setSortBy] = useState<"date" | "variance" | "product">("date");
 
   // Filter completed orders with cost analysis
@@ -67,16 +62,11 @@ const CostReportDashboard: React.FC<CostReportDashboardProps> = ({
       .sort((a, b) => {
         switch (sortBy) {
           case "variance":
-            return (
-              (b.costAnalysis?.variance || 0) - (a.costAnalysis?.variance || 0)
-            );
+            return (b.costAnalysis?.variance || 0) - (a.costAnalysis?.variance || 0);
           case "product":
             return a.productName.localeCompare(b.productName);
           default:
-            return (
-              new Date(b.completedAt!).getTime() -
-              new Date(a.completedAt!).getTime()
-            );
+            return new Date(b.completedAt!).getTime() - new Date(a.completedAt!).getTime();
         }
       });
   }, [orders, selectedTimeRange, sortBy]);
@@ -104,8 +94,7 @@ const CostReportDashboard: React.FC<CostReportDashboardProps> = ({
       0
     );
     const totalVariance = totalActual - totalEstimated;
-    const averageVariancePercent =
-      totalEstimated > 0 ? (totalVariance / totalEstimated) * 100 : 0;
+    const averageVariancePercent = totalEstimated > 0 ? (totalVariance / totalEstimated) * 100 : 0;
 
     const ordersOverBudget = completedOrdersWithCosts.filter(
       (order) => (order.costAnalysis?.variance || 0) > 0
@@ -140,133 +129,125 @@ const CostReportDashboard: React.FC<CostReportDashboardProps> = ({
   return (
     <div className="p-1 space-y-2">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row justify-between md:items-center gap-3">
         <div className="flex items-center space-x-2">
-          <DocumentChartBarIcon className="w-6 h-6 text-blue-600" />
+          <DocumentChartBarIcon className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
           <div>
-            <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">
-              Báo cáo Chi phí Sản xuất
+            <h1 className="text-base md:text-xl font-bold text-slate-800 dark:text-slate-100">
+              Chi phí Sản xuất
             </h1>
-            <p className="text-slate-600 dark:text-slate-400 text-sm">
-              Phân tích ước tính vs thực tế chi phí sản xuất
+            <p className="text-slate-600 dark:text-slate-400 text-[10px] md:text-sm hidden md:block">
+              Ước tính vs thực tế
             </p>
           </div>
         </div>
 
         {/* Filters */}
-        <div className="flex space-x-2">
-          <div className="flex items-center space-x-2">
-            <Cog6ToothIcon className="w-4 h-4 text-slate-500" />
+        <div className="flex space-x-2 overflow-x-auto">
+          <div className="flex items-center space-x-1 md:space-x-2">
+            <Cog6ToothIcon className="w-3 h-3 md:w-4 md:h-4 text-slate-500" />
             <select
               value={selectedTimeRange}
               onChange={(e) => setSelectedTimeRange(e.target.value as any)}
-              className="border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-1 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100"
+              className="border border-slate-300 dark:border-slate-600 rounded-lg px-2 md:px-3 py-1 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 text-xs md:text-sm"
             >
-              <option value="week">7 ngày qua</option>
-              <option value="month">Tháng này</option>
-              <option value="quarter">Quý này</option>
+              <option value="week">7 ngày</option>
+              <option value="month">Tháng</option>
+              <option value="quarter">Quý</option>
               <option value="all">Tất cả</option>
             </select>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <ArchiveBoxIcon className="w-4 h-4 text-slate-500" />
+          <div className="flex items-center space-x-1 md:space-x-2">
+            <ArchiveBoxIcon className="w-3 h-3 md:w-4 md:h-4 text-slate-500" />
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
-              className="border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-1 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100"
+              className="border border-slate-300 dark:border-slate-600 rounded-lg px-2 md:px-3 py-1 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 text-xs md:text-sm"
             >
-              <option value="date">Ngày hoàn thành</option>
+              <option value="date">Ngày</option>
               <option value="variance">Chênh lệch</option>
-              <option value="product">Tên sản phẩm</option>
+              <option value="product">Tên SP</option>
             </select>
           </div>
         </div>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
+        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-2 md:p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-blue-600 dark:text-blue-400 text-sm font-medium">
-                Tổng số lệnh
+              <p className="text-blue-600 dark:text-blue-400 text-[10px] md:text-sm font-medium">
+                Tổng lệnh
               </p>
-              <p className="text-2xl font-bold text-blue-800 dark:text-blue-200">
+              <p className="text-lg md:text-2xl font-bold text-blue-800 dark:text-blue-200">
                 {summaryStats.totalOrders}
               </p>
             </div>
-            <ChartBarIcon className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+            <ChartBarIcon className="w-6 h-6 md:w-8 md:h-8 text-blue-600 dark:text-blue-400" />
           </div>
         </div>
 
-        <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
+        <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-2 md:p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-green-600 dark:text-green-400 text-sm font-medium">
+              <p className="text-green-600 dark:text-green-400 text-[10px] md:text-sm font-medium">
                 Tiết kiệm
               </p>
-              <p className="text-2xl font-bold text-green-800 dark:text-green-200">
+              <p className="text-lg md:text-2xl font-bold text-green-800 dark:text-green-200">
                 {summaryStats.ordersUnderBudget}
               </p>
-              <p className="text-xs text-green-600 dark:text-green-400">
+              <p className="text-[9px] md:text-xs text-green-600 dark:text-green-400">
                 {summaryStats.totalOrders > 0
-                  ? Math.round(
-                      (summaryStats.ordersUnderBudget /
-                        summaryStats.totalOrders) *
-                        100
-                    )
+                  ? Math.round((summaryStats.ordersUnderBudget / summaryStats.totalOrders) * 100)
                   : 0}
-                % lệnh
+                %
               </p>
             </div>
-            <ArrowTrendingDownIcon className="w-8 h-8 text-green-600 dark:text-green-400" />
+            <ArrowTrendingDownIcon className="w-6 h-6 md:w-8 md:h-8 text-green-600 dark:text-green-400" />
           </div>
         </div>
 
-        <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4">
+        <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-2 md:p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-red-600 dark:text-red-400 text-sm font-medium">
-                Vượt ngân sách
+              <p className="text-red-600 dark:text-red-400 text-[10px] md:text-sm font-medium">
+                Vượt NS
               </p>
-              <p className="text-2xl font-bold text-red-800 dark:text-red-200">
+              <p className="text-lg md:text-2xl font-bold text-red-800 dark:text-red-200">
                 {summaryStats.ordersOverBudget}
               </p>
-              <p className="text-xs text-red-600 dark:text-red-400">
+              <p className="text-[9px] md:text-xs text-red-600 dark:text-red-400">
                 {summaryStats.totalOrders > 0
-                  ? Math.round(
-                      (summaryStats.ordersOverBudget /
-                        summaryStats.totalOrders) *
-                        100
-                    )
+                  ? Math.round((summaryStats.ordersOverBudget / summaryStats.totalOrders) * 100)
                   : 0}
-                % lệnh
+                %
               </p>
             </div>
-            <ArrowTrendingUpIcon className="w-8 h-8 text-red-600 dark:text-red-400" />
+            <ArrowTrendingUpIcon className="w-6 h-6 md:w-8 md:h-8 text-red-600 dark:text-red-400" />
           </div>
         </div>
 
-        <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
+        <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-2 md:p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-slate-600 dark:text-slate-400 text-sm font-medium">
-                Chênh lệch TB
+              <p className="text-slate-600 dark:text-slate-400 text-[10px] md:text-sm font-medium">
+                CL TB
               </p>
               <p
-                className={`text-2xl font-bold ${getVarianceColor(
+                className={`text-lg md:text-2xl font-bold ${getVarianceColor(
                   summaryStats.totalVariance
                 )}`}
               >
                 {summaryStats.averageVariancePercent >= 0 ? "+" : ""}
                 {summaryStats.averageVariancePercent.toFixed(1)}%
               </p>
-              <p className="text-xs text-slate-600 dark:text-slate-400">
+              <p className="text-[9px] md:text-xs text-slate-600 dark:text-slate-400 hidden md:block">
                 {formatCurrency(Math.abs(summaryStats.totalVariance))}
               </p>
             </div>
-            <BuildingLibraryIcon className="w-8 h-8 text-slate-600 dark:text-slate-400" />
+            <BuildingLibraryIcon className="w-6 h-6 md:w-8 md:h-8 text-slate-600 dark:text-slate-400" />
           </div>
         </div>
       </div>
@@ -282,9 +263,7 @@ const CostReportDashboard: React.FC<CostReportDashboardProps> = ({
         {completedOrdersWithCosts.length === 0 ? (
           <div className="p-8 text-center text-slate-500 dark:text-slate-400">
             <DocumentChartBarIcon className="w-16 h-16 mx-auto mb-4 opacity-50" />
-            <p>
-              Chưa có dữ liệu phân tích chi phí nào trong khoảng thời gian này
-            </p>
+            <p>Chưa có dữ liệu phân tích chi phí nào trong khoảng thời gian này</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -327,9 +306,7 @@ const CostReportDashboard: React.FC<CostReportDashboardProps> = ({
                         <p className="font-medium text-slate-800 dark:text-slate-100">
                           {order.productName}
                         </p>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">
-                          #{order.id}
-                        </p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">#{order.id}</p>
                       </div>
                     </td>
                     <td className="p-4 text-slate-600 dark:text-slate-400">
@@ -352,8 +329,7 @@ const CostReportDashboard: React.FC<CostReportDashboardProps> = ({
                       <div className="flex items-center justify-end space-x-1">
                         {getVarianceIcon(order.costAnalysis?.variance || 0)}
                         <span>
-                          {order.costAnalysis?.variance &&
-                          order.costAnalysis.variance >= 0
+                          {order.costAnalysis?.variance && order.costAnalysis.variance >= 0
                             ? "+"
                             : ""}
                           {formatCurrency(order.costAnalysis?.variance || 0)}
@@ -369,9 +345,7 @@ const CostReportDashboard: React.FC<CostReportDashboardProps> = ({
                       order.costAnalysis.variancePercentage >= 0
                         ? "+"
                         : ""}
-                      {order.costAnalysis?.variancePercentage?.toFixed(1) ||
-                        "0.0"}
-                      %
+                      {order.costAnalysis?.variancePercentage?.toFixed(1) || "0.0"}%
                     </td>
                   </tr>
                 ))}
@@ -392,27 +366,19 @@ const CostReportDashboard: React.FC<CostReportDashboardProps> = ({
             <div className="space-y-4">
               {(() => {
                 const totalMaterialVariance = completedOrdersWithCosts.reduce(
-                  (sum, order) =>
-                    sum + (order.costAnalysis?.materialVariance || 0),
+                  (sum, order) => sum + (order.costAnalysis?.materialVariance || 0),
                   0
                 );
                 const totalAdditionalVariance = completedOrdersWithCosts.reduce(
-                  (sum, order) =>
-                    sum + (order.costAnalysis?.additionalCostsVariance || 0),
+                  (sum, order) => sum + (order.costAnalysis?.additionalCostsVariance || 0),
                   0
                 );
 
                 return (
                   <>
                     <div className="flex justify-between items-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                      <span className="text-slate-700 dark:text-slate-300">
-                        Chênh lệch NVL
-                      </span>
-                      <span
-                        className={`font-bold ${getVarianceColor(
-                          totalMaterialVariance
-                        )}`}
-                      >
+                      <span className="text-slate-700 dark:text-slate-300">Chênh lệch NVL</span>
+                      <span className={`font-bold ${getVarianceColor(totalMaterialVariance)}`}>
                         {totalMaterialVariance >= 0 ? "+" : ""}
                         {formatCurrency(totalMaterialVariance)}
                       </span>
@@ -421,11 +387,7 @@ const CostReportDashboard: React.FC<CostReportDashboardProps> = ({
                       <span className="text-slate-700 dark:text-slate-300">
                         Chênh lệch Chi phí khác
                       </span>
-                      <span
-                        className={`font-bold ${getVarianceColor(
-                          totalAdditionalVariance
-                        )}`}
-                      >
+                      <span className={`font-bold ${getVarianceColor(totalAdditionalVariance)}`}>
                         {totalAdditionalVariance >= 0 ? "+" : ""}
                         {formatCurrency(totalAdditionalVariance)}
                       </span>
@@ -445,8 +407,8 @@ const CostReportDashboard: React.FC<CostReportDashboardProps> = ({
               {summaryStats.averageVariancePercent > 10 && (
                 <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200 rounded-lg">
                   ⚠️ Chi phí thực tế cao hơn dự tính{" "}
-                  {summaryStats.averageVariancePercent.toFixed(1)}%. Cần xem xét
-                  lại quy trình ước tính chi phí.
+                  {summaryStats.averageVariancePercent.toFixed(1)}%. Cần xem xét lại quy trình ước
+                  tính chi phí.
                 </div>
               )}
 
@@ -464,12 +426,11 @@ const CostReportDashboard: React.FC<CostReportDashboardProps> = ({
                 </div>
               )}
 
-              {summaryStats.ordersOverBudget >
-                summaryStats.ordersUnderBudget && (
+              {summaryStats.ordersOverBudget > summaryStats.ordersUnderBudget && (
                 <div className="p-3 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-200 rounded-lg">
                   📈 {summaryStats.ordersOverBudget} lệnh vượt ngân sách vs{" "}
-                  {summaryStats.ordersUnderBudget} lệnh tiết kiệm. Tập trung tối
-                  ưu hóa quy trình sản xuất.
+                  {summaryStats.ordersUnderBudget} lệnh tiết kiệm. Tập trung tối ưu hóa quy trình
+                  sản xuất.
                 </div>
               )}
             </div>

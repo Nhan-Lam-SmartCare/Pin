@@ -479,66 +479,53 @@ const PinRepairManagerNew: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 pb-20 md:pb-0">
       {/* Page Header with Stats */}
-      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+      <div className="flex flex-col gap-3 md:gap-4">
         <div className="flex-shrink-0">
-          <h1 className="text-3xl font-bold text-pin-gray-900 dark:text-pin-dark-900">
+          <h1 className="text-xl md:text-3xl font-bold text-pin-gray-900 dark:text-pin-dark-900">
             Quản lý Sửa chữa
           </h1>
-          <p className="text-pin-gray-500 dark:text-pin-dark-500 mt-1">
+          <p className="text-xs md:text-sm text-pin-gray-500 dark:text-pin-dark-500 mt-1">
             Quản lý phiếu sửa chữa và bảo hành
           </p>
         </div>
 
-        {/* 4 Stats Cards + Button */}
-        <div className="flex flex-col gap-3 lg:flex-1 lg:max-w-4xl">
-          <div className="flex items-center gap-3">
-            <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <StatsCard
-                title="Tổng phiếu"
-                value={stats.total}
-                iconName="orders"
-                variant="primary"
-                compact
-              />
-              <StatsCard
-                title="Chờ xử lý"
-                value={stats.pending}
-                iconName="pending"
-                variant="warning"
-                compact
-              />
-              <StatsCard
-                title="Đang sửa"
-                value={stats.inProgress}
-                iconName="repairs"
-                variant="primary"
-                compact
-              />
-              <StatsCard
-                title="Hoàn thành"
-                value={stats.completed}
-                iconName="success"
-                variant="success"
-                compact
-              />
-            </div>
-            <Button
-              variant="primary"
-              size="lg"
-              leftIcon={<PlusIcon className="w-5 h-5" />}
-              onClick={() => handleOpenModal()}
-              className="flex-shrink-0"
-            >
-              Tạo phiếu mới
-            </Button>
-          </div>
+        {/* 4 Stats Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
+          <StatsCard
+            title="Tổng phiếu"
+            value={stats.total}
+            iconName="orders"
+            variant="primary"
+            compact
+          />
+          <StatsCard
+            title="Chờ xử lý"
+            value={stats.pending}
+            iconName="pending"
+            variant="warning"
+            compact
+          />
+          <StatsCard
+            title="Đang sửa"
+            value={stats.inProgress}
+            iconName="repairs"
+            variant="primary"
+            compact
+          />
+          <StatsCard
+            title="Hoàn thành"
+            value={stats.completed}
+            iconName="success"
+            variant="success"
+            compact
+          />
         </div>
       </div>
 
       {/* Revenue Stats - 2 Cards */}
-      <CardGrid cols={2}>
+      <div className="grid grid-cols-2 gap-2 md:gap-4">
         <StatsCard
           title="Tổng doanh thu"
           value={formatCurrency(stats.totalRevenue)}
@@ -551,44 +538,56 @@ const PinRepairManagerNew: React.FC = () => {
           iconName="calendar"
           variant="danger"
         />
-      </CardGrid>
+      </div>
 
       {/* Filters */}
-      <Card padding="md">
-        <div className="flex flex-col sm:flex-row gap-4">
+      <Card padding="sm" className="md:p-4">
+        <div className="flex flex-col gap-3 md:flex-row md:gap-4">
           {/* Search */}
           <div className="flex-1">
             <input
               type="text"
-              placeholder="Tìm theo tên, SĐT, thiết bị, mã phiếu..."
+              placeholder="Tìm theo tên, SĐT, thiết bị..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-2 bg-pin-gray-50 dark:bg-pin-dark-100 border border-pin-gray-200 dark:border-pin-dark-400 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pin-blue-500"
+              className="w-full px-3 md:px-4 py-2 bg-pin-gray-50 dark:bg-pin-dark-100 border border-pin-gray-200 dark:border-pin-dark-400 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pin-blue-500"
             />
           </div>
 
-          {/* Status Filter */}
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2 bg-pin-gray-50 dark:bg-pin-dark-100 border border-pin-gray-200 dark:border-pin-dark-400 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pin-blue-500"
-          >
-            <option value="all">Tất cả trạng thái</option>
-            <option value="pending">Chờ xử lý</option>
-            <option value="inProgress">Đang sửa</option>
-            <option value="completed">Hoàn thành</option>
-          </select>
+          {/* Status Filter + Add Button Row */}
+          <div className="flex gap-2">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="flex-1 md:flex-none px-3 md:px-4 py-2 bg-pin-gray-50 dark:bg-pin-dark-100 border border-pin-gray-200 dark:border-pin-dark-400 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pin-blue-500"
+            >
+              <option value="all">Tất cả</option>
+              <option value="pending">Chờ xử lý</option>
+              <option value="inProgress">Đang sửa</option>
+              <option value="completed">Hoàn thành</option>
+            </select>
+            <Button
+              variant="primary"
+              size="md"
+              leftIcon={<PlusIcon className="w-4 h-4 md:w-5 md:h-5" />}
+              onClick={() => handleOpenModal()}
+              className="flex-shrink-0 whitespace-nowrap"
+            >
+              <span className="hidden md:inline">Tạo phiếu mới</span>
+              <span className="md:hidden">Tạo</span>
+            </Button>
+          </div>
         </div>
       </Card>
 
       {/* Orders Table */}
       <Card padding="none">
-        <div className="p-6 border-b border-pin-gray-200 dark:border-pin-dark-300">
-          <CardTitle icon={<WrenchScrewdriverIcon className="w-5 h-5" />}>
-            Danh sách phiếu sửa chữa ({filteredOrders.length})
+        <div className="p-3 md:p-6 border-b border-pin-gray-200 dark:border-pin-dark-300">
+          <CardTitle icon={<WrenchScrewdriverIcon className="w-4 h-4 md:w-5 md:h-5" />}>
+            <span className="text-sm md:text-base">Danh sách phiếu ({filteredOrders.length})</span>
           </CardTitle>
         </div>
-        <div className="p-6">
+        <div className="p-2 md:p-6 overflow-x-auto">
           <DataTable
             columns={columns}
             data={filteredOrders}

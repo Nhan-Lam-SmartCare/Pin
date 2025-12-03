@@ -36,17 +36,11 @@ interface SupplierRow {
   ordersCount?: number;
 }
 
-const fmt = (val: number) =>
-  val.toLocaleString("vi-VN", { maximumFractionDigits: 0 });
+const fmt = (val: number) => val.toLocaleString("vi-VN", { maximumFractionDigits: 0 });
 
 export default function ReceivablesNew() {
-  const {
-    pinSales,
-    cashTransactions,
-    suppliers,
-    currentUser,
-    addCashTransaction,
-  } = usePinContext();
+  const { pinSales, cashTransactions, suppliers, currentUser, addCashTransaction } =
+    usePinContext();
 
   const ctx = usePinContext();
   const workOrders = ctx.pinRepairOrders || [];
@@ -54,16 +48,12 @@ export default function ReceivablesNew() {
   const goodsReceipts = (ctx as any).goodsReceipts || [];
   const currentBranchId = (ctx as any).currentBranchId;
 
-  const [activeTab, setActiveTab] = useState<"customers" | "suppliers">(
-    "customers"
-  );
+  const [activeTab, setActiveTab] = useState<"customers" | "suppliers">("customers");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [showCollectModal, setShowCollectModal] = useState(false);
   const [showSupplierPayModal, setShowSupplierPayModal] = useState(false);
-  const [preSelectedDebtId, setPreSelectedDebtId] = useState<
-    string | undefined
-  >(undefined);
+  const [preSelectedDebtId, setPreSelectedDebtId] = useState<string | undefined>(undefined);
 
   // Calculate customer receivables (from workorders and sales)
   const customerRows = useMemo(() => {
@@ -71,29 +61,19 @@ export default function ReceivablesNew() {
     for (const t of cashTransactions || []) {
       if (t.type !== "income" || !t.workOrderId) continue;
       if (currentBranchId && t.branchId !== currentBranchId) continue;
-      paidByWO.set(
-        t.workOrderId,
-        (paidByWO.get(t.workOrderId) || 0) + (Number(t.amount) || 0)
-      );
+      paidByWO.set(t.workOrderId, (paidByWO.get(t.workOrderId) || 0) + (Number(t.amount) || 0));
     }
     const paidBySale = new Map<string, number>();
     for (const t of cashTransactions || []) {
       if (t.type !== "income" || !t.saleId) continue;
       if (currentBranchId && t.branchId !== currentBranchId) continue;
-      paidBySale.set(
-        t.saleId,
-        (paidBySale.get(t.saleId) || 0) + (Number(t.amount) || 0)
-      );
+      paidBySale.set(t.saleId, (paidBySale.get(t.saleId) || 0) + (Number(t.amount) || 0));
     }
 
     const arr: Row[] = [];
 
     for (const wo of workOrders || []) {
-      if (
-        currentBranchId &&
-        (wo as any).branchId &&
-        (wo as any).branchId !== currentBranchId
-      )
+      if (currentBranchId && (wo as any).branchId && (wo as any).branchId !== currentBranchId)
         continue;
 
       // Only show debt for completed/returned orders
@@ -129,10 +109,8 @@ export default function ReceivablesNew() {
       if (debt <= 0) continue;
 
       const details: string[] = [];
-      if ((wo as any).deviceModel)
-        details.push(`Thiết bị: ${(wo as any).deviceModel}`);
-      if ((wo as any).issueDescription)
-        details.push(`Vấn đề: ${(wo as any).issueDescription}`);
+      if ((wo as any).deviceModel) details.push(`Thiết bị: ${(wo as any).deviceModel}`);
+      if ((wo as any).issueDescription) details.push(`Vấn đề: ${(wo as any).issueDescription}`);
       if ((wo as any).partsUsed?.length) {
         const p = (wo as any).partsUsed
           .slice(0, 3)
@@ -143,10 +121,7 @@ export default function ReceivablesNew() {
 
       arr.push({
         id: wo.id,
-        date:
-          (wo as any).createdDate ||
-          (wo as any).created_at ||
-          new Date().toISOString(),
+        date: (wo as any).createdDate || (wo as any).created_at || new Date().toISOString(),
         customerName: (wo as any).customerName || "",
         customerPhone: (wo as any).customerPhone,
         title: `Phiếu sửa chữa: ${wo.id}`,
@@ -161,19 +136,15 @@ export default function ReceivablesNew() {
     }
 
     for (const sale of sales || []) {
-      if (
-        currentBranchId &&
-        (sale as any).branchId &&
-        (sale as any).branchId !== currentBranchId
-      )
+      if (currentBranchId && (sale as any).branchId && (sale as any).branchId !== currentBranchId)
         continue;
       const total = Number((sale as any).total ?? 0);
       if (total <= 0) continue;
-      
+
       // Check payment status first - skip fully paid sales
       const paymentStatus = (sale as any).paymentStatus;
       if (paymentStatus === "paid") continue;
-      
+
       // Calculate paid amount from sale record first, then fallback to cash transactions
       const salePaidAmount = Number((sale as any).paidAmount ?? 0);
       const cashTxPaid = paidBySale.get(sale.id) || 0;
@@ -194,12 +165,14 @@ export default function ReceivablesNew() {
 
       // Get customer info from sale.customer object
       const customerObj = (sale as any).customer;
-      const customerName = typeof customerObj === 'object' 
-        ? (customerObj?.name || "") 
-        : ((sale as any).customerName || "");
-      const customerPhone = typeof customerObj === 'object'
-        ? (customerObj?.phone || "")
-        : ((sale as any).customerPhone || "");
+      const customerName =
+        typeof customerObj === "object"
+          ? customerObj?.name || ""
+          : (sale as any).customerName || "";
+      const customerPhone =
+        typeof customerObj === "object"
+          ? customerObj?.phone || ""
+          : (sale as any).customerPhone || "";
 
       arr.push({
         id: sale.id,
@@ -219,39 +192,25 @@ export default function ReceivablesNew() {
       });
     }
 
-    return arr.sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
+    return arr.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [workOrders, sales, cashTransactions, currentBranchId]);
 
   // Calculate supplier payables (from goods receipts)
   const supplierRows = useMemo(() => {
-    const totalBySup = new Map<
-      string,
-      { total: number; latest: string; count: number }
-    >();
+    const totalBySup = new Map<string, { total: number; latest: string; count: number }>();
     for (const gr of goodsReceipts || []) {
       if (!gr) continue;
-      if (
-        currentBranchId &&
-        (gr as any).branchId &&
-        (gr as any).branchId !== currentBranchId
-      )
+      if (currentBranchId && (gr as any).branchId && (gr as any).branchId !== currentBranchId)
         continue;
       const prev = totalBySup.get(gr.supplierId) || {
         total: 0,
-        latest:
-          (gr as any).receivedDate ||
-          (gr as any).created_at ||
-          new Date().toISOString(),
+        latest: (gr as any).receivedDate || (gr as any).created_at || new Date().toISOString(),
         count: 0,
       };
       prev.total += Number((gr as any).totalAmount ?? 0);
       prev.count += 1;
       const d = new Date(
-        (gr as any).receivedDate ||
-          (gr as any).created_at ||
-          new Date().toISOString()
+        (gr as any).receivedDate || (gr as any).created_at || new Date().toISOString()
       );
       const l = new Date(prev.latest);
       if (d.getTime() > l.getTime()) prev.latest = d.toISOString();
@@ -282,9 +241,7 @@ export default function ReceivablesNew() {
         title: `NCC: ${name}`,
         details: [
           `Số đơn nhập: ${info.count}`,
-          `Lần nhập gần nhất: ${new Date(info.latest).toLocaleDateString(
-            "vi-VN"
-          )}`,
+          `Lần nhập gần nhất: ${new Date(info.latest).toLocaleDateString("vi-VN")}`,
         ],
         amount: info.total,
         paid,
@@ -292,9 +249,7 @@ export default function ReceivablesNew() {
         ordersCount: info.count,
       });
     }
-    return arr.sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
+    return arr.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [goodsReceipts, cashTransactions, suppliers, currentBranchId]);
 
   // Filter by search query
@@ -313,9 +268,7 @@ export default function ReceivablesNew() {
     const q = query.trim().toLowerCase();
     if (!q) return supplierRows;
     return supplierRows.filter(
-      (r) =>
-        r.customerName.toLowerCase().includes(q) ||
-        r.title.toLowerCase().includes(q)
+      (r) => r.customerName.toLowerCase().includes(q) || r.title.toLowerCase().includes(q)
     );
   }, [supplierRows, query]);
 
@@ -342,13 +295,9 @@ export default function ReceivablesNew() {
   >(() => {
     if (activeTab === "customers") {
       const uniqueCustomers = new Set(
-        customerRows.map(
-          (row) => `${row.customerPhone || ""}-${row.customerName || ""}`
-        )
+        customerRows.map((row) => `${row.customerPhone || ""}-${row.customerName || ""}`)
       ).size;
-      const pendingOrders = customerRows.filter(
-        (row) => row.kind === "workorder"
-      ).length;
+      const pendingOrders = customerRows.filter((row) => row.kind === "workorder").length;
 
       return [
         {
@@ -372,10 +321,7 @@ export default function ReceivablesNew() {
       ];
     }
 
-    const pendingReceipts = supplierRows.reduce(
-      (sum, row) => sum + (row.ordersCount || 0),
-      0
-    );
+    const pendingReceipts = supplierRows.reduce((sum, row) => sum + (row.ordersCount || 0), 0);
 
     return [
       {
@@ -397,13 +343,7 @@ export default function ReceivablesNew() {
         variant: "warning",
       },
     ];
-  }, [
-    activeTab,
-    customerRows,
-    supplierRows,
-    totalCustomerDebt,
-    totalSupplierDebt,
-  ]);
+  }, [activeTab, customerRows, supplierRows, totalCustomerDebt, totalSupplierDebt]);
 
   const toggleAll = (checked: boolean) => {
     const next: Record<string, boolean> = {};
@@ -422,11 +362,7 @@ export default function ReceivablesNew() {
     }
     if (selectedDebt <= 0) return;
     if (
-      !window.confirm(
-        `Xác nhận thu đủ cho ${selectedIds.length} đơn, tổng ${fmt(
-          selectedDebt
-        )} đ?`
-      )
+      !window.confirm(`Xác nhận thu đủ cho ${selectedIds.length} đơn, tổng ${fmt(selectedDebt)} đ?`)
     ) {
       return;
     }
@@ -435,9 +371,7 @@ export default function ReceivablesNew() {
 
     if (activeTab === "customers") {
       // Collect from customers
-      for (const row of customerFiltered.filter((r) =>
-        selectedIds.includes(r.id)
-      )) {
+      for (const row of customerFiltered.filter((r) => selectedIds.includes(r.id))) {
         const amount = row.debt;
         if (amount <= 0) continue;
         const tx: CashTransaction = {
@@ -455,9 +389,7 @@ export default function ReceivablesNew() {
           paymentSourceId: "cash",
           branchId: currentBranchId,
           category: row.kind === "workorder" ? "service_income" : "sale_income",
-          ...(row.kind === "workorder"
-            ? { workOrderId: row.id }
-            : { saleId: row.id }),
+          ...(row.kind === "workorder" ? { workOrderId: row.id } : { saleId: row.id }),
         };
         await addCashTransaction(tx);
       }
@@ -465,9 +397,7 @@ export default function ReceivablesNew() {
       alert("Đã ghi nhận thu nợ cho các đơn đã chọn.");
     } else {
       // Pay suppliers
-      for (const row of supplierFiltered.filter((r) =>
-        selectedIds.includes(r.id)
-      )) {
+      for (const row of supplierFiltered.filter((r) => selectedIds.includes(r.id))) {
         const amount = row.debt;
         if (amount <= 0) continue;
         const tx: CashTransaction = {
@@ -512,12 +442,8 @@ export default function ReceivablesNew() {
       sortable: true,
       render: (row: Row) => (
         <div className="space-y-1">
-          <div className="font-semibold text-slate-800 dark:text-slate-100">
-            {row.customerName}
-          </div>
-          {row.customerPhone && (
-            <div className="text-sm text-slate-500">{row.customerPhone}</div>
-          )}
+          <div className="font-semibold text-slate-800 dark:text-slate-100">{row.customerName}</div>
+          {row.customerPhone && <div className="text-sm text-slate-500">{row.customerPhone}</div>}
           <div className="text-xs text-blue-600">{row.title}</div>
           <div className="text-xs text-slate-500">
             {new Date(row.date).toLocaleDateString("vi-VN")}
@@ -543,18 +469,13 @@ export default function ReceivablesNew() {
           {row.details.length > 0 && (
             <div className="space-y-0.5">
               {row.details.slice(0, 3).map((d, i) => (
-                <div
-                  key={i}
-                  className="text-xs text-slate-600 dark:text-slate-400"
-                >
+                <div key={i} className="text-xs text-slate-600 dark:text-slate-400">
                   {d}
                 </div>
               ))}
             </div>
           )}
-          {row.technician && (
-            <div className="text-xs text-slate-500">NV: {row.technician}</div>
-          )}
+          {row.technician && <div className="text-xs text-slate-500">NV: {row.technician}</div>}
         </div>
       ),
     },
@@ -564,9 +485,7 @@ export default function ReceivablesNew() {
       sortable: true,
       align: "right" as const,
       render: (row: Row) => (
-        <span className="font-medium text-slate-800 dark:text-slate-100">
-          {fmt(row.amount)}
-        </span>
+        <span className="font-medium text-slate-800 dark:text-slate-100">{fmt(row.amount)}</span>
       ),
     },
     {
@@ -575,9 +494,7 @@ export default function ReceivablesNew() {
       sortable: true,
       align: "right" as const,
       render: (row: Row) => (
-        <span className="text-slate-600 dark:text-slate-400">
-          {fmt(row.paid)}
-        </span>
+        <span className="text-slate-600 dark:text-slate-400">{fmt(row.paid)}</span>
       ),
     },
     {
@@ -585,9 +502,7 @@ export default function ReceivablesNew() {
       label: "Còn nợ",
       sortable: true,
       align: "right" as const,
-      render: (row: Row) => (
-        <span className="font-bold text-rose-600">{fmt(row.debt)}</span>
-      ),
+      render: (row: Row) => <span className="font-bold text-rose-600">{fmt(row.debt)}</span>,
     },
   ];
 
@@ -612,9 +527,7 @@ export default function ReceivablesNew() {
       sortable: true,
       render: (row: SupplierRow) => (
         <div className="space-y-1">
-          <div className="font-semibold text-slate-800 dark:text-slate-100">
-            {row.customerName}
-          </div>
+          <div className="font-semibold text-slate-800 dark:text-slate-100">{row.customerName}</div>
           <div className="text-xs text-blue-600">{row.title}</div>
           <div className="text-xs text-slate-500">
             {new Date(row.date).toLocaleDateString("vi-VN")}
@@ -641,9 +554,7 @@ export default function ReceivablesNew() {
       sortable: true,
       align: "right" as const,
       render: (row: SupplierRow) => (
-        <span className="font-medium text-slate-800 dark:text-slate-100">
-          {fmt(row.amount)}
-        </span>
+        <span className="font-medium text-slate-800 dark:text-slate-100">{fmt(row.amount)}</span>
       ),
     },
     {
@@ -652,9 +563,7 @@ export default function ReceivablesNew() {
       sortable: true,
       align: "right" as const,
       render: (row: SupplierRow) => (
-        <span className="text-slate-600 dark:text-slate-400">
-          {fmt(row.paid)}
-        </span>
+        <span className="text-slate-600 dark:text-slate-400">{fmt(row.paid)}</span>
       ),
     },
     {
@@ -669,29 +578,31 @@ export default function ReceivablesNew() {
   ];
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 animate-fade-in">
+    <div className="p-2 md:p-4 lg:p-6 space-y-4 md:space-y-6 animate-fade-in pb-20 md:pb-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-2 md:gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
+          <h1 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-slate-100">
             Quản lý Công Nợ
           </h1>
-          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+          <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 mt-1">
             Theo dõi công nợ khách hàng và nhà cung cấp
           </p>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <CardGrid cols={3}>
+      {/* Stats Cards - Mobile: 2 cols */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-4">
+        <div className="col-span-2 md:col-span-1">
+          <StatsCard
+            title="Tổng công nợ"
+            value={`${fmt(totalCustomerDebt + totalSupplierDebt)} đ`}
+            iconName="money"
+            variant="primary"
+          />
+        </div>
         <StatsCard
-          title="Tổng công nợ"
-          value={`${fmt(totalCustomerDebt + totalSupplierDebt)} đ`}
-          iconName="money"
-          variant="primary"
-        />
-        <StatsCard
-          title="Công nợ khách hàng"
+          title="Công nợ KH"
           value={`${fmt(totalCustomerDebt)} đ`}
           iconName="customers"
           trend={{
@@ -701,7 +612,7 @@ export default function ReceivablesNew() {
           variant="success"
         />
         <StatsCard
-          title="Công nợ nhà cung cấp"
+          title="Công nợ NCC"
           value={`${fmt(totalSupplierDebt)} đ`}
           iconName="stock"
           trend={{
@@ -710,19 +621,20 @@ export default function ReceivablesNew() {
           }}
           variant="warning"
         />
-      </CardGrid>
+      </div>
 
       {/* Main Card */}
       <Card>
-        <div className="p-4 border-b border-slate-200 dark:border-slate-700 space-y-4">
+        <div className="p-3 md:p-4 border-b border-slate-200 dark:border-slate-700 space-y-3 md:space-y-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-            <div className="flex flex-wrap gap-2">
+            {/* Tab buttons - Mobile scrollable */}
+            <div className="flex gap-1 md:gap-2 overflow-x-auto scrollbar-hide">
               <button
                 onClick={() => {
                   setActiveTab("customers");
                   setSelected({});
                 }}
-                className={`flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                className={`flex-shrink-0 flex items-center px-3 md:px-4 py-2 text-xs md:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
                   activeTab === "customers"
                     ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
                     : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
@@ -732,16 +644,16 @@ export default function ReceivablesNew() {
                   name="customers"
                   size="sm"
                   tone={activeTab === "customers" ? "primary" : "muted"}
-                  className="mr-2"
+                  className="mr-1 md:mr-2"
                 />
-                Công nợ khách hàng ({customerRows.length})
+                <span className="hidden sm:inline">Công nợ</span> KH ({customerRows.length})
               </button>
               <button
                 onClick={() => {
                   setActiveTab("suppliers");
                   setSelected({});
                 }}
-                className={`flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                className={`flex-shrink-0 flex items-center px-3 md:px-4 py-2 text-xs md:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
                   activeTab === "suppliers"
                     ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
                     : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
@@ -751,40 +663,42 @@ export default function ReceivablesNew() {
                   name="stock"
                   size="sm"
                   tone={activeTab === "suppliers" ? "primary" : "muted"}
-                  className="mr-2"
+                  className="mr-1 md:mr-2"
                 />
-                Công nợ nhà cung cấp ({supplierRows.length})
+                <span className="hidden sm:inline">Công nợ</span> NCC ({supplierRows.length})
               </button>
             </div>
-            <div className="lg:ml-auto text-sm text-slate-600 dark:text-slate-400">
-              Tổng công nợ đang hiển thị:
-              <span className="ml-1 font-semibold text-rose-600">
-                {fmt(totalDebt)} đ
-              </span>
+
+            {/* Total Display */}
+            <div className="lg:ml-auto text-xs md:text-sm text-slate-600 dark:text-slate-400">
+              Tổng:
+              <span className="ml-1 font-semibold text-rose-600">{fmt(totalDebt)} đ</span>
             </div>
+
+            {/* Action Buttons */}
             <div className="flex flex-wrap gap-2">
               <Button
                 variant="primary"
+                size="sm"
                 onClick={() => {
                   if (activeTab === "customers") {
                     // Nếu có chọn 1 công nợ, tự động điền vào modal
-                    const firstSelectedId =
-                      selectedIds.length === 1 ? selectedIds[0] : undefined;
+                    const firstSelectedId = selectedIds.length === 1 ? selectedIds[0] : undefined;
                     setPreSelectedDebtId(firstSelectedId);
                     setShowCollectModal(true);
                   } else {
                     setShowSupplierPayModal(true);
                   }
                 }}
-                className="whitespace-nowrap"
+                className="whitespace-nowrap text-xs md:text-sm"
               >
                 <Icon
                   name={activeTab === "customers" ? "success" : "money"}
                   size="sm"
                   tone="contrast"
-                  className="mr-2"
+                  className="mr-1 md:mr-2"
                 />
-                {activeTab === "customers" ? "Thu nợ" : "Thanh toán NCC"}
+                {activeTab === "customers" ? "Thu nợ" : "Thanh toán"}
               </Button>
               {selectedIds.length > 0 && (
                 <Button
@@ -830,12 +744,7 @@ export default function ReceivablesNew() {
                   Đã chọn {selectedIds.length} ({fmt(selectedDebt)} đ)
                 </span>
                 <Button variant="primary" onClick={handleCollectAllSelected}>
-                  <Icon
-                    name="success"
-                    size="sm"
-                    tone="contrast"
-                    className="mr-2"
-                  />
+                  <Icon name="success" size="sm" tone="contrast" className="mr-2" />
                   {activeTab === "customers" ? "Thu nợ" : "Thanh toán"}
                 </Button>
               </div>
@@ -848,9 +757,7 @@ export default function ReceivablesNew() {
           <DataTable
             data={activeList}
             columns={
-              activeTab === "customers"
-                ? (customerColumns as any)
-                : (supplierColumns as any)
+              activeTab === "customers" ? (customerColumns as any) : (supplierColumns as any)
             }
             keyExtractor={(row: any) => row.id}
             emptyMessage="Không có công nợ"

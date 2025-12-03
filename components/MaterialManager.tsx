@@ -1,28 +1,15 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import type {
-  PinMaterial,
-  EnhancedMaterial,
-  Supplier,
-  PinMaterialHistory,
-} from "../types";
+import type { PinMaterial, EnhancedMaterial, Supplier, PinMaterialHistory } from "../types";
 import { supabase, isSupabaseConfigured } from "../supabaseClient";
 import { useMaterialStock } from "../lib/hooks/useMaterialStock";
 import { usePinContext } from "../contexts/PinContext";
-import {
-  PlusIcon,
-  PencilSquareIcon,
-  TrashIcon,
-  XMarkIcon,
-  EyeIcon,
-} from "./common/Icons";
+import { PlusIcon, PencilSquareIcon, TrashIcon, XMarkIcon, EyeIcon } from "./common/Icons";
 import { Icon, type IconName } from "./common/Icon";
 import PinImportHistory from "./PinImportHistory";
 import MaterialImportModal, { ImportRow } from "./MaterialImportModal";
 const formatCurrency = (amount: number) =>
-  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
-    amount
-  );
+  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
 
 // Generate SKU theo format: NL-ddmmyyyy-số
 const generateMaterialSKU = (existingMaterials: PinMaterial[] = []) => {
@@ -33,16 +20,13 @@ const generateMaterialSKU = (existingMaterials: PinMaterial[] = []) => {
   const dateStr = `${dd}${mm}${yyyy}`;
   // Đếm số SKU có cùng ngày
   const todayPrefix = `NL-${dateStr}`;
-  const countToday = existingMaterials.filter((m) =>
-    m.sku?.startsWith(todayPrefix)
-  ).length;
+  const countToday = existingMaterials.filter((m) => m.sku?.startsWith(todayPrefix)).length;
 
   const sequence = String(countToday + 1).padStart(3, "0");
   return `NL-${dateStr}-${sequence}`;
 };
 
-const generateId = () =>
-  `M${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
+const generateId = () => `M${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
 
 // Interface cho item trong bảng nhập liệu
 interface MaterialItem {
@@ -164,15 +148,7 @@ const MaterialForm: React.FC<{
   existingMaterials?: PinMaterial[];
   suppliers: Supplier[];
   setSuppliers: React.Dispatch<React.SetStateAction<Supplier[]>>;
-}> = ({
-  isOpen,
-  material,
-  onClose,
-  onSubmit,
-  existingMaterials = [],
-  suppliers,
-  setSuppliers,
-}) => {
+}> = ({ isOpen, material, onClose, onSubmit, existingMaterials = [], suppliers, setSuppliers }) => {
   const [formData, setFormData] = useState({
     supplier: "",
     supplierPhone: "",
@@ -181,14 +157,10 @@ const MaterialForm: React.FC<{
     partialPaymentAmount: 0, // Số tiền thanh toán trước (cho thanh toán một phần)
   });
 
-  const [materials, setMaterials] = useState<MaterialItem[]>([
-    createEmptyMaterialItem(1),
-  ]);
+  const [materials, setMaterials] = useState<MaterialItem[]>([createEmptyMaterialItem(1)]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSupplierDropdownOpen, setIsSupplierDropdownOpen] = useState(false);
-  const [isProductDropdownOpen, setIsProductDropdownOpen] = useState<
-    number | null
-  >(null);
+  const [isProductDropdownOpen, setIsProductDropdownOpen] = useState<number | null>(null);
   const [showSupplierModal, setShowSupplierModal] = useState(false);
   const [showProductModal, setShowProductModal] = useState(false);
   const [showUnitModal, setShowUnitModal] = useState(false);
@@ -233,9 +205,7 @@ const MaterialForm: React.FC<{
 
   const availableSuppliers = [
     ...normalizedSuppliers,
-    ...materialsSuppliers.filter(
-      (ms) => !normalizedSuppliers.some((s) => s.name === ms.name)
-    ),
+    ...materialsSuppliers.filter((ms) => !normalizedSuppliers.some((s) => s.name === ms.name)),
   ];
 
   // Product list from existing materials in database
@@ -250,12 +220,8 @@ const MaterialForm: React.FC<{
 
   // Get all available units (from existing materials + custom units)
   const baseUnits = ["cái", "kg", "mét", "lít", "cuộn", "bộ", "hộp", "thùng"];
-  const existingUnits = Array.from(
-    new Set(existingMaterials.map((m) => m.unit).filter(Boolean))
-  );
-  const allAvailableUnits = Array.from(
-    new Set([...baseUnits, ...existingUnits, ...customUnits])
-  );
+  const existingUnits = Array.from(new Set(existingMaterials.map((m) => m.unit).filter(Boolean)));
+  const allAvailableUnits = Array.from(new Set([...baseUnits, ...existingUnits, ...customUnits]));
 
   useEffect(() => {
     if (isOpen) {
@@ -326,10 +292,7 @@ const MaterialForm: React.FC<{
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        supplierInputRef.current &&
-        !supplierInputRef.current.contains(event.target as Node)
-      ) {
+      if (supplierInputRef.current && !supplierInputRef.current.contains(event.target as Node)) {
         setIsSupplierDropdownOpen(false);
       }
 
@@ -352,9 +315,7 @@ const MaterialForm: React.FC<{
     const hasData =
       formData.supplier.trim() !== "" ||
       formData.supplierPhone.trim() !== "" ||
-      materials.some(
-        (m) => m.name.trim() !== "" || m.purchasePrice > 0 || m.quantity > 1
-      );
+      materials.some((m) => m.name.trim() !== "" || m.purchasePrice > 0 || m.quantity > 1);
 
     // Save to localStorage if there's data
     if (hasData) {
@@ -382,35 +343,23 @@ const MaterialForm: React.FC<{
   }, [isOpen, formData, materials]);
 
   // Tính tổng tiền tất cả sản phẩm
-  const grandTotal = materials.reduce(
-    (sum: number, item: MaterialItem) => sum + item.totalCost,
-    0
-  );
+  const grandTotal = materials.reduce((sum: number, item: MaterialItem) => sum + item.totalCost, 0);
 
   // Thêm dòng sản phẩm mới
   const addMaterialRow = () => {
     const newId = Math.max(...materials.map((m: MaterialItem) => m.id)) + 1;
-    setMaterials((prev: MaterialItem[]) => [
-      ...prev,
-      createEmptyMaterialItem(newId),
-    ]);
+    setMaterials((prev: MaterialItem[]) => [...prev, createEmptyMaterialItem(newId)]);
   };
 
   // Xóa dòng sản phẩm
   const removeMaterialRow = (id: number) => {
     if (materials.length > 1) {
-      setMaterials((prev: MaterialItem[]) =>
-        prev.filter((m: MaterialItem) => m.id !== id)
-      );
+      setMaterials((prev: MaterialItem[]) => prev.filter((m: MaterialItem) => m.id !== id));
     }
   };
 
   // Cập nhật thông tin sản phẩm
-  const updateMaterial = (
-    id: number,
-    field: keyof MaterialItem,
-    value: any
-  ) => {
+  const updateMaterial = (id: number, field: keyof MaterialItem, value: any) => {
     setMaterials((prev: MaterialItem[]) =>
       prev.map((item: MaterialItem) => {
         if (item.id === id) {
@@ -431,8 +380,7 @@ const MaterialForm: React.FC<{
 
     // Kiểm tra có ít nhất 1 sản phẩm hợp lệ
     const validMaterials = materials.filter(
-      (m: MaterialItem) =>
-        m.name.trim() && m.purchasePrice > 0 && m.quantity > 0
+      (m: MaterialItem) => m.name.trim() && m.purchasePrice > 0 && m.quantity > 0
     );
     if (validMaterials.length === 0) {
       alert("Vui lòng nhập ít nhất một sản phẩm hợp lệ!");
@@ -468,9 +416,7 @@ const MaterialForm: React.FC<{
           importDate: currentDate,
           paymentMethod: formData.paymentMethod,
           paymentStatus: formData.paymentStatus,
-          description: `Phiếu nhập ${autoInvoiceNumber} - Tổng: ${formatCurrency(
-            grandTotal
-          )}`,
+          description: `Phiếu nhập ${autoInvoiceNumber} - Tổng: ${formatCurrency(grandTotal)}`,
         };
 
         await onSubmit({ ...materialData, stock: materialData.quantity });
@@ -566,9 +512,7 @@ const MaterialForm: React.FC<{
                         .filter(
                           (s) =>
                             !formData.supplier ||
-                            s.name
-                              .toLowerCase()
-                              .includes(formData.supplier.toLowerCase())
+                            s.name.toLowerCase().includes(formData.supplier.toLowerCase())
                         )
                         .map((supplier, index) => (
                           <div
@@ -701,16 +645,10 @@ const MaterialForm: React.FC<{
                                 type="text"
                                 value={item.name}
                                 onChange={(e) => {
-                                  updateMaterial(
-                                    item.id,
-                                    "name",
-                                    e.target.value
-                                  );
+                                  updateMaterial(item.id, "name", e.target.value);
                                   setIsProductDropdownOpen(item.id);
                                 }}
-                                onFocus={() =>
-                                  setIsProductDropdownOpen(item.id)
-                                }
+                                onFocus={() => setIsProductDropdownOpen(item.id)}
                                 className="flex-1 p-1.5 border border-gray-300 dark:border-gray-600 rounded-l bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-1 focus:ring-blue-500"
                                 placeholder="Tìm hoặc thêm sản phẩm..."
                                 disabled={isSubmitting}
@@ -731,29 +669,15 @@ const MaterialForm: React.FC<{
                                   .filter(
                                     (p) =>
                                       !item.name ||
-                                      p.name
-                                        .toLowerCase()
-                                        .includes(item.name.toLowerCase())
+                                      p.name.toLowerCase().includes(item.name.toLowerCase())
                                   )
                                   .map((product, index) => (
                                     <div
                                       key={index}
                                       onClick={() => {
-                                        updateMaterial(
-                                          item.id,
-                                          "name",
-                                          product.name
-                                        );
-                                        updateMaterial(
-                                          item.id,
-                                          "sku",
-                                          product.sku
-                                        );
-                                        updateMaterial(
-                                          item.id,
-                                          "unit",
-                                          product.unit
-                                        );
+                                        updateMaterial(item.id, "name", product.name);
+                                        updateMaterial(item.id, "sku", product.sku);
+                                        updateMaterial(item.id, "unit", product.unit);
                                         updateMaterial(
                                           item.id,
                                           "purchasePrice",
@@ -789,9 +713,7 @@ const MaterialForm: React.FC<{
                           <input
                             type="text"
                             value={item.sku}
-                            onChange={(e) =>
-                              updateMaterial(item.id, "sku", e.target.value)
-                            }
+                            onChange={(e) => updateMaterial(item.id, "sku", e.target.value)}
                             className="w-full p-1.5 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-1 focus:ring-blue-500"
                             placeholder="Auto"
                             disabled={isSubmitting}
@@ -802,9 +724,7 @@ const MaterialForm: React.FC<{
                             <input
                               type="text"
                               value={item.unit}
-                              onChange={(e) =>
-                                updateMaterial(item.id, "unit", e.target.value)
-                              }
+                              onChange={(e) => updateMaterial(item.id, "unit", e.target.value)}
                               className="flex-1 px-1 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-xs focus:ring-1 focus:ring-blue-500 min-w-0"
                               placeholder=""
                               disabled={isSubmitting}
@@ -816,11 +736,7 @@ const MaterialForm: React.FC<{
                             type="number"
                             value={item.purchasePrice}
                             onChange={(e) =>
-                              updateMaterial(
-                                item.id,
-                                "purchasePrice",
-                                Number(e.target.value)
-                              )
+                              updateMaterial(item.id, "purchasePrice", Number(e.target.value))
                             }
                             className="w-full p-1.5 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-1 focus:ring-blue-500 text-right"
                             placeholder="0"
@@ -833,11 +749,7 @@ const MaterialForm: React.FC<{
                             type="number"
                             value={item.retailPrice}
                             onChange={(e) =>
-                              updateMaterial(
-                                item.id,
-                                "retailPrice",
-                                Number(e.target.value)
-                              )
+                              updateMaterial(item.id, "retailPrice", Number(e.target.value))
                             }
                             className="w-full p-1.5 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-1 focus:ring-blue-500 text-right"
                             placeholder="0"
@@ -850,11 +762,7 @@ const MaterialForm: React.FC<{
                             type="number"
                             value={item.wholesalePrice}
                             onChange={(e) =>
-                              updateMaterial(
-                                item.id,
-                                "wholesalePrice",
-                                Number(e.target.value)
-                              )
+                              updateMaterial(item.id, "wholesalePrice", Number(e.target.value))
                             }
                             className="w-full p-1.5 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-1 focus:ring-blue-500 text-right"
                             placeholder="0"
@@ -867,11 +775,7 @@ const MaterialForm: React.FC<{
                             type="number"
                             value={item.quantity}
                             onChange={(e) =>
-                              updateMaterial(
-                                item.id,
-                                "quantity",
-                                Number(e.target.value)
-                              )
+                              updateMaterial(item.id, "quantity", Number(e.target.value))
                             }
                             className="w-full p-1.5 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-1 focus:ring-blue-500 text-center"
                             placeholder="1"
@@ -912,9 +816,7 @@ const MaterialForm: React.FC<{
                   </span>
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                  Tổng{" "}
-                  {materials.filter((m: MaterialItem) => m.name.trim()).length}{" "}
-                  sản phẩm
+                  Tổng {materials.filter((m: MaterialItem) => m.name.trim()).length} sản phẩm
                 </div>
               </div>
             </div>
@@ -1002,17 +904,13 @@ const MaterialForm: React.FC<{
                     {/* Bảng tính toán */}
                     <div className="mt-2 space-y-1.5 bg-gray-50 dark:bg-gray-700/50 p-2.5 rounded-lg">
                       <div className="flex justify-between items-center text-xs">
-                        <span className="text-gray-600 dark:text-gray-400">
-                          Tổng giá trị
-                        </span>
+                        <span className="text-gray-600 dark:text-gray-400">Tổng giá trị</span>
                         <span className="font-bold text-gray-900 dark:text-white">
                           {formatCurrency(grandTotal)}
                         </span>
                       </div>
                       <div className="flex justify-between items-center text-xs">
-                        <span className="text-gray-600 dark:text-gray-400">
-                          Thanh toán trước
-                        </span>
+                        <span className="text-gray-600 dark:text-gray-400">Thanh toán trước</span>
                         <span className="font-bold text-green-600 dark:text-green-400">
                           - {formatCurrency(formData.partialPaymentAmount)}
                         </span>
@@ -1023,9 +921,7 @@ const MaterialForm: React.FC<{
                           Còn lại
                         </span>
                         <span className="font-bold text-red-600 dark:text-red-400">
-                          {formatCurrency(
-                            grandTotal - formData.partialPaymentAmount
-                          )}
+                          {formatCurrency(grandTotal - formData.partialPaymentAmount)}
                         </span>
                       </div>
                     </div>
@@ -1044,8 +940,8 @@ const MaterialForm: React.FC<{
                           formData.paymentStatus === "partial"
                             ? formData.partialPaymentAmount
                             : formData.paymentStatus === "paid"
-                            ? grandTotal
-                            : 0
+                              ? grandTotal
+                              : 0
                         )}
                       </div>
                     </div>
@@ -1321,11 +1217,7 @@ const MaterialForm: React.FC<{
                       const emptyRow = materials.find((m) => !m.name.trim());
                       if (emptyRow) {
                         updateMaterial(emptyRow.id, "name", newProductName);
-                        updateMaterial(
-                          emptyRow.id,
-                          "sku",
-                          newProductSku || `AUTO-${Date.now()}`
-                        );
+                        updateMaterial(emptyRow.id, "sku", newProductSku || `AUTO-${Date.now()}`);
                         updateMaterial(emptyRow.id, "unit", newProductUnit);
                       }
                       setNewProductName("");
@@ -1361,9 +1253,7 @@ const MaterialForm: React.FC<{
               onKeyDown={(e) => {
                 if (e.key === "Enter" && newUnit.trim()) {
                   // Update the datalist - unit will be available for all rows
-                  const emptyRow = materials.find(
-                    (m) => !m.unit || m.unit === "cái"
-                  );
+                  const emptyRow = materials.find((m) => !m.unit || m.unit === "cái");
                   if (emptyRow) {
                     updateMaterial(emptyRow.id, "unit", newUnit);
                   }
@@ -1393,9 +1283,7 @@ const MaterialForm: React.FC<{
                 type="button"
                 onClick={() => {
                   if (newUnit.trim()) {
-                    const emptyRow = materials.find(
-                      (m) => !m.unit || m.unit === "cái"
-                    );
+                    const emptyRow = materials.find((m) => !m.unit || m.unit === "cái");
                     if (emptyRow) {
                       updateMaterial(emptyRow.id, "unit", newUnit);
                     }
@@ -1494,9 +1382,7 @@ const MaterialDetailModal: React.FC<{
         {/* Header */}
         <div className="bg-white dark:bg-gray-800 px-6 py-4 border-b border-gray-200 dark:border-gray-600 flex justify-between items-center">
           <div>
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-              📦 Chi tiết vật tư
-            </h3>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white">📦 Chi tiết vật tư</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {material.name} ({material.sku})
             </p>
@@ -1544,9 +1430,7 @@ const MaterialDetailModal: React.FC<{
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Tên vật tư
                   </label>
-                  <p className="text-gray-900 dark:text-white font-semibold">
-                    {material.name}
-                  </p>
+                  <p className="text-gray-900 dark:text-white font-semibold">{material.name}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -1560,9 +1444,7 @@ const MaterialDetailModal: React.FC<{
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Đơn vị
                   </label>
-                  <p className="text-gray-900 dark:text-white">
-                    {material.unit}
-                  </p>
+                  <p className="text-gray-900 dark:text-white">{material.unit}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -1585,24 +1467,15 @@ const MaterialDetailModal: React.FC<{
                         const enhancedMaterial = enhancedMaterials.find(
                           (m) => m.id === material.id
                         );
-                        const committedQty =
-                          enhancedMaterial?.committedQuantity || 0;
-                        const availableQty =
-                          enhancedMaterial?.availableStock || material.stock;
+                        const committedQty = enhancedMaterial?.committedQuantity || 0;
+                        const availableQty = enhancedMaterial?.availableStock || material.stock;
 
                         if (committedQty > 0) {
                           return (
                             <>
-                              <span className="text-green-600 font-bold">
-                                {availableQty}
-                              </span>
-                              <span className="text-gray-500">
-                                /{material.stock}
-                              </span>
-                              <span className="text-sm font-normal">
-                                {" "}
-                                {material.unit}
-                              </span>
+                              <span className="text-green-600 font-bold">{availableQty}</span>
+                              <span className="text-gray-500">/{material.stock}</span>
+                              <span className="text-sm font-normal"> {material.unit}</span>
                             </>
                           );
                         } else {
@@ -1611,11 +1484,8 @@ const MaterialDetailModal: React.FC<{
                       })()}
                     </p>
                     {(() => {
-                      const enhancedMaterial = enhancedMaterials.find(
-                        (m) => m.id === material.id
-                      );
-                      const committedQty =
-                        enhancedMaterial?.committedQuantity || 0;
+                      const enhancedMaterial = enhancedMaterials.find((m) => m.id === material.id);
+                      const committedQty = enhancedMaterial?.committedQuantity || 0;
 
                       if (committedQty > 0) {
                         return (
@@ -1624,8 +1494,7 @@ const MaterialDetailModal: React.FC<{
                               🔒 Đã cam kết: {committedQty} {material.unit}
                             </div>
                             <div className="bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-lg text-green-700 dark:text-green-300">
-                              ✅ Khả dụng: {enhancedMaterial?.availableStock}{" "}
-                              {material.unit}
+                              ✅ Khả dụng: {enhancedMaterial?.availableStock} {material.unit}
                             </div>
                           </div>
                         );
@@ -1638,9 +1507,7 @@ const MaterialDetailModal: React.FC<{
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Nhà cung cấp
                   </label>
-                  <p className="text-gray-900 dark:text-white">
-                    {material.supplier || "Chưa có"}
-                  </p>
+                  <p className="text-gray-900 dark:text-white">{material.supplier || "Chưa có"}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -1671,9 +1538,7 @@ const MaterialDetailModal: React.FC<{
               {loadingHistory ? (
                 <div className="flex items-center justify-center py-8">
                   <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mr-2"></div>
-                  <span className="text-gray-600 dark:text-gray-400">
-                    Đang tải lịch sử...
-                  </span>
+                  <span className="text-gray-600 dark:text-gray-400">Đang tải lịch sử...</span>
                 </div>
               ) : stockHistory.length === 0 ? (
                 <div className="text-center py-8 text-gray-500 dark:text-gray-400">
@@ -1701,13 +1566,11 @@ const MaterialDetailModal: React.FC<{
                                 {record.transaction_type === "import"
                                   ? "Nhập kho"
                                   : record.transaction_type === "export"
-                                  ? "Xuất kho"
-                                  : "Điều chỉnh"}
+                                    ? "Xuất kho"
+                                    : "Điều chỉnh"}
                               </span>
                               <span className="text-sm text-gray-500 dark:text-gray-400">
-                                {new Date(record.created_at).toLocaleString(
-                                  "vi-VN"
-                                )}
+                                {new Date(record.created_at).toLocaleString("vi-VN")}
                               </span>
                             </div>
                             <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
@@ -1802,11 +1665,13 @@ const MaterialEditModal: React.FC<{
     }
   }, [isOpen, material]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
     const { name, value, type } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === "number" ? Number(value) : value
+      [name]: type === "number" ? Number(value) : value,
     }));
   };
 
@@ -1914,8 +1779,10 @@ const MaterialEditModal: React.FC<{
                   onChange={handleChange}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  {baseUnits.map(unit => (
-                    <option key={unit} value={unit}>{unit}</option>
+                  {baseUnits.map((unit) => (
+                    <option key={unit} value={unit}>
+                      {unit}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -1980,7 +1847,7 @@ const MaterialEditModal: React.FC<{
                   placeholder="Chọn hoặc nhập mới"
                 />
                 <datalist id="suppliers-list">
-                  {suppliers.map(s => (
+                  {suppliers.map((s) => (
                     <option key={s.id} value={s.name} />
                   ))}
                 </datalist>
@@ -2204,9 +2071,7 @@ const StockAdjustmentModal: React.FC<{
                 <option value="Hàng hỏng">Hàng hỏng</option>
                 <option value="Thất thoát">Thất thoát</option>
                 <option value="Sai sót nhập liệu">Sai sót nhập liệu</option>
-                <option value="Trả hàng nhà cung cấp">
-                  Trả hàng nhà cung cấp
-                </option>
+                <option value="Trả hàng nhà cung cấp">Trả hàng nhà cung cấp</option>
                 <option value="Khác">Khác</option>
               </select>
             </div>
@@ -2278,17 +2143,13 @@ const StockForecastModal: React.FC<{
         .from("pin_stock_history")
         .select("*")
         .eq("material_id", material.id)
-        .gte(
-          "created_at",
-          new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()
-        )
+        .gte("created_at", new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString())
         .order("created_at", { ascending: false });
 
       if (error) throw error;
 
       // Tính toán tiêu thụ trung bình
-      const exportTransactions =
-        history?.filter((h) => h.transaction_type === "export") || [];
+      const exportTransactions = history?.filter((h) => h.transaction_type === "export") || [];
       const totalConsumption = exportTransactions.reduce(
         (sum, t) => sum + Math.abs(t.quantity_change),
         0
@@ -2304,15 +2165,11 @@ const StockForecastModal: React.FC<{
       const recentTransactions = exportTransactions.slice(0, 10);
       const olderTransactions = exportTransactions.slice(10, 20);
       const recentAvg =
-        recentTransactions.reduce(
-          (sum, t) => sum + Math.abs(t.quantity_change),
-          0
-        ) / Math.max(1, recentTransactions.length);
+        recentTransactions.reduce((sum, t) => sum + Math.abs(t.quantity_change), 0) /
+        Math.max(1, recentTransactions.length);
       const olderAvg =
-        olderTransactions.reduce(
-          (sum, t) => sum + Math.abs(t.quantity_change),
-          0
-        ) / Math.max(1, olderTransactions.length);
+        olderTransactions.reduce((sum, t) => sum + Math.abs(t.quantity_change), 0) /
+        Math.max(1, olderTransactions.length);
 
       let trend: "increasing" | "stable" | "decreasing" = "stable";
       if (recentAvg > olderAvg * 1.2) trend = "increasing";
@@ -2326,12 +2183,8 @@ const StockForecastModal: React.FC<{
 
       // Ngày nên đặt hàng lại
       const daysUntilEmpty =
-        monthlyConsumption > 0
-          ? material.stock / (monthlyConsumption / 30)
-          : 999;
-      const reorderDate = new Date(
-        Date.now() + (daysUntilEmpty - 14) * 24 * 60 * 60 * 1000
-      );
+        monthlyConsumption > 0 ? material.stock / (monthlyConsumption / 30) : 999;
+      const reorderDate = new Date(Date.now() + (daysUntilEmpty - 14) * 24 * 60 * 60 * 1000);
 
       const forecastData: StockForecast = {
         material_id: material.id,
@@ -2412,37 +2265,25 @@ const StockForecastModal: React.FC<{
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mr-2"></div>
-              <span className="text-gray-600 dark:text-gray-400">
-                Đang phân tích...
-              </span>
+              <span className="text-gray-600 dark:text-gray-400">Đang phân tích...</span>
             </div>
           ) : forecast ? (
             <div className="space-y-6">
               {/* Risk Assessment */}
-              <div
-                className={`p-4 rounded-lg border ${getRiskColor(
-                  forecast.risk_level
-                )}`}
-              >
+              <div className={`p-4 rounded-lg border ${getRiskColor(forecast.risk_level)}`}>
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="font-semibold mb-1">
                       ⚠️ Mức độ rủi ro: {forecast.risk_level.toUpperCase()}
                     </h4>
                     <p className="text-sm opacity-80">
-                      {forecast.risk_level === "critical" &&
-                        "Cần đặt hàng ngay lập tức!"}
-                      {forecast.risk_level === "high" &&
-                        "Nên đặt hàng trong tuần tới"}
-                      {forecast.risk_level === "medium" &&
-                        "Có thể đặt hàng trong tháng tới"}
-                      {forecast.risk_level === "low" &&
-                        "Tồn kho ổn định trong thời gian tới"}
+                      {forecast.risk_level === "critical" && "Cần đặt hàng ngay lập tức!"}
+                      {forecast.risk_level === "high" && "Nên đặt hàng trong tuần tới"}
+                      {forecast.risk_level === "medium" && "Có thể đặt hàng trong tháng tới"}
+                      {forecast.risk_level === "low" && "Tồn kho ổn định trong thời gian tới"}
                     </p>
                   </div>
-                  <span className="text-2xl">
-                    {getTrendIcon(forecast.trend)}
-                  </span>
+                  <span className="text-2xl">{getTrendIcon(forecast.trend)}</span>
                 </div>
               </div>
 
@@ -2455,9 +2296,7 @@ const StockForecastModal: React.FC<{
                   <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                     {forecast.current_stock}
                   </p>
-                  <p className="text-sm text-blue-600 dark:text-blue-400">
-                    {material.unit}
-                  </p>
+                  <p className="text-sm text-blue-600 dark:text-blue-400">{material.unit}</p>
                 </div>
 
                 <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-700">
@@ -2477,9 +2316,7 @@ const StockForecastModal: React.FC<{
                     📅 Nên đặt hàng
                   </h5>
                   <p className="text-lg font-bold text-green-600 dark:text-green-400">
-                    {new Date(
-                      forecast.recommended_reorder_date
-                    ).toLocaleDateString("vi-VN")}
+                    {new Date(forecast.recommended_reorder_date).toLocaleDateString("vi-VN")}
                   </p>
                   <p className="text-sm text-green-600 dark:text-green-400">
                     {forecast.recommended_reorder_quantity} {material.unit}
@@ -2503,12 +2340,11 @@ const StockForecastModal: React.FC<{
                         forecast.forecasted_stock_30_days <= 0
                           ? "text-red-600 dark:text-red-400"
                           : forecast.forecasted_stock_30_days <= 10
-                          ? "text-orange-600 dark:text-orange-400"
-                          : "text-green-600 dark:text-green-400"
+                            ? "text-orange-600 dark:text-orange-400"
+                            : "text-green-600 dark:text-green-400"
                       }`}
                     >
-                      {Math.round(forecast.forecasted_stock_30_days)}{" "}
-                      {material.unit}
+                      {Math.round(forecast.forecasted_stock_30_days)} {material.unit}
                     </p>
                   </div>
 
@@ -2521,12 +2357,11 @@ const StockForecastModal: React.FC<{
                         forecast.forecasted_stock_60_days <= 0
                           ? "text-red-600 dark:text-red-400"
                           : forecast.forecasted_stock_60_days <= 10
-                          ? "text-orange-600 dark:text-orange-400"
-                          : "text-green-600 dark:text-green-400"
+                            ? "text-orange-600 dark:text-orange-400"
+                            : "text-green-600 dark:text-green-400"
                       }`}
                     >
-                      {Math.round(forecast.forecasted_stock_60_days)}{" "}
-                      {material.unit}
+                      {Math.round(forecast.forecasted_stock_60_days)} {material.unit}
                     </p>
                   </div>
 
@@ -2539,12 +2374,11 @@ const StockForecastModal: React.FC<{
                         forecast.forecasted_stock_90_days <= 0
                           ? "text-red-600 dark:text-red-400"
                           : forecast.forecasted_stock_90_days <= 10
-                          ? "text-orange-600 dark:text-orange-400"
-                          : "text-green-600 dark:text-green-400"
+                            ? "text-orange-600 dark:text-orange-400"
+                            : "text-green-600 dark:text-green-400"
                       }`}
                     >
-                      {Math.round(forecast.forecasted_stock_90_days)}{" "}
-                      {material.unit}
+                      {Math.round(forecast.forecasted_stock_90_days)} {material.unit}
                     </p>
                   </div>
                 </div>
@@ -2560,36 +2394,27 @@ const StockForecastModal: React.FC<{
                     <li className="flex items-start gap-2">
                       <span className="text-red-500">⚠️</span>
                       <span>
-                        Kho sắp hết! Cần đặt hàng ngay lập tức để tránh gian
-                        đoạn sản xuất.
+                        Kho sắp hết! Cần đặt hàng ngay lập tức để tránh gian đoạn sản xuất.
                       </span>
                     </li>
                   )}
                   <li className="flex items-start gap-2">
                     <span className="text-blue-500">📋</span>
                     <span>
-                      Nên đặt hàng {forecast.recommended_reorder_quantity}{" "}
-                      {material.unit} vào ngày{" "}
-                      {new Date(
-                        forecast.recommended_reorder_date
-                      ).toLocaleDateString("vi-VN")}
+                      Nên đặt hàng {forecast.recommended_reorder_quantity} {material.unit} vào ngày{" "}
+                      {new Date(forecast.recommended_reorder_date).toLocaleDateString("vi-VN")}
                     </span>
                   </li>
                   {forecast.trend === "increasing" && (
                     <li className="flex items-start gap-2">
                       <span className="text-green-500">📈</span>
-                      <span>
-                        Xu hướng tiêu thụ đang tăng, cân nhắc tăng lượng đặt
-                        hàng.
-                      </span>
+                      <span>Xu hướng tiêu thụ đang tăng, cân nhắc tăng lượng đặt hàng.</span>
                     </li>
                   )}
                   {forecast.trend === "decreasing" && (
                     <li className="flex items-start gap-2">
                       <span className="text-orange-500">📉</span>
-                      <span>
-                        Xu hướng tiêu thụ đang giảm, có thể giảm lượng đặt hàng.
-                      </span>
+                      <span>Xu hướng tiêu thụ đang giảm, có thể giảm lượng đặt hàng.</span>
                     </li>
                   )}
                 </ul>
@@ -2657,57 +2482,46 @@ const SupplierPriceAnalysisModal: React.FC<{
       });
 
       // Tạo dữ liệu phân tích
-      const suppliers: SupplierPrice[] = Array.from(
-        supplierGroups.entries()
-      ).map(([name, history]) => {
-        const sortedHistory = history.sort(
-          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-        );
-        const currentPrice = sortedHistory[0]?.price || 0;
+      const suppliers: SupplierPrice[] = Array.from(supplierGroups.entries()).map(
+        ([name, history]) => {
+          const sortedHistory = history.sort(
+            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+          );
+          const currentPrice = sortedHistory[0]?.price || 0;
 
-        return {
-          supplier_name: name,
-          current_price: currentPrice,
-          last_updated: sortedHistory[0]?.date || new Date().toISOString(),
-          price_history: sortedHistory.slice(0, 10),
-          quality_rating: 3.5 + Math.random() * 1.5, // Mock data
-          delivery_time_days: 3 + Math.floor(Math.random() * 10),
-          reliability_score: 0.7 + Math.random() * 0.3,
-        };
-      });
+          return {
+            supplier_name: name,
+            current_price: currentPrice,
+            last_updated: sortedHistory[0]?.date || new Date().toISOString(),
+            price_history: sortedHistory.slice(0, 10),
+            quality_rating: 3.5 + Math.random() * 1.5, // Mock data
+            delivery_time_days: 3 + Math.floor(Math.random() * 10),
+            reliability_score: 0.7 + Math.random() * 0.3,
+          };
+        }
+      );
 
       // Tính toán thống kê
       const prices = suppliers.map((s) => s.current_price).filter((p) => p > 0);
-      const averagePrice =
-        prices.reduce((sum, p) => sum + p, 0) / Math.max(1, prices.length);
+      const averagePrice = prices.reduce((sum, p) => sum + p, 0) / Math.max(1, prices.length);
       const bestPrice = Math.min(...prices.filter((p) => p > 0));
       const bestSupplier =
-        suppliers.find((s) => s.current_price === bestPrice)?.supplier_name ||
-        "";
+        suppliers.find((s) => s.current_price === bestPrice)?.supplier_name || "";
       const priceVariance =
         prices.length > 1
           ? Math.sqrt(
-              prices.reduce(
-                (sum, p) => sum + Math.pow(p - averagePrice, 2),
-                0
-              ) / prices.length
+              prices.reduce((sum, p) => sum + Math.pow(p - averagePrice, 2), 0) / prices.length
             )
           : 0;
 
       // Xác định xu hướng giá
       let priceTrend: "rising" | "falling" | "stable" = "stable";
       if (suppliers.length > 0) {
-        const recentPrices = suppliers[0].price_history
-          .slice(0, 3)
-          .map((h) => h.price);
-        const olderPrices = suppliers[0].price_history
-          .slice(3, 6)
-          .map((h) => h.price);
+        const recentPrices = suppliers[0].price_history.slice(0, 3).map((h) => h.price);
+        const olderPrices = suppliers[0].price_history.slice(3, 6).map((h) => h.price);
         if (recentPrices.length > 0 && olderPrices.length > 0) {
-          const recentAvg =
-            recentPrices.reduce((sum, p) => sum + p, 0) / recentPrices.length;
-          const olderAvg =
-            olderPrices.reduce((sum, p) => sum + p, 0) / olderPrices.length;
+          const recentAvg = recentPrices.reduce((sum, p) => sum + p, 0) / recentPrices.length;
+          const olderAvg = olderPrices.reduce((sum, p) => sum + p, 0) / olderPrices.length;
           if (recentAvg > olderAvg * 1.05) priceTrend = "rising";
           else if (recentAvg < olderAvg * 0.95) priceTrend = "falling";
         }
@@ -2728,9 +2542,7 @@ const SupplierPriceAnalysisModal: React.FC<{
         );
       }
       if (priceTrend === "falling") {
-        recommendations.push(
-          "Giá đang có xu hướng giảm, có thể chờ thêm để có giá tốt hơn"
-        );
+        recommendations.push("Giá đang có xu hướng giảm, có thể chờ thêm để có giá tốt hơn");
       }
       if (priceVariance > averagePrice * 0.2) {
         recommendations.push(
@@ -2813,9 +2625,7 @@ const SupplierPriceAnalysisModal: React.FC<{
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mr-2"></div>
-              <span className="text-gray-600 dark:text-gray-400">
-                Đang phân tích giá...
-              </span>
+              <span className="text-gray-600 dark:text-gray-400">Đang phân tích giá...</span>
             </div>
           ) : analysis ? (
             <div className="space-y-6">
@@ -2847,8 +2657,8 @@ const SupplierPriceAnalysisModal: React.FC<{
                     analysis.price_trend === "rising"
                       ? "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700"
                       : analysis.price_trend === "falling"
-                      ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700"
-                      : "bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700"
+                        ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700"
+                        : "bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700"
                   }`}
                 >
                   <h5
@@ -2856,26 +2666,20 @@ const SupplierPriceAnalysisModal: React.FC<{
                       analysis.price_trend === "rising"
                         ? "text-red-800 dark:text-red-200"
                         : analysis.price_trend === "falling"
-                        ? "text-green-800 dark:text-green-200"
-                        : "text-gray-800 dark:text-gray-200"
+                          ? "text-green-800 dark:text-green-200"
+                          : "text-gray-800 dark:text-gray-200"
                     }`}
                   >
                     Xu hướng giá
                   </h5>
                   <div className="flex items-center gap-2">
-                    <span className="text-xl">
-                      {getTrendIcon(analysis.price_trend)}
-                    </span>
-                    <span
-                      className={`font-bold ${getTrendColor(
-                        analysis.price_trend
-                      )}`}
-                    >
+                    <span className="text-xl">{getTrendIcon(analysis.price_trend)}</span>
+                    <span className={`font-bold ${getTrendColor(analysis.price_trend)}`}>
                       {analysis.price_trend === "rising"
                         ? "Tăng"
                         : analysis.price_trend === "falling"
-                        ? "Giảm"
-                        : "Ổn định"}
+                          ? "Giảm"
+                          : "Ổn định"}
                     </span>
                   </div>
                 </div>
@@ -2930,25 +2734,19 @@ const SupplierPriceAnalysisModal: React.FC<{
                       </thead>
                       <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
                         {analysis.suppliers.map((supplier, index) => {
-                          const priceDiff =
-                            supplier.current_price - analysis.average_price;
-                          const isLowest =
-                            supplier.current_price === analysis.best_price;
+                          const priceDiff = supplier.current_price - analysis.average_price;
+                          const isLowest = supplier.current_price === analysis.best_price;
 
                           return (
                             <tr
                               key={index}
                               className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 ${
-                                isLowest
-                                  ? "bg-green-50 dark:bg-green-900/20"
-                                  : ""
+                                isLowest ? "bg-green-50 dark:bg-green-900/20" : ""
                               }`}
                             >
                               <td className="px-4 py-3">
                                 <div className="flex items-center gap-2">
-                                  {isLowest && (
-                                    <span className="text-green-500">🏆</span>
-                                  )}
+                                  {isLowest && <span className="text-green-500">🏆</span>}
                                   <span className="font-medium text-gray-900 dark:text-white">
                                     {supplier.supplier_name}
                                   </span>
@@ -2971,8 +2769,8 @@ const SupplierPriceAnalysisModal: React.FC<{
                                     priceDiff < 0
                                       ? "text-green-600 dark:text-green-400"
                                       : priceDiff > 0
-                                      ? "text-red-600 dark:text-red-400"
-                                      : "text-gray-600 dark:text-gray-400"
+                                        ? "text-red-600 dark:text-red-400"
+                                        : "text-gray-600 dark:text-gray-400"
                                   }`}
                                 >
                                   {priceDiff > 0 ? "+" : ""}
@@ -2983,8 +2781,7 @@ const SupplierPriceAnalysisModal: React.FC<{
                                 <div className="flex items-center gap-1">
                                   <span className="text-yellow-400">⭐</span>
                                   <span className="text-sm text-gray-600 dark:text-gray-400">
-                                    {supplier.quality_rating?.toFixed(1) ||
-                                      "N/A"}
+                                    {supplier.quality_rating?.toFixed(1) || "N/A"}
                                   </span>
                                 </div>
                               </td>
@@ -2995,9 +2792,7 @@ const SupplierPriceAnalysisModal: React.FC<{
                               </td>
                               <td className="px-4 py-3">
                                 <span className="text-sm text-gray-500 dark:text-gray-400">
-                                  {new Date(
-                                    supplier.last_updated
-                                  ).toLocaleDateString("vi-VN")}
+                                  {new Date(supplier.last_updated).toLocaleDateString("vi-VN")}
                                 </span>
                               </td>
                             </tr>
@@ -3057,20 +2852,10 @@ const MaterialManager: React.FC<{
   productionOrders?: any[]; // ProductionOrder[] - will be passed from context
   suppliers: Supplier[];
   setSuppliers: React.Dispatch<React.SetStateAction<Supplier[]>>;
-}> = ({
-  materials,
-  setMaterials,
-  productionOrders = [],
-  suppliers,
-  setSuppliers,
-}) => {
+}> = ({ materials, setMaterials, productionOrders = [], suppliers, setSuppliers }) => {
   // Get pinMaterialHistory from context to update it
-  const {
-    pinMaterialHistory,
-    setPinMaterialHistory,
-    reloadPinMaterialHistory,
-    currentUser,
-  } = usePinContext();
+  const { pinMaterialHistory, setPinMaterialHistory, reloadPinMaterialHistory, currentUser } =
+    usePinContext();
 
   const navigate = useNavigate();
 
@@ -3088,16 +2873,12 @@ const MaterialManager: React.FC<{
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [editingMaterial, setEditingMaterial] = useState<PinMaterial | null>(
-    null
-  );
+  const [editingMaterial, setEditingMaterial] = useState<PinMaterial | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [supplierFilter, setSupplierFilter] = useState("");
   const [stockFilter, setStockFilter] = useState(""); // "low", "empty", "normal", ""
   const [unitFilter, setUnitFilter] = useState("");
-  const [sortBy, setSortBy] = useState<"name" | "purchasePrice" | "stock">(
-    "name"
-  );
+  const [sortBy, setSortBy] = useState<"name" | "purchasePrice" | "stock">("name");
 
   // Reload function is provided by AppContext
 
@@ -3107,42 +2888,37 @@ const MaterialManager: React.FC<{
   // Bulk actions states
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [showBulkActions, setShowBulkActions] = useState(false);
-  const [bulkAction, setBulkAction] = useState<
-    "delete" | "updateSupplier" | "printBarcode" | ""
-  >("");
+  const [bulkAction, setBulkAction] = useState<"delete" | "updateSupplier" | "printBarcode" | "">(
+    ""
+  );
   const [bulkSupplier, setBulkSupplier] = useState("");
   const [bulkSupplierPhone, setBulkSupplierPhone] = useState("");
 
   // Cấp 2 features states
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [selectedMaterialForDetail, setSelectedMaterialForDetail] =
-    useState<PinMaterial | null>(null);
-  const [showStockAdjustmentModal, setShowStockAdjustmentModal] =
-    useState(false);
+  const [selectedMaterialForDetail, setSelectedMaterialForDetail] = useState<PinMaterial | null>(
+    null
+  );
+  const [showStockAdjustmentModal, setShowStockAdjustmentModal] = useState(false);
   const [selectedMaterialForAdjustment, setSelectedMaterialForAdjustment] =
     useState<PinMaterial | null>(null);
-  
+
   // Material Edit Modal state
   const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedMaterialForEdit, setSelectedMaterialForEdit] =
-    useState<PinMaterial | null>(null);
+  const [selectedMaterialForEdit, setSelectedMaterialForEdit] = useState<PinMaterial | null>(null);
 
   // Cấp 3 features states - Dự báo tồn kho và phân tích giá
   const [showForecastModal, setShowForecastModal] = useState(false);
   const [selectedMaterialForForecast, setSelectedMaterialForForecast] =
     useState<PinMaterial | null>(null);
   const [showPriceAnalysisModal, setShowPriceAnalysisModal] = useState(false);
-  const [
-    selectedMaterialForPriceAnalysis,
-    setSelectedMaterialForPriceAnalysis,
-  ] = useState<PinMaterial | null>(null);
+  const [selectedMaterialForPriceAnalysis, setSelectedMaterialForPriceAnalysis] =
+    useState<PinMaterial | null>(null);
   // CSV import modal state
   const [showImportModal, setShowImportModal] = useState(false);
 
   // Tab management for History view
-  const [activeView, setActiveView] = useState<"materials" | "history">(
-    "materials"
-  );
+  const [activeView, setActiveView] = useState<"materials" | "history">("materials");
   // Note: History view now self-fetches; no need to trigger context reload here
 
   // Load modal states from localStorage on mount
@@ -3158,17 +2934,13 @@ const MaterialManager: React.FC<{
           setSelectedMaterialForDetail(parsed.selectedMaterialForDetail);
         if (parsed.showStockAdjustmentModal) setShowStockAdjustmentModal(true);
         if (parsed.selectedMaterialForAdjustment)
-          setSelectedMaterialForAdjustment(
-            parsed.selectedMaterialForAdjustment
-          );
+          setSelectedMaterialForAdjustment(parsed.selectedMaterialForAdjustment);
         if (parsed.showForecastModal) setShowForecastModal(true);
         if (parsed.selectedMaterialForForecast)
           setSelectedMaterialForForecast(parsed.selectedMaterialForForecast);
         if (parsed.showPriceAnalysisModal) setShowPriceAnalysisModal(true);
         if (parsed.selectedMaterialForPriceAnalysis)
-          setSelectedMaterialForPriceAnalysis(
-            parsed.selectedMaterialForPriceAnalysis
-          );
+          setSelectedMaterialForPriceAnalysis(parsed.selectedMaterialForPriceAnalysis);
       } catch (e) {
         console.error("Error loading modal states:", e);
       }
@@ -3198,10 +2970,7 @@ const MaterialManager: React.FC<{
       showForecastModal ||
       showPriceAnalysisModal;
     if (anyModalOpen) {
-      localStorage.setItem(
-        "materialManagerModalStates",
-        JSON.stringify(modalStates)
-      );
+      localStorage.setItem("materialManagerModalStates", JSON.stringify(modalStates));
     } else {
       // Clear saved states when all modals are closed
       localStorage.removeItem("materialManagerModalStates");
@@ -3272,11 +3041,9 @@ const MaterialManager: React.FC<{
         name: item.name || "",
         sku: item.sku || "",
         unit: item.unit || "cái",
-        purchasePrice:
-          Number(item.purchaseprice ?? item.purchase_price ?? 0) || 0,
+        purchasePrice: Number(item.purchaseprice ?? item.purchase_price ?? 0) || 0,
         retailPrice: Number(item.retailprice ?? item.retail_price ?? 0) || 0,
-        wholesalePrice:
-          Number(item.wholesaleprice ?? item.wholesale_price ?? 0) || 0,
+        wholesalePrice: Number(item.wholesaleprice ?? item.wholesale_price ?? 0) || 0,
         stock: Number(item.stock ?? 0) || 0,
         supplier: item.supplier || "",
         supplierPhone: item.supplierphone || item.supplier_phone || "",
@@ -3307,9 +3074,7 @@ const MaterialManager: React.FC<{
       // If creating new, let DB generate UUID
       let materialId: string | null = editingMaterial?.id || null;
       const sku = formData.sku || generateMaterialSKU(materials);
-      const importId = `IMP${Date.now()}-${Math.random()
-        .toString(36)
-        .substr(2, 4)}`;
+      const importId = `IMP${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
 
       // 1. Kiểm tra hoặc tạo mới nguyên vật liệu
       let currentMaterial = editingMaterial;
@@ -3376,18 +3141,10 @@ const MaterialManager: React.FC<{
       }
 
       // Special handling for RLS error in dev mode
-      if (
-        materialError &&
-        (user.id === "dev-bypass-user" || user.id === "offline-user")
-      ) {
-        console.warn(
-          "⚠️ RLS Error in Dev Mode - Mocking success:",
-          materialError
-        );
+      if (materialError && (user.id === "dev-bypass-user" || user.id === "offline-user")) {
+        console.warn("⚠️ RLS Error in Dev Mode - Mocking success:", materialError);
         // Mock success
-        upsertData = [
-          { ...dbPayload, id: materialId || `mock-id-${Date.now()}` },
-        ];
+        upsertData = [{ ...dbPayload, id: materialId || `mock-id-${Date.now()}` }];
         materialError = null;
       }
 
@@ -3397,9 +3154,7 @@ const MaterialManager: React.FC<{
       }
 
       // Resolve materialId from upsert result (if newly inserted)
-      const upsertedRow: any = Array.isArray(upsertData)
-        ? upsertData[0]
-        : (upsertData as any);
+      const upsertedRow: any = Array.isArray(upsertData) ? upsertData[0] : (upsertData as any);
       materialId = materialId || upsertedRow?.id || null;
 
       // 3. Tạo bản ghi nhập kho
@@ -3458,10 +3213,7 @@ const MaterialManager: React.FC<{
           .single();
 
         // Handle RLS error for history in dev mode
-        if (
-          error &&
-          (user.id === "dev-bypass-user" || user.id === "offline-user")
-        ) {
+        if (error && (user.id === "dev-bypass-user" || user.id === "offline-user")) {
           console.warn("⚠️ RLS Error in Dev Mode (History) - Mocking success");
           insertedHistory = {
             ...historyPayload,
@@ -3470,8 +3222,7 @@ const MaterialManager: React.FC<{
           historyError = null;
         } else if (
           error &&
-          (String(error.message || "").includes("created_by") ||
-            error.code === "42703")
+          (String(error.message || "").includes("created_by") || error.code === "42703")
         ) {
           // Retry without created_by
           const fallbackPayload: any = { ...historyPayload };
@@ -3490,10 +3241,7 @@ const MaterialManager: React.FC<{
       }
 
       if (historyError) {
-        console.log(
-          "⚠️ History log error (table might not exist):",
-          historyError
-        );
+        console.log("⚠️ History log error (table might not exist):", historyError);
         // Không dừng quá trình nếu bảng history chưa có
       } else if (insertedHistory) {
         // ✅ Update context with inserted row (đảm bảo có id UUID và các cột thực tế)
@@ -3506,24 +3254,17 @@ const MaterialManager: React.FC<{
           purchasePrice: Number(
             insertedHistory.purchase_price ?? insertedHistory.purchaseprice ?? 0
           ),
-          totalCost: Number(
-            insertedHistory.total_cost ?? insertedHistory.totalcost ?? 0
-          ),
+          totalCost: Number(insertedHistory.total_cost ?? insertedHistory.totalcost ?? 0),
           supplier: insertedHistory.supplier || undefined,
           importDate:
-            insertedHistory.import_date ||
-            insertedHistory.importdate ||
-            new Date().toISOString(),
+            insertedHistory.import_date || insertedHistory.importdate || new Date().toISOString(),
           notes: insertedHistory.notes || undefined,
           userId: insertedHistory.user_id || undefined,
           userName: insertedHistory.user_name || undefined,
           branchId: insertedHistory.branch_id || "main",
           created_at: insertedHistory.created_at || undefined,
         };
-        setPinMaterialHistory((prev: PinMaterialHistory[]) => [
-          newHistory,
-          ...prev,
-        ]);
+        setPinMaterialHistory((prev: PinMaterialHistory[]) => [newHistory, ...prev]);
         console.log("✅ History updated in context (inserted)");
       }
 
@@ -3604,9 +3345,7 @@ const MaterialManager: React.FC<{
   // Delete function
   const deleteMaterial = async (id: string) => {
     // Bypass confirm in dev mode for easier testing
-    const isDev =
-      currentUser?.id === "dev-bypass-user" ||
-      currentUser?.id === "offline-user";
+    const isDev = currentUser?.id === "dev-bypass-user" || currentUser?.id === "offline-user";
     if (!isDev && !window.confirm("Xóa nguyên vật liệu này?")) return;
 
     try {
@@ -3615,21 +3354,14 @@ const MaterialManager: React.FC<{
 
       let deleteError = null;
       try {
-        const { error } = await supabase
-          .from("pin_materials")
-          .delete()
-          .eq("id", id);
+        const { error } = await supabase.from("pin_materials").delete().eq("id", id);
         deleteError = error;
       } catch (e) {
         deleteError = e;
       }
 
       // Handle RLS error in dev mode
-      if (
-        deleteError &&
-        user &&
-        (user.id === "dev-bypass-user" || user.id === "offline-user")
-      ) {
+      if (deleteError && user && (user.id === "dev-bypass-user" || user.id === "offline-user")) {
         console.warn("⚠️ RLS Error in Dev Mode (Delete) - Mocking success");
         deleteError = null;
 
@@ -3638,14 +3370,10 @@ const MaterialManager: React.FC<{
         setMaterials(materials.filter((m) => m.id !== id));
       }
 
-      if (deleteError)
-        throw new Error((deleteError as any).message || "Delete error");
+      if (deleteError) throw new Error((deleteError as any).message || "Delete error");
 
       // Only reload if not mocked (mocked update handled above)
-      if (
-        !user ||
-        (user.id !== "dev-bypass-user" && user.id !== "offline-user")
-      ) {
+      if (!user || (user.id !== "dev-bypass-user" && user.id !== "offline-user")) {
         await loadMaterials();
       }
     } catch (err) {
@@ -3674,18 +3402,17 @@ const MaterialManager: React.FC<{
           material.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           material.supplier?.toLowerCase().includes(searchTerm.toLowerCase());
 
-        const matchesSupplier =
-          !supplierFilter || material.supplier === supplierFilter;
+        const matchesSupplier = !supplierFilter || material.supplier === supplierFilter;
 
         const matchesStock =
           !stockFilter ||
           (stockFilter === "empty"
             ? material.stock === 0
             : stockFilter === "low"
-            ? material.stock > 0 && material.stock <= 10
-            : stockFilter === "normal"
-            ? material.stock > 10
-            : true);
+              ? material.stock > 0 && material.stock <= 10
+              : stockFilter === "normal"
+                ? material.stock > 10
+                : true);
 
         const matchesUnit = !unitFilter || material.unit === unitFilter;
 
@@ -3765,18 +3492,17 @@ const MaterialManager: React.FC<{
         material.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         material.supplier?.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchesSupplier =
-        !supplierFilter || material.supplier === supplierFilter;
+      const matchesSupplier = !supplierFilter || material.supplier === supplierFilter;
 
       const matchesStock =
         !stockFilter ||
         (stockFilter === "empty"
           ? material.stock === 0
           : stockFilter === "low"
-          ? material.stock > 0 && material.stock <= 10
-          : stockFilter === "normal"
-          ? material.stock > 10
-          : true);
+            ? material.stock > 0 && material.stock <= 10
+            : stockFilter === "normal"
+              ? material.stock > 10
+              : true);
 
       const matchesUnit = !unitFilter || material.unit === unitFilter;
 
@@ -3896,19 +3622,14 @@ const MaterialManager: React.FC<{
 
       let historyError = null;
       try {
-        const { error } = await supabase
-          .from("pin_stock_history")
-          .insert(historyPayload);
+        const { error } = await supabase.from("pin_stock_history").insert(historyPayload);
         historyError = error;
       } catch (e) {
         historyError = e;
       }
 
       // Handle RLS error in dev mode
-      if (
-        historyError &&
-        (user.id === "dev-bypass-user" || user.id === "offline-user")
-      ) {
+      if (historyError && (user.id === "dev-bypass-user" || user.id === "offline-user")) {
         console.warn("⚠️ RLS Error in Dev Mode (Stock Adj) - Mocking success");
         historyError = null;
       }
@@ -3927,21 +3648,14 @@ const MaterialManager: React.FC<{
         updateError = e;
       }
 
-      if (
-        updateError &&
-        (user.id === "dev-bypass-user" || user.id === "offline-user")
-      ) {
-        console.warn(
-          "⚠️ RLS Error in Dev Mode (Stock Update) - Mocking success"
-        );
+      if (updateError && (user.id === "dev-bypass-user" || user.id === "offline-user")) {
+        console.warn("⚠️ RLS Error in Dev Mode (Stock Update) - Mocking success");
         updateError = null;
 
         // Manually update local state
         setMaterials(
           materials.map((m) =>
-            m.id === adjustment.material_id
-              ? { ...m, stock: adjustment.actual_stock }
-              : m
+            m.id === adjustment.material_id ? { ...m, stock: adjustment.actual_stock } : m
           )
         );
       }
@@ -3985,12 +3699,8 @@ const MaterialManager: React.FC<{
   };
 
   // Get unique suppliers and units for filter options
-  const uniqueSuppliers = [
-    ...new Set(materials.map((m) => m.supplier).filter(Boolean)),
-  ];
-  const uniqueUnits = [
-    ...new Set(materials.map((m) => m.unit).filter(Boolean)),
-  ];
+  const uniqueSuppliers = [...new Set(materials.map((m) => m.supplier).filter(Boolean))];
+  const uniqueUnits = [...new Set(materials.map((m) => m.unit).filter(Boolean))];
 
   // Advanced filtering and sorting
   const filteredMaterials = enhancedMaterials
@@ -3999,26 +3709,21 @@ const MaterialManager: React.FC<{
         material.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         material.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         material.supplier?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (
-          (material as any).supplierphone ||
-          (material as any).supplierPhone ||
-          ""
-        )
+        ((material as any).supplierphone || (material as any).supplierPhone || "")
           .toLowerCase()
           .includes(searchTerm.toLowerCase());
 
-      const matchesSupplier =
-        !supplierFilter || material.supplier === supplierFilter;
+      const matchesSupplier = !supplierFilter || material.supplier === supplierFilter;
 
       const matchesStock =
         !stockFilter ||
         (stockFilter === "empty"
           ? material.stock === 0
           : stockFilter === "low"
-          ? material.stock > 0 && material.stock <= 10
-          : stockFilter === "normal"
-          ? material.stock > 10
-          : true);
+            ? material.stock > 0 && material.stock <= 10
+            : stockFilter === "normal"
+              ? material.stock > 10
+              : true);
 
       const matchesUnit = !unitFilter || material.unit === unitFilter;
 
@@ -4041,57 +3746,59 @@ const MaterialManager: React.FC<{
     });
 
   return (
-    <div className="flex flex-col h-full min-h-0 gap-1 p-1">
+    <div className="flex flex-col h-full min-h-0 gap-1 p-1 pb-20 md:pb-1">
       {/* Toolbar: tabs on the left, actions on the right */}
-      <div className="flex items-center justify-between gap-2 flex-shrink-0 sticky top-0 z-20 bg-slate-100 dark:bg-slate-900 py-1">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 flex-shrink-0 sticky top-0 z-20 bg-slate-100 dark:bg-slate-900 py-1">
         {/* Tabs */}
-        <div className="flex gap-1">
+        <div className="flex gap-1 overflow-x-auto scrollbar-hide">
           <button
             onClick={() => setActiveView("materials")}
-            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all ${
+            className={`flex-shrink-0 px-2 md:px-3 py-1.5 text-xs md:text-sm font-medium rounded-lg transition-all ${
               activeView === "materials"
                 ? "bg-blue-500 text-white shadow-sm"
                 : "text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
             }`}
           >
-            📦 Danh sách vật liệu
+            📦 <span className="hidden sm:inline">Danh sách</span> Vật liệu
           </button>
           <button
             onClick={() => setActiveView("history")}
-            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all ${
+            className={`flex-shrink-0 px-2 md:px-3 py-1.5 text-xs md:text-sm font-medium rounded-lg transition-all ${
               activeView === "history"
                 ? "bg-blue-500 text-white shadow-sm"
                 : "text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
             }`}
           >
-            📊 Lịch sử nhập kho
+            📊 Lịch sử
           </button>
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 flex-wrap">
           <button
             onClick={loadMaterials}
-            className="px-3 py-1.5 bg-slate-500 hover:bg-slate-600 text-white rounded-lg text-sm font-medium shadow-sm transition-all"
+            className="px-2 md:px-3 py-1.5 bg-slate-500 hover:bg-slate-600 text-white rounded-lg text-xs md:text-sm font-medium shadow-sm transition-all"
             disabled={loading}
           >
-            {loading ? "..." : "🔄 Tải lại"}
+            {loading ? "..." : "🔄"}
+            <span className="hidden md:inline ml-1">Tải lại</span>
           </button>
           {activeView === "materials" && (
             <>
               <button
                 onClick={() => setShowImportModal(true)}
-                className="flex items-center gap-1 bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium shadow-sm transition-all"
+                className="flex items-center gap-1 bg-purple-600 hover:bg-purple-700 text-white px-2 md:px-3 py-1.5 rounded-lg text-xs md:text-sm font-medium shadow-sm transition-all"
                 title="Upload danh sách CSV"
               >
-                📥 Import CSV
+                📥 <span className="hidden md:inline">Import</span>
               </button>
               <button
                 onClick={() => navigate("/materials/goods-receipt/new")}
-                className="flex items-center gap-1 bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium shadow-sm transition-all"
+                className="flex items-center gap-1 bg-green-500 hover:bg-green-600 text-white px-2 md:px-3 py-1.5 rounded-lg text-xs md:text-sm font-medium shadow-sm transition-all"
               >
-                <PlusIcon className="w-4 h-4" />
-                Tạo phiếu nhập kho
+                <PlusIcon className="w-3 h-3 md:w-4 md:h-4" />
+                <span className="hidden md:inline">Tạo phiếu</span>
+                <span className="md:hidden">Nhập</span>
               </button>
             </>
           )}
@@ -4127,11 +3834,7 @@ const MaterialManager: React.FC<{
                       </button>
                       <button
                         onClick={() =>
-                          setBulkAction(
-                            bulkAction === "updateSupplier"
-                              ? ""
-                              : "updateSupplier"
-                          )
+                          setBulkAction(bulkAction === "updateSupplier" ? "" : "updateSupplier")
                         }
                         className="px-5 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-xl text-sm font-semibold shadow-lg shadow-orange-500/30 hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
                       >
@@ -4199,64 +3902,58 @@ const MaterialManager: React.FC<{
               </div>
             )}
 
-            {/* Compact Search and Filters - All on one row */}
-            <div className="bg-white dark:bg-slate-800 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
-              <div className="flex flex-wrap items-center gap-2">
+            {/* Compact Search and Filters - Mobile optimized */}
+            <div className="bg-white dark:bg-slate-800 px-2 md:px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+              <div className="flex flex-col md:flex-row md:flex-wrap md:items-center gap-2">
                 {/* Search Bar - Takes most space */}
-                <div className="flex-1 min-w-[180px]">
+                <div className="flex-1 min-w-[150px] md:min-w-[180px]">
                   <input
                     type="text"
-                    placeholder="🔍 Tìm theo tên, SKU, nhà cung cấp..."
+                    placeholder="🔍 Tìm kiếm..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                    className="w-full px-3 py-2 md:py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
                   />
                 </div>
 
-                {/* Supplier Filter */}
-                <div className="flex items-center gap-1">
-                  <Icon
-                    name="storefront"
-                    className="w-4 h-4 text-teal-500 hidden sm:block"
-                  />
-                  <select
-                    value={supplierFilter}
-                    onChange={(e) => setSupplierFilter(e.target.value)}
-                    className="px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:border-teal-400 focus:ring-1 focus:ring-teal-400/20 transition-all"
-                  >
-                    <option value="">Tất cả NCC</option>
-                    {uniqueSuppliers.map((supplier) => (
-                      <option key={supplier} value={supplier}>
-                        {supplier}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {/* Filters Row - Mobile: 2 cols, Desktop: inline */}
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Supplier Filter */}
+                  <div className="flex items-center gap-1">
+                    <Icon name="storefront" className="w-4 h-4 text-teal-500 hidden md:block" />
+                    <select
+                      value={supplierFilter}
+                      onChange={(e) => setSupplierFilter(e.target.value)}
+                      className="flex-1 md:flex-none px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:border-teal-400 focus:ring-1 focus:ring-teal-400/20 transition-all"
+                    >
+                      <option value="">Tất cả NCC</option>
+                      {uniqueSuppliers.map((supplier) => (
+                        <option key={supplier} value={supplier}>
+                          {supplier}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                {/* Stock Filter */}
-                <div className="flex items-center gap-1">
-                  <Icon
-                    name="cube"
-                    className="w-4 h-4 text-amber-500 hidden sm:block"
-                  />
-                  <select
-                    value={stockFilter}
-                    onChange={(e) => setStockFilter(e.target.value)}
-                    className="px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:border-amber-400 focus:ring-1 focus:ring-amber-400/20 transition-all"
-                  >
-                    <option value="">Tồn kho</option>
-                    <option value="empty">🔴 Hết hàng</option>
-                    <option value="low">🟡 Sắp hết</option>
-                    <option value="normal">🟢 Còn hàng</option>
-                  </select>
+                  {/* Stock Filter */}
+                  <div className="flex items-center gap-1">
+                    <Icon name="cube" className="w-4 h-4 text-amber-500 hidden md:block" />
+                    <select
+                      value={stockFilter}
+                      onChange={(e) => setStockFilter(e.target.value)}
+                      className="flex-1 md:flex-none px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:border-amber-400 focus:ring-1 focus:ring-amber-400/20 transition-all"
+                    >
+                      <option value="">Tồn kho</option>
+                      <option value="empty">🔴 Hết hàng</option>
+                      <option value="low">🟡 Sắp hết</option>
+                      <option value="normal">🟢 Còn hàng</option>
+                    </select>
+                  </div>
                 </div>
 
                 {/* Unit Filter */}
                 <div className="flex items-center gap-1">
-                  <Icon
-                    name="package"
-                    className="w-4 h-4 text-cyan-500 hidden sm:block"
-                  />
+                  <Icon name="package" className="w-4 h-4 text-cyan-500 hidden sm:block" />
                   <select
                     value={unitFilter}
                     onChange={(e) => setUnitFilter(e.target.value)}
@@ -4297,8 +3994,8 @@ const MaterialManager: React.FC<{
               </div>
             )}
 
-            {/* Materials Table - Compact */}
-            <div className="flex-1 overflow-auto bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 shadow-md">
+            {/* Materials Table - Desktop Only */}
+            <div className="hidden md:block flex-1 overflow-auto bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 shadow-md">
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 sticky top-0 z-10">
@@ -4321,9 +4018,7 @@ const MaterialManager: React.FC<{
                         <div className="flex items-center gap-1">
                           Tên
                           {sortBy === "name" && (
-                            <span className="text-blue-500">
-                              {sortOrder === "asc" ? "↑" : "↓"}
-                            </span>
+                            <span className="text-blue-500">{sortOrder === "asc" ? "↑" : "↓"}</span>
                           )}
                         </div>
                       </th>
@@ -4340,9 +4035,7 @@ const MaterialManager: React.FC<{
                         <div className="flex items-center gap-1">
                           Giá nhập
                           {sortBy === "purchasePrice" && (
-                            <span className="text-blue-500">
-                              {sortOrder === "asc" ? "↑" : "↓"}
-                            </span>
+                            <span className="text-blue-500">{sortOrder === "asc" ? "↑" : "↓"}</span>
                           )}
                         </div>
                       </th>
@@ -4359,9 +4052,7 @@ const MaterialManager: React.FC<{
                         <div className="flex items-center gap-1">
                           Tồn kho
                           {sortBy === "stock" && (
-                            <span className="text-blue-500">
-                              {sortOrder === "asc" ? "↑" : "↓"}
-                            </span>
+                            <span className="text-blue-500">{sortOrder === "asc" ? "↑" : "↓"}</span>
                           )}
                         </div>
                       </th>
@@ -4389,9 +4080,7 @@ const MaterialManager: React.FC<{
                               <span className="text-sm">Đang tải...</span>
                             </div>
                           ) : (
-                            <div className="text-sm">
-                              Không có nguyên vật liệu nào
-                            </div>
+                            <div className="text-sm">Không có nguyên vật liệu nào</div>
                           )}
                         </td>
                       </tr>
@@ -4409,9 +4098,7 @@ const MaterialManager: React.FC<{
                             <input
                               type="checkbox"
                               checked={selectedItems.has(material.id)}
-                              onChange={(e) =>
-                                handleSelectItem(material.id, e.target.checked)
-                              }
+                              onChange={(e) => handleSelectItem(material.id, e.target.checked)}
                               className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
                             />
                           </td>
@@ -4433,9 +4120,7 @@ const MaterialManager: React.FC<{
                             {formatCurrency(material.purchasePrice)}
                           </td>
                           <td className="px-3 py-2 text-sm text-gray-700 dark:text-gray-300">
-                            {material.retailPrice
-                              ? formatCurrency(material.retailPrice)
-                              : "-"}
+                            {material.retailPrice ? formatCurrency(material.retailPrice) : "-"}
                           </td>
                           <td className="px-3 py-2 text-sm text-gray-700 dark:text-gray-300">
                             {material.wholesalePrice
@@ -4444,10 +4129,8 @@ const MaterialManager: React.FC<{
                           </td>
                           <td className="px-3 py-2 text-center">
                             {(() => {
-                              const stockValue =
-                                material.availableStock || material.stock;
-                              const hasCommitments =
-                                (material.committedQuantity || 0) > 0;
+                              const stockValue = material.availableStock || material.stock;
+                              const hasCommitments = (material.committedQuantity || 0) > 0;
 
                               // Color coding based on stock level
                               let badgeColor = "";
@@ -4483,9 +4166,7 @@ const MaterialManager: React.FC<{
                                           <span className="text-current">
                                             {material.availableStock}
                                           </span>
-                                          <span className="opacity-60">
-                                            /{material.stock}
-                                          </span>
+                                          <span className="opacity-60">/{material.stock}</span>
                                         </>
                                       ) : (
                                         stockValue
@@ -4512,17 +4193,11 @@ const MaterialManager: React.FC<{
                           <td className="px-3 py-2">
                             <div className="flex justify-center gap-1">
                               <button
-                                onClick={() =>
-                                  handleShowStockAdjustment(material)
-                                }
+                                onClick={() => handleShowStockAdjustment(material)}
                                 className="h-7 w-7 rounded-full flex items-center justify-center ring-1 ring-inset ring-slate-200 dark:ring-slate-600 bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 transition-all"
                                 title="Điều chỉnh tồn kho"
                               >
-                                <Icon
-                                  name="gear"
-                                  weight="bold"
-                                  className="w-4 h-4 text-teal-400"
-                                />
+                                <Icon name="gear" weight="bold" className="w-4 h-4 text-teal-400" />
                               </button>
                               <button
                                 onClick={() => {
@@ -4559,10 +4234,143 @@ const MaterialManager: React.FC<{
               </div>
             </div>
 
+            {/* Materials Cards - Mobile Only */}
+            <div className="md:hidden flex-1 overflow-auto space-y-2">
+              {filteredMaterials.length === 0 ? (
+                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 p-6 text-center text-gray-500 dark:text-gray-400">
+                  {loading ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                      <span className="text-sm">Đang tải...</span>
+                    </div>
+                  ) : (
+                    <div className="text-sm">Không có nguyên vật liệu nào</div>
+                  )}
+                </div>
+              ) : (
+                filteredMaterials.map((material) => {
+                  const stockValue = material.availableStock || material.stock;
+                  let stockBadgeColor = "";
+                  let stockIcon = "";
+                  if (stockValue === 0) {
+                    stockBadgeColor =
+                      "bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300";
+                    stockIcon = "🔴";
+                  } else if (stockValue < 100) {
+                    stockBadgeColor =
+                      "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300";
+                    stockIcon = "🟡";
+                  } else if (stockValue < 500) {
+                    stockBadgeColor =
+                      "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300";
+                    stockIcon = "🔵";
+                  } else {
+                    stockBadgeColor =
+                      "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300";
+                    stockIcon = "🟢";
+                  }
+
+                  return (
+                    <div
+                      key={material.id}
+                      className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 p-3 shadow-sm ${
+                        selectedItems.has(material.id)
+                          ? "ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                          : ""
+                      }`}
+                    >
+                      {/* Header: Name + Stock Badge */}
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="flex-1 min-w-0">
+                          <button
+                            onClick={() => handleShowMaterialDetail(material)}
+                            className="text-sm font-medium text-gray-900 dark:text-white hover:text-cyan-500 dark:hover:text-cyan-400 text-left truncate block w-full"
+                          >
+                            {material.name}
+                          </button>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 font-mono mt-0.5">
+                            {material.sku}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <span className="text-xs">{stockIcon}</span>
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-xs font-bold ${stockBadgeColor}`}
+                          >
+                            {stockValue}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Info Grid */}
+                      <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs mb-2">
+                        <div className="text-gray-500 dark:text-gray-400">
+                          Đơn vị:{" "}
+                          <span className="text-gray-700 dark:text-gray-300">{material.unit}</span>
+                        </div>
+                        <div className="text-gray-500 dark:text-gray-400">
+                          Giá nhập:{" "}
+                          <span className="font-medium text-gray-900 dark:text-white">
+                            {formatCurrency(material.purchasePrice)}
+                          </span>
+                        </div>
+                        {material.supplier && (
+                          <div className="col-span-2 text-gray-500 dark:text-gray-400 truncate">
+                            NCC:{" "}
+                            <span className="text-gray-700 dark:text-gray-300">
+                              {material.supplier}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-700">
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={selectedItems.has(material.id)}
+                            onChange={(e) => handleSelectItem(material.id, e.target.checked)}
+                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                          />
+                          <span className="text-xs text-gray-500">Chọn</span>
+                        </label>
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => handleShowStockAdjustment(material)}
+                            className="h-8 w-8 rounded-full flex items-center justify-center bg-teal-50 dark:bg-teal-900/30 hover:bg-teal-100 dark:hover:bg-teal-900/50"
+                            title="Điều chỉnh tồn kho"
+                          >
+                            <Icon name="gear" weight="bold" className="w-4 h-4 text-teal-500" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedMaterialForEdit(material);
+                              setShowEditModal(true);
+                            }}
+                            className="h-8 w-8 rounded-full flex items-center justify-center bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-900/50"
+                            title="Chỉnh sửa"
+                          >
+                            <Icon name="pencil" weight="bold" className="w-4 h-4 text-amber-500" />
+                          </button>
+                          <button
+                            onClick={() => deleteMaterial(material.id)}
+                            className="h-8 w-8 rounded-full flex items-center justify-center bg-rose-50 dark:bg-rose-900/30 hover:bg-rose-100 dark:hover:bg-rose-900/50"
+                            title="Xóa"
+                          >
+                            <Icon name="trash" weight="bold" className="w-4 h-4 text-rose-500" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
             {/* Stats - Compact */}
             <div className="text-xs text-gray-600 dark:text-gray-400 py-1">
-              Hiển thị {filteredMaterials.length} / {materials.length} nguyên
-              vật liệu
+              Hiển thị {filteredMaterials.length} / {materials.length} nguyên vật liệu
             </div>
 
             {/* Form Modal */}
@@ -4627,9 +4435,7 @@ const MaterialManager: React.FC<{
 
                   // Update local state
                   setMaterials(
-                    materials.map((m) =>
-                      m.id === updatedMaterial.id ? updatedMaterial : m
-                    )
+                    materials.map((m) => (m.id === updatedMaterial.id ? updatedMaterial : m))
                   );
 
                   alert("Đã cập nhật vật liệu thành công!");

@@ -21,15 +21,11 @@ const PinSettings: React.FC = () => {
     upsertPinCustomer,
   } = usePinContext();
 
-  const [activeTab, setActiveTab] = useState<
-    "customers" | "suppliers" | "backup"
-  >("customers");
+  const [activeTab, setActiveTab] = useState<"customers" | "suppliers" | "backup">("customers");
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [showSupplierModal, setShowSupplierModal] = useState(false);
   const [showBackupModal, setShowBackupModal] = useState(false);
-  const [editingCustomer, setEditingCustomer] = useState<PinCustomer | null>(
-    null
-  );
+  const [editingCustomer, setEditingCustomer] = useState<PinCustomer | null>(null);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
 
   const [customerForm, setCustomerForm] = useState({
@@ -186,64 +182,110 @@ const PinSettings: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100">
+      <h1 className="text-xl md:text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100">
         Danh bạ
       </h1>
 
       <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border dark:border-slate-700">
-        <div className="flex border-b dark:border-slate-700">
+        <div className="flex border-b dark:border-slate-700 overflow-x-auto">
           <button
             onClick={() => setActiveTab("customers")}
-            className={`flex-1 flex items-center justify-center space-x-2 px-6 py-4 font-medium transition-colors ${
+            className={`flex-1 md:flex-initial flex items-center justify-center space-x-1 md:space-x-2 px-3 md:px-6 py-3 md:py-4 font-medium transition-colors whitespace-nowrap ${
               activeTab === "customers"
                 ? "border-b-2 border-blue-600 text-blue-600 dark:text-blue-400"
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
             }`}
           >
-            <UserGroupIcon className="w-5 h-5" />
-            <span>Khách hàng</span>
+            <UserGroupIcon className="w-4 h-4 md:w-5 md:h-5" />
+            <span className="text-xs md:text-base">Khách hàng</span>
           </button>
           <button
             onClick={() => setActiveTab("suppliers")}
-            className={`flex-1 flex items-center justify-center space-x-2 px-6 py-4 font-medium transition-colors ${
+            className={`flex-1 md:flex-initial flex items-center justify-center space-x-1 md:space-x-2 px-3 md:px-6 py-3 md:py-4 font-medium transition-colors whitespace-nowrap ${
               activeTab === "suppliers"
                 ? "border-b-2 border-blue-600 text-blue-600 dark:text-blue-400"
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
             }`}
           >
-            <BuildingLibraryIcon className="w-5 h-5" />
-            <span>Nhà cung cấp</span>
+            <BuildingLibraryIcon className="w-4 h-4 md:w-5 md:h-5" />
+            <span className="text-xs md:text-base">NCC</span>
           </button>
           <button
             onClick={() => setActiveTab("backup")}
-            className={`flex-1 flex items-center justify-center space-x-2 px-6 py-4 font-medium transition-colors ${
+            className={`flex-1 md:flex-initial flex items-center justify-center space-x-1 md:space-x-2 px-3 md:px-6 py-3 md:py-4 font-medium transition-colors whitespace-nowrap ${
               activeTab === "backup"
                 ? "border-b-2 border-blue-600 text-blue-600 dark:text-blue-400"
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
             }`}
           >
-            <ArrowDownTrayIcon className="w-5 h-5" />
-            <span>Sao lưu</span>
+            <ArrowDownTrayIcon className="w-4 h-4 md:w-5 md:h-5" />
+            <span className="text-xs md:text-base">Sao lưu</span>
           </button>
         </div>
 
-        <div className="p-6">
+        <div className="p-3 md:p-6">
           {activeTab === "customers" ? (
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
-                  Danh sách khách hàng ({pinCustomers.length})
+            <div className="space-y-3 md:space-y-4">
+              <div className="flex flex-col md:flex-row justify-between md:items-center gap-2">
+                <h2 className="text-base md:text-lg font-semibold text-slate-800 dark:text-slate-100">
+                  Khách hàng ({pinCustomers.length})
                 </h2>
                 <button
                   onClick={openAddCustomer}
-                  className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                  className="flex items-center justify-center space-x-1 md:space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-3 md:px-4 py-2 rounded-lg font-medium transition-colors text-sm"
                 >
-                  <PlusIcon className="w-5 h-5" />
-                  <span>Thêm khách hàng</span>
+                  <PlusIcon className="w-4 h-4 md:w-5 md:h-5" />
+                  <span>Thêm KH</span>
                 </button>
               </div>
 
-              <div className="overflow-x-auto">
+              {/* Mobile Card View */}
+              <div className="md:hidden space-y-2">
+                {pinCustomers.map((customer: PinCustomer) => (
+                  <div
+                    key={customer.id}
+                    className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-3 border border-slate-200 dark:border-slate-600"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-slate-800 dark:text-slate-100 text-sm truncate">
+                          {customer.name}
+                        </h3>
+                        <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+                          📞 {customer.phone || "-"}
+                        </p>
+                        {customer.address && (
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                            📍 {customer.address}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => openEditCustomer(customer)}
+                          className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded"
+                        >
+                          <PencilSquareIcon className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteCustomer(customer.id)}
+                          className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded"
+                        >
+                          <TrashIcon className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {pinCustomers.length === 0 && (
+                  <div className="text-center py-6 text-slate-500 text-sm">
+                    Chưa có khách hàng nào
+                  </div>
+                )}
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-slate-50 dark:bg-slate-700/50">
                     <tr>
@@ -299,28 +341,72 @@ const PinSettings: React.FC = () => {
                   </tbody>
                 </table>
                 {pinCustomers.length === 0 && (
-                  <div className="text-center py-8 text-slate-500">
-                    Chưa có khách hàng nào
-                  </div>
+                  <div className="text-center py-8 text-slate-500">Chưa có khách hàng nào</div>
                 )}
               </div>
             </div>
           ) : activeTab === "suppliers" ? (
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
-                  Danh sách nhà cung cấp ({suppliers.length})
+            <div className="space-y-3 md:space-y-4">
+              <div className="flex flex-col md:flex-row justify-between md:items-center gap-2">
+                <h2 className="text-base md:text-lg font-semibold text-slate-800 dark:text-slate-100">
+                  Nhà cung cấp ({suppliers.length})
                 </h2>
                 <button
                   onClick={openAddSupplier}
-                  className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                  className="flex items-center justify-center space-x-1 md:space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-3 md:px-4 py-2 rounded-lg font-medium transition-colors text-sm"
                 >
-                  <PlusIcon className="w-5 h-5" />
-                  <span>Thêm nhà cung cấp</span>
+                  <PlusIcon className="w-4 h-4 md:w-5 md:h-5" />
+                  <span>Thêm NCC</span>
                 </button>
               </div>
 
-              <div className="overflow-x-auto">
+              {/* Mobile Card View */}
+              <div className="md:hidden space-y-2">
+                {suppliers.map((supplier: Supplier) => (
+                  <div
+                    key={supplier.id}
+                    className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-3 border border-slate-200 dark:border-slate-600"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-slate-800 dark:text-slate-100 text-sm truncate">
+                          {supplier.name}
+                        </h3>
+                        <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+                          📞 {supplier.phone || "-"}
+                        </p>
+                        {supplier.address && (
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                            📍 {supplier.address}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => openEditSupplier(supplier)}
+                          className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded"
+                        >
+                          <PencilSquareIcon className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteSupplier(supplier.id)}
+                          className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded"
+                        >
+                          <TrashIcon className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {suppliers.length === 0 && (
+                  <div className="text-center py-6 text-slate-500 text-sm">
+                    Chưa có nhà cung cấp nào
+                  </div>
+                )}
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-slate-50 dark:bg-slate-700/50">
                     <tr>
@@ -376,89 +462,82 @@ const PinSettings: React.FC = () => {
                   </tbody>
                 </table>
                 {suppliers.length === 0 && (
-                  <div className="text-center py-8 text-slate-500">
-                    Chưa có nhà cung cấp nào
-                  </div>
+                  <div className="text-center py-8 text-slate-500">Chưa có nhà cung cấp nào</div>
                 )}
               </div>
             </div>
           ) : (
-            <div className="space-y-6">
+            <div className="space-y-4 md:space-y-6">
               <div className="text-center">
-                <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-2">
-                  📦 Quản lý Sao lưu & Khôi phục
+                <h2 className="text-base md:text-lg font-semibold text-slate-800 dark:text-slate-100 mb-2">
+                  📦 Quản lý Sao lưu
                 </h2>
-                <p className="text-slate-600 dark:text-slate-400 text-sm">
-                  Sao lưu toàn bộ dữ liệu để đảm bảo an toàn
+                <p className="text-slate-600 dark:text-slate-400 text-xs md:text-sm">
+                  Sao lưu dữ liệu để đảm bảo an toàn
                 </p>
               </div>
 
               <button
                 onClick={() => setShowBackupModal(true)}
-                className="w-full flex items-center justify-center space-x-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-4 rounded-xl font-medium transition-all shadow-lg hover:shadow-xl"
+                className="w-full flex items-center justify-center space-x-2 md:space-x-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-4 md:px-6 py-3 md:py-4 rounded-lg md:rounded-xl font-medium transition-all shadow-lg hover:shadow-xl text-sm md:text-base"
               >
-                <ArrowDownTrayIcon className="w-6 h-6" />
+                <ArrowDownTrayIcon className="w-5 h-5 md:w-6 md:h-6" />
                 <span>Mở Quản lý Sao lưu</span>
               </button>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                  <div className="text-2xl mb-2">💾</div>
-                  <h3 className="font-semibold text-blue-800 dark:text-blue-300 mb-1">
-                    Xuất JSON
+              <div className="grid grid-cols-3 gap-2 md:gap-4 mt-4 md:mt-6">
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-2 md:p-4">
+                  <div className="text-xl md:text-2xl mb-1 md:mb-2 text-center">💾</div>
+                  <h3 className="font-semibold text-blue-800 dark:text-blue-300 text-xs md:text-sm text-center">
+                    JSON
                   </h3>
-                  <p className="text-sm text-blue-700 dark:text-blue-400">
-                    Toàn bộ dữ liệu có thể import lại
+                  <p className="text-[10px] md:text-sm text-blue-700 dark:text-blue-400 hidden md:block">
+                    Dữ liệu có thể import lại
                   </p>
                 </div>
 
-                <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg p-4">
-                  <div className="text-2xl mb-2">📊</div>
-                  <h3 className="font-semibold text-emerald-800 dark:text-emerald-300 mb-1">
-                    Xuất Excel
+                <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg p-2 md:p-4">
+                  <div className="text-xl md:text-2xl mb-1 md:mb-2 text-center">📊</div>
+                  <h3 className="font-semibold text-emerald-800 dark:text-emerald-300 text-xs md:text-sm text-center">
+                    Excel
                   </h3>
-                  <p className="text-sm text-emerald-700 dark:text-emerald-400">
-                    File CSV dễ đọc và phân tích
+                  <p className="text-[10px] md:text-sm text-emerald-700 dark:text-emerald-400 hidden md:block">
+                    File CSV dễ phân tích
                   </p>
                 </div>
 
-                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
-                  <div className="text-2xl mb-2">🔄</div>
-                  <h3 className="font-semibold text-amber-800 dark:text-amber-300 mb-1">
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-2 md:p-4">
+                  <div className="text-xl md:text-2xl mb-1 md:mb-2 text-center">🔄</div>
+                  <h3 className="font-semibold text-amber-800 dark:text-amber-300 text-xs md:text-sm text-center">
                     Khôi phục
                   </h3>
-                  <p className="text-sm text-amber-700 dark:text-amber-400">
-                    Import dữ liệu từ file backup
+                  <p className="text-[10px] md:text-sm text-amber-700 dark:text-amber-400 hidden md:block">
+                    Import từ backup
                   </p>
                 </div>
               </div>
 
-              <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-4">
-                <h4 className="font-semibold text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
+              <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-3 md:p-4">
+                <h4 className="font-semibold text-slate-700 dark:text-slate-200 mb-2 md:mb-3 flex items-center gap-2 text-sm">
                   <span>💡</span>
                   <span>Khuyến nghị</span>
                 </h4>
-                <ul className="text-sm text-slate-600 dark:text-slate-300 space-y-2">
+                <ul className="text-xs md:text-sm text-slate-600 dark:text-slate-300 space-y-1 md:space-y-2">
                   <li className="flex items-start gap-2">
                     <span className="text-blue-500 mt-0.5">•</span>
-                    <span>Sao lưu dữ liệu hàng ngày để tránh mất mát</span>
+                    <span>Sao lưu dữ liệu hàng ngày</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-blue-500 mt-0.5">•</span>
-                    <span>Lưu file backup vào nhiều nơi khác nhau</span>
+                    <span>Lưu vào nhiều nơi khác nhau</span>
                   </li>
-                  <li className="flex items-start gap-2">
+                  <li className="hidden md:flex items-start gap-2">
                     <span className="text-blue-500 mt-0.5">•</span>
-                    <span>
-                      Kiểm tra file backup định kỳ để đảm bảo có thể khôi phục
-                    </span>
+                    <span>Kiểm tra file backup định kỳ</span>
                   </li>
-                  <li className="flex items-start gap-2">
+                  <li className="hidden md:flex items-start gap-2">
                     <span className="text-blue-500 mt-0.5">•</span>
-                    <span>
-                      Sử dụng dịch vụ cloud (Google Drive, Dropbox) để lưu trữ
-                      an toàn
-                    </span>
+                    <span>Sử dụng Google Drive, Dropbox</span>
                   </li>
                 </ul>
               </div>
@@ -468,10 +547,7 @@ const PinSettings: React.FC = () => {
       </div>
 
       {/* Backup Modal */}
-      <BackupManager
-        isOpen={showBackupModal}
-        onClose={() => setShowBackupModal(false)}
-      />
+      <BackupManager isOpen={showBackupModal} onClose={() => setShowBackupModal(false)} />
 
       {/* Customer Modal */}
       {showCustomerModal && (
@@ -479,9 +555,7 @@ const PinSettings: React.FC = () => {
           <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl max-w-md w-full">
             <div className="p-6 border-b dark:border-slate-700">
               <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100">
-                {editingCustomer
-                  ? "Chỉnh sửa khách hàng"
-                  : "Thêm khách hàng mới"}
+                {editingCustomer ? "Chỉnh sửa khách hàng" : "Thêm khách hàng mới"}
               </h3>
             </div>
             <div className="p-6 space-y-4">
@@ -492,9 +566,7 @@ const PinSettings: React.FC = () => {
                 <input
                   type="text"
                   value={customerForm.name}
-                  onChange={(e) =>
-                    setCustomerForm({ ...customerForm, name: e.target.value })
-                  }
+                  onChange={(e) => setCustomerForm({ ...customerForm, name: e.target.value })}
                   className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100"
                   placeholder="Nhập tên khách hàng"
                 />
@@ -506,9 +578,7 @@ const PinSettings: React.FC = () => {
                 <input
                   type="tel"
                   value={customerForm.phone}
-                  onChange={(e) =>
-                    setCustomerForm({ ...customerForm, phone: e.target.value })
-                  }
+                  onChange={(e) => setCustomerForm({ ...customerForm, phone: e.target.value })}
                   className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100"
                   placeholder="Nhập số điện thoại"
                 />
@@ -543,9 +613,7 @@ const PinSettings: React.FC = () => {
                 Hủy
               </button>
               <button
-                onClick={
-                  editingCustomer ? handleUpdateCustomer : handleAddCustomer
-                }
+                onClick={editingCustomer ? handleUpdateCustomer : handleAddCustomer}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
               >
                 {editingCustomer ? "Cập nhật" : "Thêm"}
@@ -561,9 +629,7 @@ const PinSettings: React.FC = () => {
           <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl max-w-md w-full">
             <div className="p-6 border-b dark:border-slate-700">
               <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100">
-                {editingSupplier
-                  ? "Chỉnh sửa nhà cung cấp"
-                  : "Thêm nhà cung cấp mới"}
+                {editingSupplier ? "Chỉnh sửa nhà cung cấp" : "Thêm nhà cung cấp mới"}
               </h3>
             </div>
             <div className="p-6 space-y-4">
@@ -574,9 +640,7 @@ const PinSettings: React.FC = () => {
                 <input
                   type="text"
                   value={supplierForm.name}
-                  onChange={(e) =>
-                    setSupplierForm({ ...supplierForm, name: e.target.value })
-                  }
+                  onChange={(e) => setSupplierForm({ ...supplierForm, name: e.target.value })}
                   className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100"
                   placeholder="Nhập tên nhà cung cấp"
                 />
@@ -588,9 +652,7 @@ const PinSettings: React.FC = () => {
                 <input
                   type="tel"
                   value={supplierForm.phone}
-                  onChange={(e) =>
-                    setSupplierForm({ ...supplierForm, phone: e.target.value })
-                  }
+                  onChange={(e) => setSupplierForm({ ...supplierForm, phone: e.target.value })}
                   className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100"
                   placeholder="Nhập số điện thoại"
                 />
@@ -625,9 +687,7 @@ const PinSettings: React.FC = () => {
                 Hủy
               </button>
               <button
-                onClick={
-                  editingSupplier ? handleUpdateSupplier : handleAddSupplier
-                }
+                onClick={editingSupplier ? handleUpdateSupplier : handleAddSupplier}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
               >
                 {editingSupplier ? "Cập nhật" : "Thêm"}

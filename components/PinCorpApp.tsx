@@ -1,7 +1,7 @@
 import React from "react";
 import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { usePinContext } from "../contexts/PinContext";
-import { PinTopNav, PinMobileNav, FloatingNavButtons } from "./PinSidebar";
+import { ResponsiveLayout } from "./layouts";
 import MaterialManager from "./MaterialManager";
 import ProductionManagerWrapper from "./ProductionManagerWrapper";
 import PinProductManager from "./PinProductManager";
@@ -16,6 +16,7 @@ import PinProductionReset from "./PinProductionReset";
 import PinSettings from "./PinSettings";
 import Receivables from "./Receivables";
 import AdvancedAnalyticsDashboard from "./AdvancedAnalyticsDashboard";
+import { MobileMoreMenu } from "./mobile";
 import { CashTransaction, PinSale } from "../types";
 
 interface PinCorpAppProps {
@@ -27,9 +28,7 @@ const PinCorpApp: React.FC<PinCorpAppProps> = ({ onSwitchApp }) => {
   const appContext = usePinContext();
 
   // FIX: Wrapper function to create CashTransaction before calling context's handlePinSale
-  const wrappedHandlePinSale = (
-    saleData: Omit<PinSale, "id" | "date" | "userId" | "userName">
-  ) => {
+  const wrappedHandlePinSale = (saleData: Omit<PinSale, "id" | "date" | "userId" | "userName">) => {
     const cashTxId = `CT-PINSALE-${Date.now()}`;
     const newCashTx: Omit<CashTransaction, "id"> & { id: string } = {
       id: cashTxId,
@@ -51,131 +50,119 @@ const PinCorpApp: React.FC<PinCorpAppProps> = ({ onSwitchApp }) => {
     appContext.handlePinSale(saleData, newCashTx);
   };
 
+  // More menu state for mobile
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = React.useState(false);
+
   return (
     <HashRouter>
-      <div className="flex flex-col h-screen bg-slate-100 dark:bg-slate-900 font-sans">
-        {/* Desktop Top Nav */}
-        <div className="hidden md:block print:hidden">
-          <PinTopNav
-            currentUser={appContext.currentUser!}
-            onSwitchApp={onSwitchApp}
+      <ResponsiveLayout currentUser={appContext.currentUser!} onSwitchApp={onSwitchApp}>
+        <Routes>
+          {/* FIX: Pass all required props to components */}
+          <Route path="/" element={<Navigate to="/reports" replace />} />
+          <Route
+            path="/materials"
+            element={
+              <MaterialManager
+                materials={appContext.pinMaterials}
+                setMaterials={appContext.setPinMaterials}
+                productionOrders={appContext.productionOrders}
+                suppliers={appContext.suppliers}
+                setSuppliers={appContext.setSuppliers}
+              />
+            }
           />
-        </div>
-
-        <div className="flex-1 flex flex-col min-h-0">
-          <main className="flex-1 overflow-y-auto p-2 sm:p-3 lg:p-4 pb-24 md:pb-4">
-            <Routes>
-              {/* FIX: Pass all required props to components */}
-              <Route path="/" element={<Navigate to="/reports" replace />} />
-              <Route
-                path="/materials"
-                element={
-                  <MaterialManager
-                    materials={appContext.pinMaterials}
-                    setMaterials={appContext.setPinMaterials}
-                    productionOrders={appContext.productionOrders}
-                    suppliers={appContext.suppliers}
-                    setSuppliers={appContext.setSuppliers}
-                  />
-                }
+          <Route
+            path="/materials/goods-receipt/new"
+            element={
+              <PinGoodsReceipt
+                suppliers={appContext.suppliers}
+                setSuppliers={appContext.setSuppliers}
+                currentUser={appContext.currentUser!}
               />
-              <Route
-                path="/materials/goods-receipt/new"
-                element={
-                  <PinGoodsReceipt
-                    suppliers={appContext.suppliers}
-                    setSuppliers={appContext.setSuppliers}
-                    currentUser={appContext.currentUser!}
-                  />
-                }
+            }
+          />
+          <Route
+            path="/boms"
+            element={
+              <ProductionManagerWrapper
+                boms={appContext.pinBOMs}
+                setBoms={appContext.setBoms}
+                materials={appContext.pinMaterials}
+                currentUser={appContext.currentUser!}
+                orders={appContext.productionOrders}
+                addOrder={appContext.addProductionOrder}
+                updateOrder={appContext.updateProductionOrderStatus}
+                completeOrder={appContext.completeProductionOrder}
               />
-              <Route
-                path="/boms"
-                element={
-                  <ProductionManagerWrapper
-                    boms={appContext.pinBOMs}
-                    setBoms={appContext.setBoms}
-                    materials={appContext.pinMaterials}
-                    currentUser={appContext.currentUser!}
-                    orders={appContext.productionOrders}
-                    addOrder={appContext.addProductionOrder}
-                    updateOrder={appContext.updateProductionOrderStatus}
-                    completeOrder={appContext.completeProductionOrder}
-                  />
-                }
+            }
+          />
+          <Route path="/repairs" element={<PinRepairManager />} />
+          <Route
+            path="/products"
+            element={
+              <PinProductManager
+                products={appContext.pinProducts}
+                updateProduct={appContext.updatePinProduct}
               />
-              <Route path="/repairs" element={<PinRepairManager />} />
-              <Route
-                path="/products"
-                element={
-                  <PinProductManager
-                    products={appContext.pinProducts}
-                    updateProduct={appContext.updatePinProduct}
-                  />
-                }
+            }
+          />
+          <Route
+            path="/sales"
+            element={
+              <PinSalesManager
+                products={appContext.pinProducts}
+                cartItems={appContext.pinCartItems}
+                setCartItems={appContext.setPinCartItems}
+                handleSale={wrappedHandlePinSale}
+                customers={appContext.pinCustomers}
+                setCustomers={appContext.setPinCustomers}
               />
-              <Route
-                path="/sales"
-                element={
-                  <PinSalesManager
-                    products={appContext.pinProducts}
-                    cartItems={appContext.pinCartItems}
-                    setCartItems={appContext.setPinCartItems}
-                    handleSale={wrappedHandlePinSale}
-                    customers={appContext.pinCustomers}
-                    setCustomers={appContext.setPinCustomers}
-                  />
-                }
+            }
+          />
+          <Route
+            path="/reports"
+            element={
+              <PinReportManager sales={appContext.pinSales} orders={appContext.productionOrders} />
+            }
+          />
+          <Route
+            path="/cost-analysis"
+            element={
+              <CostReportDashboard
+                orders={appContext.productionOrders}
+                materials={appContext.pinMaterials}
               />
-              <Route
-                path="/reports"
-                element={
-                  <PinReportManager
-                    sales={appContext.pinSales}
-                    orders={appContext.productionOrders}
-                  />
-                }
+            }
+          />
+          <Route
+            path="/predictive"
+            element={
+              <PredictiveDashboard
+                orders={appContext.productionOrders}
+                materials={appContext.pinMaterials}
+                boms={appContext.pinBOMs}
               />
-              <Route
-                path="/cost-analysis"
-                element={
-                  <CostReportDashboard
-                    orders={appContext.productionOrders}
-                    materials={appContext.pinMaterials}
-                  />
-                }
-              />
-              <Route
-                path="/predictive"
-                element={
-                  <PredictiveDashboard
-                    orders={appContext.productionOrders}
-                    materials={appContext.pinMaterials}
-                    boms={appContext.pinBOMs}
-                  />
-                }
-              />
-              <Route path="/financial" element={<PinFinancialManager />} />
-              <Route path="/receivables" element={<Receivables />} />
-              <Route path="/settings" element={<PinSettings />} />
-              <Route
-                path="/analytics"
-                element={<AdvancedAnalyticsDashboard />}
-              />
-              <Route
-                path="/production-reset"
-                element={<PinProductionReset />}
-              />
-            </Routes>
-          </main>
-        </div>
-
-        {/* Mobile Navigations */}
-        <div className="md:hidden print:hidden">
-          <PinMobileNav />
-          <FloatingNavButtons onSwitchApp={onSwitchApp} />
-        </div>
-      </div>
+            }
+          />
+          <Route path="/financial" element={<PinFinancialManager />} />
+          <Route path="/receivables" element={<Receivables />} />
+          <Route path="/settings" element={<PinSettings />} />
+          <Route path="/analytics" element={<AdvancedAnalyticsDashboard />} />
+          <Route path="/production-reset" element={<PinProductionReset />} />
+          {/* More menu route for mobile */}
+          <Route
+            path="/more"
+            element={
+              <>
+                <MobileMoreMenu isOpen={true} onClose={() => window.history.back()} />
+                <div className="text-center py-8 text-slate-500">
+                  <p>Chọn một chức năng từ menu</p>
+                </div>
+              </>
+            }
+          />
+        </Routes>
+      </ResponsiveLayout>
     </HashRouter>
   );
 };

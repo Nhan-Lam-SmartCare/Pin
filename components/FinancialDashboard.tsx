@@ -24,43 +24,59 @@ const DASHBOARD_TABS: Array<{
 ];
 
 const FinancialDashboard: React.FC = () => {
-  const { fixedAssets = [], cashTransactions = [], pinSales = [], currentUser, addToast } = usePinContext();
-  
+  const {
+    fixedAssets = [],
+    cashTransactions = [],
+    pinSales = [],
+    currentUser,
+    addToast,
+  } = usePinContext();
+
   // Convert cash transactions to CashFlow format for analysis
   const cashFlows: CashFlow[] = useMemo(() => {
-    return (cashTransactions || []).map(tx => ({
+    return (cashTransactions || []).map((tx) => ({
       id: tx.id,
       date: tx.date,
-      amount: tx.type === 'income' ? tx.amount : -tx.amount,
-      category: tx.category === 'inventory_purchase' ? 'investing' 
-        : tx.category === 'service_income' ? 'operating'
-        : tx.type === 'income' ? 'operating' : 'operating',
-      description: tx.notes || '',
-      reference: tx.saleId || tx.workOrderId || '',
+      amount: tx.type === "income" ? tx.amount : -tx.amount,
+      category:
+        tx.category === "inventory_purchase"
+          ? "investing"
+          : tx.category === "service_income"
+            ? "operating"
+            : tx.type === "income"
+              ? "operating"
+              : "operating",
+      description: tx.notes || "",
+      reference: tx.saleId || tx.workOrderId || "",
     }));
   }, [cashTransactions]);
 
   // Calculate capital structure from current data
   const capitalStructure: CapitalStructure[] = useMemo(() => {
     const currentDate = new Date();
-    const totalAssetValue = FinancialAnalyticsService.calculateTotalAssetValue(fixedAssets, currentDate);
-    
+    const totalAssetValue = FinancialAnalyticsService.calculateTotalAssetValue(
+      fixedAssets,
+      currentDate
+    );
+
     // Calculate total cash balance from transactions
     const totalCash = (cashTransactions || []).reduce((sum, tx) => {
-      return sum + (tx.type === 'income' ? tx.amount : -tx.amount);
+      return sum + (tx.type === "income" ? tx.amount : -tx.amount);
     }, 0);
 
     // Calculate total sales as a proxy for revenue
     const totalRevenue = (pinSales || []).reduce((sum, sale) => sum + (sale.total || 0), 0);
 
-    return [{
-      date: currentDate.toISOString(),
-      totalAssets: totalAssetValue + Math.max(0, totalCash),
-      totalLiabilities: 0, // Would need supplier debts data
-      workingCapital: Math.max(0, totalCash),
-      cashBalance: totalCash,
-      inventoryValue: 0, // Would need inventory data
-    }];
+    return [
+      {
+        date: currentDate.toISOString(),
+        totalAssets: totalAssetValue + Math.max(0, totalCash),
+        totalLiabilities: 0, // Would need supplier debts data
+        workingCapital: Math.max(0, totalCash),
+        cashBalance: totalCash,
+        inventoryValue: 0, // Would need inventory data
+      },
+    ];
   }, [fixedAssets, cashTransactions, pinSales]);
 
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodFilter>("month");
@@ -223,20 +239,20 @@ const FinancialDashboard: React.FC = () => {
   return (
     <div className="p-1 space-y-3">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 md:gap-0">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-            Báo cáo Tài chính Tổng hợp
+          <h1 className="text-lg md:text-xl font-bold text-gray-900 dark:text-gray-100">
+            Báo cáo Tài chính
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 text-sm">
-            Theo dõi vốn, tài sản, và dòng tiền
+          <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm">
+            Theo dõi vốn, tài sản, dòng tiền
           </p>
         </div>
         <div className="flex space-x-2">
           <select
             value={selectedPeriod}
             onChange={(e) => setSelectedPeriod(e.target.value as any)}
-            className="border border-gray-300 rounded-lg px-3 py-2"
+            className="border border-gray-300 rounded-lg px-2 md:px-3 py-1.5 md:py-2 text-sm"
           >
             <option value="month">Tháng này</option>
             <option value="quarter">Quý này</option>
@@ -246,13 +262,13 @@ const FinancialDashboard: React.FC = () => {
       </div>
 
       {/* Tab Navigation */}
-      <div className="border-b border-gray-200">
-        <nav className="flex space-x-8">
+      <div className="border-b border-gray-200 overflow-x-auto">
+        <nav className="flex space-x-4 md:space-x-8 min-w-max">
           {DASHBOARD_TABS.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center space-x-2 py-2 px-1 border-b-2 font-medium text-sm ${
+              className={`flex items-center space-x-1 md:space-x-2 py-2 px-1 border-b-2 font-medium text-xs md:text-sm whitespace-nowrap ${
                 activeTab === tab.key
                   ? "border-blue-500 text-blue-600"
                   : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
@@ -269,38 +285,42 @@ const FinancialDashboard: React.FC = () => {
       {activeTab === "overview" && (
         <div className="space-y-6">
           {/* Key Metrics Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="bg-white p-6 rounded-lg shadow border">
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+            <div className="bg-white p-3 md:p-6 rounded-lg shadow border">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Tổng Tài sản</p>
-                  <p className="text-2xl font-semibold text-gray-900">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs md:text-sm font-medium text-gray-600 truncate">
+                    Tổng Tài sản
+                  </p>
+                  <p className="text-base md:text-2xl font-semibold text-gray-900 truncate">
                     {formatCurrency(financialMetrics.totalAssets)}
                   </p>
                 </div>
-                <div className="p-3 bg-blue-50 rounded-full">
+                <div className="p-2 md:p-3 bg-blue-50 rounded-full shrink-0 ml-2">
                   <Icon name="assets" size="lg" tone="primary" />
                 </div>
               </div>
-              <div className="mt-4 flex items-center space-x-2 text-sm">
-                <span className="text-gray-500">Giá trị sổ sách tài sản:</span>
+              <div className="mt-2 md:mt-4 hidden md:flex items-center space-x-2 text-sm">
+                <span className="text-gray-500">Giá trị sổ sách:</span>
                 <span className="font-medium">{formatCurrency(financialMetrics.assetValue)}</span>
               </div>
             </div>
 
-            <div className="bg-white p-6 rounded-lg shadow border">
+            <div className="bg-white p-3 md:p-6 rounded-lg shadow border">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Vốn Chủ sở hữu</p>
-                  <p className="text-2xl font-semibold text-gray-900">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs md:text-sm font-medium text-gray-600 truncate">
+                    Vốn Chủ SH
+                  </p>
+                  <p className="text-base md:text-2xl font-semibold text-gray-900 truncate">
                     {formatCurrency(financialMetrics.totalEquity)}
                   </p>
                 </div>
-                <div className="p-3 bg-green-50 rounded-full">
+                <div className="p-2 md:p-3 bg-green-50 rounded-full shrink-0 ml-2">
                   <Icon name="money" size="lg" tone="success" />
                 </div>
               </div>
-              <div className="mt-4 flex items-center space-x-2 text-sm">
+              <div className="mt-2 md:mt-4 hidden md:flex items-center space-x-2 text-sm">
                 <span className="text-gray-500">Nợ phải trả:</span>
                 <span className="font-medium">
                   {formatCurrency(financialMetrics.totalLiabilities)}
@@ -308,12 +328,14 @@ const FinancialDashboard: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-white p-6 rounded-lg shadow border">
+            <div className="bg-white p-3 md:p-6 rounded-lg shadow border">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Vốn Lưu động</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs md:text-sm font-medium text-gray-600 truncate">
+                    Vốn Lưu động
+                  </p>
                   <p
-                    className={`text-2xl font-semibold ${
+                    className={`text-base md:text-2xl font-semibold truncate ${
                       financialMetrics.workingCapital >= 0 ? "text-gray-900" : "text-red-600"
                     }`}
                   >
@@ -321,7 +343,7 @@ const FinancialDashboard: React.FC = () => {
                   </p>
                 </div>
                 <div
-                  className={`p-3 rounded-full ${
+                  className={`p-2 md:p-3 rounded-full shrink-0 ml-2 ${
                     isWorkingCapitalPositive ? "bg-green-50" : "bg-red-50"
                   }`}
                 >
@@ -332,7 +354,7 @@ const FinancialDashboard: React.FC = () => {
                   />
                 </div>
               </div>
-              <div className="mt-4">
+              <div className="mt-2 md:mt-4 hidden md:block">
                 <div className="flex items-center space-x-1">
                   <Icon
                     name={isWorkingCapitalPositive ? "success" : "warning"}
@@ -344,18 +366,18 @@ const FinancialDashboard: React.FC = () => {
                       isWorkingCapitalPositive ? "text-green-600" : "text-red-600"
                     }`}
                   >
-                    {isWorkingCapitalPositive ? "Tình hình tài chính tốt" : "Cần tăng thanh khoản"}
+                    {isWorkingCapitalPositive ? "Tốt" : "Cần cải thiện"}
                   </span>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white p-6 rounded-lg shadow border">
+            <div className="bg-white p-3 md:p-6 rounded-lg shadow border">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Dòng Tiền Tháng</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs md:text-sm font-medium text-gray-600 truncate">Dòng Tiền</p>
                   <p
-                    className={`text-2xl font-semibold ${
+                    className={`text-base md:text-2xl font-semibold truncate ${
                       financialMetrics.netCashFlow >= 0 ? "text-gray-900" : "text-red-600"
                     }`}
                   >
@@ -363,7 +385,7 @@ const FinancialDashboard: React.FC = () => {
                   </p>
                 </div>
                 <div
-                  className={`p-3 rounded-full ${isNetCashPositive ? "bg-green-50" : "bg-red-50"}`}
+                  className={`p-2 md:p-3 rounded-full shrink-0 ml-2 ${isNetCashPositive ? "bg-green-50" : "bg-red-50"}`}
                 >
                   <Icon
                     name={isNetCashPositive ? "progressUp" : "progressDown"}
@@ -372,15 +394,15 @@ const FinancialDashboard: React.FC = () => {
                   />
                 </div>
               </div>
-              <div className="mt-4 space-y-1">
+              <div className="mt-2 md:mt-4 space-y-1 hidden md:block">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Thu nhập:</span>
+                  <span className="text-gray-500">Thu:</span>
                   <span className="text-green-600">
                     {formatCurrency(financialMetrics.monthlyRevenue)}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Chi phí:</span>
+                  <span className="text-gray-500">Chi:</span>
                   <span className="text-red-600">
                     {formatCurrency(financialMetrics.monthlyExpenses)}
                   </span>
@@ -563,8 +585,8 @@ const FinancialDashboard: React.FC = () => {
 
       {/* Financial Ratios Tab */}
       {activeTab === "ratios" && financialMetrics.ratios && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="space-y-4 md:space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
             {/* Liquidity Ratios */}
             <div className="bg-white p-6 rounded-lg shadow border">
               <h4 className="text-lg font-semibold text-gray-900 mb-4">Tỷ lệ Thanh khoản</h4>

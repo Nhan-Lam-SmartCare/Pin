@@ -187,39 +187,43 @@ const PinReportManager: React.FC<PinReportManagerProps> = ({ sales, orders = [] 
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 pb-20 md:pb-0">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-3 md:gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-pin-gray-900 dark:text-pin-dark-900">
+          <h1 className="text-xl md:text-3xl font-bold text-pin-gray-900 dark:text-pin-dark-900">
             Báo cáo & Thống kê
           </h1>
-          <p className="text-pin-gray-500 dark:text-pin-dark-500 mt-1">
+          <p className="text-xs md:text-sm text-pin-gray-500 dark:text-pin-dark-500 mt-1">
             Phân tích doanh thu và hiệu quả kinh doanh
           </p>
         </div>
 
-        {/* Date Filter */}
-        <Card padding="sm" className="flex items-center gap-3 w-full sm:w-auto">
-          <Icon name="calendar" size="md" tone="muted" />
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="px-3 py-1.5 rounded-lg border border-pin-gray-200 dark:border-pin-dark-400 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-pin-blue-500"
-          />
-          <span className="text-pin-gray-400">đến</span>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="px-3 py-1.5 rounded-lg border border-pin-gray-200 dark:border-pin-dark-400 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-pin-blue-500"
-          />
+        {/* Date Filter - Mobile optimized */}
+        <Card padding="sm" className="w-full">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
+            <Icon name="calendar" size="md" tone="muted" className="hidden sm:block" />
+            <div className="flex items-center gap-2 flex-1">
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="flex-1 px-2 md:px-3 py-2 md:py-1.5 rounded-lg border border-pin-gray-200 dark:border-pin-dark-400 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-pin-blue-500 min-w-0"
+              />
+              <span className="text-pin-gray-400 text-xs md:text-sm">đến</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="flex-1 px-2 md:px-3 py-2 md:py-1.5 rounded-lg border border-pin-gray-200 dark:border-pin-dark-400 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-pin-blue-500 min-w-0"
+              />
+            </div>
+          </div>
         </Card>
       </div>
 
-      {/* Stats Cards */}
-      <CardGrid cols={4}>
+      {/* Stats Cards - Responsive Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
         <StatsCard
           title="Tổng doanh thu"
           value={formatCurrency(reportData.totalRevenue)}
@@ -244,13 +248,13 @@ const PinReportManager: React.FC<PinReportManagerProps> = ({ sales, orders = [] 
           iconName="stock"
           variant="info"
         />
-      </CardGrid>
+      </div>
 
-      {/* Tab Navigation */}
-      <div className="flex gap-2 border-b border-pin-gray-200 dark:border-pin-dark-300">
+      {/* Tab Navigation - Mobile scrollable */}
+      <div className="flex gap-1 md:gap-2 border-b border-pin-gray-200 dark:border-pin-dark-300 overflow-x-auto scrollbar-hide">
         <button
           onClick={() => setSelectedTab("sales")}
-          className={`px-4 py-2 font-medium text-sm transition-colors border-b-2 ${
+          className={`flex-shrink-0 px-3 md:px-4 py-2 font-medium text-xs md:text-sm transition-colors border-b-2 whitespace-nowrap ${
             selectedTab === "sales"
               ? "border-pin-blue-500 text-pin-blue-600 dark:text-pin-blue-400"
               : "border-transparent text-pin-gray-600 dark:text-pin-dark-600 hover:text-pin-gray-900 dark:hover:text-pin-dark-900"
@@ -260,13 +264,13 @@ const PinReportManager: React.FC<PinReportManagerProps> = ({ sales, orders = [] 
             name="sales"
             size="sm"
             tone={selectedTab === "sales" ? "primary" : "muted"}
-            className="inline mr-2"
+            className="inline mr-1 md:mr-2"
           />
           Bán hàng ({reportData.filteredSales.length})
         </button>
         <button
           onClick={() => setSelectedTab("production")}
-          className={`px-4 py-2 font-medium text-sm transition-colors border-b-2 ${
+          className={`flex-shrink-0 px-3 md:px-4 py-2 font-medium text-xs md:text-sm transition-colors border-b-2 whitespace-nowrap ${
             selectedTab === "production"
               ? "border-pin-blue-500 text-pin-blue-600 dark:text-pin-blue-400"
               : "border-transparent text-pin-gray-600 dark:text-pin-dark-600 hover:text-pin-gray-900 dark:hover:text-pin-dark-900"
@@ -276,7 +280,7 @@ const PinReportManager: React.FC<PinReportManagerProps> = ({ sales, orders = [] 
             name="stock"
             size="sm"
             tone={selectedTab === "production" ? "primary" : "muted"}
-            className="inline mr-2"
+            className="inline mr-1 md:mr-2"
           />
           Sản xuất ({reportData.productionStats.total})
         </button>
@@ -284,15 +288,15 @@ const PinReportManager: React.FC<PinReportManagerProps> = ({ sales, orders = [] 
 
       {/* Tab Content */}
       {selectedTab === "sales" && (
-        <div className="space-y-6">
+        <div className="space-y-4 md:space-y-6">
           {/* Sales Table */}
           <Card padding="none">
-            <div className="p-6 border-b border-pin-gray-200 dark:border-pin-dark-300">
+            <div className="p-4 md:p-6 border-b border-pin-gray-200 dark:border-pin-dark-300">
               <CardTitle icon={<Icon name="ratios" size="md" tone="primary" />}>
                 Chi tiết đơn hàng
               </CardTitle>
             </div>
-            <div className="p-6">
+            <div className="p-3 md:p-6 overflow-x-auto">
               <DataTable
                 columns={salesColumns}
                 data={reportData.filteredSales}
@@ -310,7 +314,7 @@ const PinReportManager: React.FC<PinReportManagerProps> = ({ sales, orders = [] 
             >
               Top sản phẩm
             </CardTitle>
-            <CardBody className="mt-6">
+            <CardBody className="mt-4 md:mt-6 overflow-x-auto">
               <DataTable
                 columns={productColumns}
                 data={reportData.topProducts}
@@ -330,37 +334,37 @@ const PinReportManager: React.FC<PinReportManagerProps> = ({ sales, orders = [] 
           >
             Tình trạng sản xuất
           </CardTitle>
-          <CardBody className="mt-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="p-4 rounded-lg bg-pin-blue-50 dark:bg-pin-blue-900/20">
-                <div className="text-2xl font-bold text-pin-blue-600 dark:text-pin-blue-400">
+          <CardBody className="mt-4 md:mt-6">
+            <div className="grid grid-cols-2 gap-2 md:gap-4">
+              <div className="p-3 md:p-4 rounded-lg bg-pin-blue-50 dark:bg-pin-blue-900/20">
+                <div className="text-lg md:text-2xl font-bold text-pin-blue-600 dark:text-pin-blue-400">
                   {reportData.productionStats.total}
                 </div>
-                <div className="text-sm text-pin-gray-600 dark:text-pin-dark-600 mt-1">
+                <div className="text-xs md:text-sm text-pin-gray-600 dark:text-pin-dark-600 mt-1">
                   Tổng đơn
                 </div>
               </div>
-              <div className="p-4 rounded-lg bg-pin-green-50 dark:bg-pin-green-900/20">
-                <div className="text-2xl font-bold text-pin-green-600 dark:text-pin-green-400">
+              <div className="p-3 md:p-4 rounded-lg bg-pin-green-50 dark:bg-pin-green-900/20">
+                <div className="text-lg md:text-2xl font-bold text-pin-green-600 dark:text-pin-green-400">
                   {reportData.productionStats.completed}
                 </div>
-                <div className="text-sm text-pin-gray-600 dark:text-pin-dark-600 mt-1">
+                <div className="text-xs md:text-sm text-pin-gray-600 dark:text-pin-dark-600 mt-1">
                   Hoàn thành
                 </div>
               </div>
-              <div className="p-4 rounded-lg bg-pin-yellow-50 dark:bg-pin-yellow-900/20">
-                <div className="text-2xl font-bold text-pin-yellow-600 dark:text-pin-yellow-400">
+              <div className="p-3 md:p-4 rounded-lg bg-pin-yellow-50 dark:bg-pin-yellow-900/20">
+                <div className="text-lg md:text-2xl font-bold text-pin-yellow-600 dark:text-pin-yellow-400">
                   {reportData.productionStats.inProgress}
                 </div>
-                <div className="text-sm text-pin-gray-600 dark:text-pin-dark-600 mt-1">
+                <div className="text-xs md:text-sm text-pin-gray-600 dark:text-pin-dark-600 mt-1">
                   Đang sản xuất
                 </div>
               </div>
-              <div className="p-4 rounded-lg bg-pin-gray-100 dark:bg-pin-dark-300">
-                <div className="text-2xl font-bold text-pin-gray-600 dark:text-pin-dark-600">
+              <div className="p-3 md:p-4 rounded-lg bg-pin-gray-100 dark:bg-pin-dark-300">
+                <div className="text-lg md:text-2xl font-bold text-pin-gray-600 dark:text-pin-dark-600">
                   {reportData.productionStats.pending}
                 </div>
-                <div className="text-sm text-pin-gray-600 dark:text-pin-dark-600 mt-1">
+                <div className="text-xs md:text-sm text-pin-gray-600 dark:text-pin-dark-600 mt-1">
                   Chờ sản xuất
                 </div>
               </div>

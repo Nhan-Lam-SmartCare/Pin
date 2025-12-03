@@ -5,9 +5,7 @@ import OwnerDisplay from "./common/OwnerDisplay";
 import Pagination from "./common/Pagination";
 
 const formatCurrency = (amount: number) =>
-  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
-    amount
-  );
+  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
 
 // --- Main Component ---
 interface ProductionManagerProps {
@@ -32,9 +30,7 @@ const ProductionManager: React.FC<ProductionManagerProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [detailOrder, setDetailOrder] = useState<ProductionOrder | null>(null);
-  const [completingOrderId, setCompletingOrderId] = useState<string | null>(
-    null
-  );
+  const [completingOrderId, setCompletingOrderId] = useState<string | null>(null);
   const [resumeChecked, setResumeChecked] = useState(false);
 
   useEffect(() => {
@@ -94,8 +90,7 @@ const ProductionManager: React.FC<ProductionManagerProps> = ({
     // Resume without showing the second confirmation dialog
     const beforeUnloadHandler = (e: BeforeUnloadEvent) => {
       e.preventDefault();
-      e.returnValue =
-        "Đang lưu dữ liệu sản xuất. Vui lòng chờ để tránh mất dữ liệu.";
+      e.returnValue = "Đang lưu dữ liệu sản xuất. Vui lòng chờ để tránh mất dữ liệu.";
       return e.returnValue;
     };
     (async () => {
@@ -117,8 +112,7 @@ const ProductionManager: React.FC<ProductionManagerProps> = ({
 
   const filteredOrders = useMemo(() => {
     const sortedOrders = [...orders].sort(
-      (a, b) =>
-        new Date(b.creationDate).getTime() - new Date(a.creationDate).getTime()
+      (a, b) => new Date(b.creationDate).getTime() - new Date(a.creationDate).getTime()
     );
     if (!searchTerm.trim()) {
       return sortedOrders;
@@ -198,8 +192,7 @@ const ProductionManager: React.FC<ProductionManagerProps> = ({
       const beforeUnloadHandler = (e: BeforeUnloadEvent) => {
         e.preventDefault();
         // Some browsers ignore custom text
-        e.returnValue =
-          "Đang lưu dữ liệu sản xuất. Vui lòng chờ để tránh mất dữ liệu.";
+        e.returnValue = "Đang lưu dữ liệu sản xuất. Vui lòng chờ để tránh mất dữ liệu.";
         return e.returnValue;
       };
       try {
@@ -228,38 +221,33 @@ const ProductionManager: React.FC<ProductionManagerProps> = ({
 
   return (
     <>
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6 pb-20 md:pb-0">
+        {/* Search - Mobile optimized */}
         <div className="flex justify-end">
           <input
             type="text"
             placeholder="Tìm theo tên SP hoặc mã lệnh..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full sm:w-72 p-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 dark:text-slate-100"
+            className="w-full sm:w-72 p-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 dark:text-slate-100 text-sm"
           />
         </div>
-        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200/60 dark:border-slate-700 overflow-x-auto">
+
+        {/* Desktop Table View */}
+        <div className="hidden md:block bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200/60 dark:border-slate-700 overflow-x-auto">
           <table className="w-full text-left min-w-max">
             <thead className="border-b dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50">
               <tr>
-                <th className="p-3 font-semibold text-slate-600 dark:text-slate-300">
-                  Mã Lệnh
-                </th>
-                <th className="p-3 font-semibold text-slate-600 dark:text-slate-300">
-                  Ngày tạo
-                </th>
+                <th className="p-3 font-semibold text-slate-600 dark:text-slate-300">Mã Lệnh</th>
+                <th className="p-3 font-semibold text-slate-600 dark:text-slate-300">Ngày tạo</th>
                 <th className="p-3 font-semibold text-slate-600 dark:text-slate-300">
                   Tên Thành phẩm
                 </th>
-                <th className="p-3 font-semibold text-slate-600 dark:text-slate-300">
-                  Người tạo
-                </th>
+                <th className="p-3 font-semibold text-slate-600 dark:text-slate-300">Người tạo</th>
                 <th className="p-3 font-semibold text-slate-600 dark:text-slate-300 text-center">
                   Số lượng
                 </th>
-                <th className="p-3 font-semibold text-slate-600 dark:text-slate-300">
-                  Trạng thái
-                </th>
+                <th className="p-3 font-semibold text-slate-600 dark:text-slate-300">Trạng thái</th>
                 <th className="p-3 font-semibold text-slate-600 dark:text-slate-300 text-right">
                   Tổng giá vốn
                 </th>
@@ -326,21 +314,12 @@ const ProductionManager: React.FC<ProductionManagerProps> = ({
                           alert("Vui lòng đăng nhập để thực hiện thao tác.");
                           return;
                         }
-                        updateOrder(
-                          order.id,
-                          e.target.value as ProductionOrder["status"]
-                        );
+                        updateOrder(order.id, e.target.value as ProductionOrder["status"]);
                       }}
                       disabled={
-                        order.status === "Đã hủy" ||
-                        order.status === "Hoàn thành" ||
-                        !currentUser
+                        order.status === "Đã hủy" || order.status === "Hoàn thành" || !currentUser
                       }
-                      title={
-                        !currentUser
-                          ? "Bạn phải đăng nhập để thay đổi trạng thái"
-                          : undefined
-                      }
+                      title={!currentUser ? "Bạn phải đăng nhập để thay đổi trạng thái" : undefined}
                       className={`px-2 py-1 text-xs font-semibold rounded-full border-0 focus:ring-0 focus:outline-none appearance-none ${getStatusChipClass(
                         order.status
                       )}`}
@@ -370,47 +349,40 @@ const ProductionManager: React.FC<ProductionManagerProps> = ({
                       >
                         Chi tiết
                       </button>
-                      {order.status !== "Hoàn thành" &&
-                        order.status !== "Đã hủy" && (
-                          <button
-                            onClick={() => handleCompleteOrder(order)}
-                            disabled={
-                              !currentUser || completingOrderId === order.id
-                            }
-                            className={`px-2 py-1 text-xs rounded ${
-                              !currentUser || completingOrderId === order.id
-                                ? "bg-green-200 text-green-600 cursor-not-allowed"
-                                : "bg-green-600 text-white hover:bg-green-700"
-                            }`}
-                            title={
-                              !currentUser
-                                ? "Bạn phải đăng nhập để hoàn thành lệnh"
-                                : completingOrderId === order.id
+                      {order.status !== "Hoàn thành" && order.status !== "Đã hủy" && (
+                        <button
+                          onClick={() => handleCompleteOrder(order)}
+                          disabled={!currentUser || completingOrderId === order.id}
+                          className={`px-2 py-1 text-xs rounded ${
+                            !currentUser || completingOrderId === order.id
+                              ? "bg-green-200 text-green-600 cursor-not-allowed"
+                              : "bg-green-600 text-white hover:bg-green-700"
+                          }`}
+                          title={
+                            !currentUser
+                              ? "Bạn phải đăng nhập để hoàn thành lệnh"
+                              : completingOrderId === order.id
                                 ? "Đang lưu dữ liệu..."
                                 : "Hoàn thành lệnh sản xuất - tăng tồn kho thành phẩm"
-                            }
-                          >
-                            {completingOrderId === order.id
-                              ? "Đang lưu..."
-                              : "Hoàn thành"}
-                          </button>
-                        )}
+                          }
+                        >
+                          {completingOrderId === order.id ? "Đang lưu..." : "Hoàn thành"}
+                        </button>
+                      )}
                       <button
                         onClick={() => handleCancelOrder(order)}
                         disabled={order.status === "Đã hủy" || !currentUser}
                         className={`p-1 ${
-                          !currentUser
-                            ? "text-red-300 cursor-not-allowed"
-                            : "text-red-500"
+                          !currentUser ? "text-red-300 cursor-not-allowed" : "text-red-500"
                         } disabled:text-red-500/30 disabled:cursor-not-allowed`}
                         title={
                           !currentUser
                             ? "Bạn phải đăng nhập để hủy lệnh"
                             : order.status === "Đã hủy"
-                            ? "Lệnh đã được hủy"
-                            : order.status === "Hoàn thành"
-                            ? "Tháo dỡ lệnh sản xuất"
-                            : "Hủy lệnh sản xuất"
+                              ? "Lệnh đã được hủy"
+                              : order.status === "Hoàn thành"
+                                ? "Tháo dỡ lệnh sản xuất"
+                                : "Hủy lệnh sản xuất"
                         }
                       >
                         <TrashIcon className="w-5 h-5" />
@@ -423,10 +395,110 @@ const ProductionManager: React.FC<ProductionManagerProps> = ({
           </table>
           {filteredOrders.length === 0 && (
             <div className="text-center p-8 text-slate-500 dark:text-slate-400">
-              {searchTerm
-                ? "Không tìm thấy lệnh sản xuất nào."
-                : "Chưa có lệnh sản xuất nào."}
+              {searchTerm ? "Không tìm thấy lệnh sản xuất nào." : "Chưa có lệnh sản xuất nào."}
             </div>
+          )}
+        </div>
+
+        {/* Mobile Card View */}
+        <div className="md:hidden space-y-3">
+          {paginatedOrders.length === 0 ? (
+            <div className="text-center p-8 text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 rounded-lg">
+              {searchTerm ? "Không tìm thấy lệnh sản xuất nào." : "Chưa có lệnh sản xuất nào."}
+            </div>
+          ) : (
+            paginatedOrders.map((order) => (
+              <div
+                key={order.id}
+                className={`bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200/60 dark:border-slate-700 p-3 ${
+                  order.status === "Đã hủy" ? "opacity-60" : ""
+                }`}
+              >
+                {/* Header */}
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div>
+                    <div
+                      className={`font-medium text-sm ${
+                        order.status === "Đã hủy"
+                          ? "text-slate-500 line-through"
+                          : "text-sky-600 dark:text-sky-400"
+                      }`}
+                    >
+                      {order.id}
+                    </div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">
+                      {order.creationDate}
+                    </div>
+                  </div>
+                  <span
+                    className={`px-2 py-0.5 text-xs font-semibold rounded-full ${getStatusChipClass(order.status)}`}
+                  >
+                    {order.status}
+                  </span>
+                </div>
+
+                {/* Product Name */}
+                <div
+                  className={`font-medium text-sm mb-2 ${
+                    order.status === "Đã hủy"
+                      ? "text-slate-500 line-through"
+                      : "text-slate-800 dark:text-slate-200"
+                  }`}
+                >
+                  {order.productName}
+                </div>
+
+                {/* Info Grid */}
+                <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+                  <div className="text-slate-500 dark:text-slate-400">
+                    Số lượng:{" "}
+                    <span className="font-medium text-slate-700 dark:text-slate-300">
+                      {order.quantityProduced}
+                    </span>
+                  </div>
+                  <div className="text-slate-500 dark:text-slate-400">
+                    Người tạo:{" "}
+                    <span className="font-medium text-slate-700 dark:text-slate-300">
+                      {order.userName || "N/A"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Total Cost */}
+                <div className="flex items-center justify-between pt-2 border-t dark:border-slate-700">
+                  <button
+                    onClick={() => setDetailOrder(order)}
+                    className="text-xs text-sky-600 dark:text-sky-400 font-medium"
+                  >
+                    Giá vốn: {formatCurrency(order.totalCost)}
+                  </button>
+                  <div className="flex items-center gap-2">
+                    {order.status === "Đang sản xuất" && completeOrder && (
+                      <button
+                        onClick={() => handleCompleteOrder(order)}
+                        disabled={!currentUser || completingOrderId === order.id}
+                        className={`px-2 py-1 text-xs rounded ${
+                          !currentUser || completingOrderId === order.id
+                            ? "bg-green-200 text-green-600 cursor-not-allowed"
+                            : "bg-green-600 text-white"
+                        }`}
+                      >
+                        {completingOrderId === order.id ? "..." : "Hoàn thành"}
+                      </button>
+                    )}
+                    {order.status !== "Đã hủy" && (
+                      <button
+                        onClick={() => handleCancelOrder(order)}
+                        disabled={!currentUser}
+                        className="p-1.5 text-red-500 bg-red-50 dark:bg-red-900/20 rounded"
+                      >
+                        <TrashIcon className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))
           )}
         </div>
 
@@ -444,9 +516,7 @@ const ProductionManager: React.FC<ProductionManagerProps> = ({
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 rounded-lg shadow-xl w-full max-w-2xl">
             <div className="flex items-center justify-between p-4 border-b dark:border-slate-700">
-              <h3 className="text-lg font-bold">
-                Chi tiết chi phí Lệnh {detailOrder.id}
-              </h3>
+              <h3 className="text-lg font-bold">Chi tiết chi phí Lệnh {detailOrder.id}</h3>
               <button onClick={() => setDetailOrder(null)}>
                 <XMarkIcon className="w-6 h-6" />
               </button>
@@ -465,25 +535,15 @@ const ProductionManager: React.FC<ProductionManagerProps> = ({
                 <span>{detailOrder.quantityProduced}</span>
               </div>
               <div className="border-t dark:border-slate-700 pt-3">
-                <p className="font-semibold mb-2">
-                  Chi tiết NVL (ước tính theo BOM)
-                </p>
+                <p className="font-semibold mb-2">Chi tiết NVL (ước tính theo BOM)</p>
                 <div className="space-y-1 text-sm max-h-48 overflow-y-auto pr-2">
-                  {(
-                    boms.find((b) => b.id === detailOrder.bomId)?.materials ||
-                    []
-                  ).map((m) => {
-                    const matInfo = materials.find(
-                      (mm) => mm.id === m.materialId
-                    );
-                    const required =
-                      (m.quantity || 0) * (detailOrder.quantityProduced || 0);
+                  {(boms.find((b) => b.id === detailOrder.bomId)?.materials || []).map((m) => {
+                    const matInfo = materials.find((mm) => mm.id === m.materialId);
+                    const required = (m.quantity || 0) * (detailOrder.quantityProduced || 0);
                     const unitCost = matInfo?.purchasePrice || 0;
                     return (
                       <div key={m.materialId} className="flex justify-between">
-                        <span className="truncate mr-2">
-                          {matInfo?.name || m.materialId}
-                        </span>
+                        <span className="truncate mr-2">{matInfo?.name || m.materialId}</span>
                         <span>
                           {required} x {formatCurrency(unitCost)} ={" "}
                           <strong>{formatCurrency(required * unitCost)}</strong>

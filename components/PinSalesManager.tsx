@@ -544,77 +544,86 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
             />
 
             {/* Category Filter */}
-            <div className="flex gap-2 mb-4">
+            <div className="flex gap-1 md:gap-2 mb-3 md:mb-4 overflow-x-auto pb-1">
               <button
                 onClick={() => setSalesCategory("all")}
-                className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
+                className={`px-2 md:px-3 py-1 text-[10px] md:text-xs font-medium rounded-full transition-colors whitespace-nowrap ${
                   salesCategory === "all"
                     ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
                     : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
                 }`}
               >
-                🏪 Tất cả ({availableItems.length})
+                🏪 <span className="hidden md:inline">Tất cả</span> ({availableItems.length})
               </button>
               <button
                 onClick={() => setSalesCategory("products")}
-                className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
+                className={`px-2 md:px-3 py-1 text-[10px] md:text-xs font-medium rounded-full transition-colors whitespace-nowrap ${
                   salesCategory === "products"
                     ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
                     : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
                 }`}
               >
-                📱 Thành phẩm ({products.filter((p) => p.stock > 0).length})
+                📱 <span className="hidden md:inline">Thành phẩm</span>
+                <span className="md:hidden">TP</span> ({products.filter((p) => p.stock > 0).length})
               </button>
               <button
                 onClick={() => setSalesCategory("materials")}
-                className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
+                className={`px-2 md:px-3 py-1 text-[10px] md:text-xs font-medium rounded-full transition-colors whitespace-nowrap ${
                   salesCategory === "materials"
                     ? "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200"
                     : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
                 }`}
               >
-                📦 Nguyên liệu (
+                📦 <span className="hidden md:inline">Nguyên liệu</span>
+                <span className="md:hidden">NVL</span> (
                 {(pinMaterials || []).filter((m: PinMaterial) => (m.stock || 0) > 0).length})
               </button>
             </div>
             <div className="flex-1 overflow-y-auto pr-2 -mr-2">
               {availableProducts.length > 0 ? (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-2 md:gap-3">
                   {availableProducts.map((product: PinProduct & { type?: string }) => (
                     <div
                       key={product.id}
-                      className="bg-white dark:bg-slate-800 p-4 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-sky-500 dark:hover:border-sky-400 hover:bg-sky-50/50 dark:hover:bg-sky-900/20 transition-colors duration-150 h-fit"
+                      className="bg-white dark:bg-slate-800 p-2 md:p-4 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-sky-500 dark:hover:border-sky-400 hover:bg-sky-50/50 dark:hover:bg-sky-900/20 transition-colors duration-150 h-fit"
                     >
                       {/* Header with name and type badge */}
-                      <div className="flex items-start justify-between gap-2 mb-3">
-                        <h3 className="font-semibold text-slate-800 dark:text-slate-100 group-hover:text-sky-700 dark:group-hover:text-sky-300 text-sm leading-tight flex-1">
+                      <div className="flex items-start justify-between gap-1 md:gap-2 mb-2 md:mb-3">
+                        <h3 className="font-semibold text-slate-800 dark:text-slate-100 group-hover:text-sky-700 dark:group-hover:text-sky-300 text-xs md:text-sm leading-tight flex-1 line-clamp-2">
                           {product.name}
                         </h3>
                         <span
-                          className={`px-2 py-0.5 text-xs font-medium rounded-full flex-shrink-0 ${
+                          className={`px-1.5 md:px-2 py-0.5 text-[10px] md:text-xs font-medium rounded-full flex-shrink-0 ${
                             (product as any).type === "material"
                               ? "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300"
                               : "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
                           }`}
                         >
-                          {(product as any).type === "material" ? "📦 NVL" : "📱 TP"}
+                          <span className="hidden md:inline">
+                            {(product as any).type === "material" ? "📦 NVL" : "📱 TP"}
+                          </span>
+                          <span className="md:hidden">
+                            {(product as any).type === "material" ? "📦" : "📱"}
+                          </span>
                         </span>
                       </div>
 
                       {/* SKU */}
-                      <p className="text-xs font-mono text-slate-600 dark:text-slate-400 mb-3 bg-slate-50 dark:bg-slate-700/50 px-2 py-1 rounded">
-                        SKU: {product.sku}
+                      <p className="text-[10px] md:text-xs font-mono text-slate-600 dark:text-slate-400 mb-2 md:mb-3 bg-slate-50 dark:bg-slate-700/50 px-1.5 md:px-2 py-0.5 md:py-1 rounded truncate">
+                        <span className="hidden md:inline">SKU: </span>
+                        {product.sku}
                       </p>
 
                       {/* Price and Stock */}
-                      <div className="space-y-2 mb-4">
+                      <div className="space-y-1 md:space-y-2 mb-2 md:mb-4">
                         {/* Luôn hiển thị giá cho cả material và product */}
                         <div className="flex items-center justify-between">
-                          <span className="flex items-center gap-1 text-xs text-slate-600 dark:text-slate-400">
-                            <BanknotesIcon className="w-3.5 h-3.5" />
-                            Giá lẻ
+                          <span className="flex items-center gap-0.5 md:gap-1 text-[10px] md:text-xs text-slate-600 dark:text-slate-400">
+                            <BanknotesIcon className="w-3 h-3 md:w-3.5 md:h-3.5" />
+                            <span className="hidden md:inline">Giá lẻ</span>
+                            <span className="md:hidden">Lẻ</span>
                           </span>
-                          <span className="font-semibold text-slate-800 dark:text-slate-100">
+                          <span className="font-semibold text-slate-800 dark:text-slate-100 text-xs md:text-sm">
                             {formatCurrency(
                               (product as any).retailPrice ?? product.sellingPrice ?? 0
                             )}
@@ -624,11 +633,12 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
                         {/* Hiển thị giá sỉ nếu có */}
                         {((product as any).wholesalePrice || 0) > 0 && (
                           <div className="flex items-center justify-between">
-                            <span className="flex items-center gap-1 text-xs text-slate-600 dark:text-slate-400">
-                              <BanknotesIcon className="w-3.5 h-3.5" />
-                              Giá sỉ
+                            <span className="flex items-center gap-0.5 md:gap-1 text-[10px] md:text-xs text-slate-600 dark:text-slate-400">
+                              <BanknotesIcon className="w-3 h-3 md:w-3.5 md:h-3.5" />
+                              <span className="hidden md:inline">Giá sỉ</span>
+                              <span className="md:hidden">Sỉ</span>
                             </span>
-                            <span className="font-semibold text-slate-800 dark:text-slate-100">
+                            <span className="font-semibold text-slate-800 dark:text-slate-100 text-xs md:text-sm">
                               {formatCurrency((product as any).wholesalePrice || 0)}
                             </span>
                           </div>
@@ -636,28 +646,30 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
 
                         {/* Tồn kho */}
                         <div className="flex items-center justify-between">
-                          <span className="flex items-center gap-1 text-xs text-slate-600 dark:text-slate-400">
-                            <ArchiveBoxIcon className="w-3.5 h-3.5" />
-                            Tồn kho
+                          <span className="flex items-center gap-0.5 md:gap-1 text-[10px] md:text-xs text-slate-600 dark:text-slate-400">
+                            <ArchiveBoxIcon className="w-3 h-3 md:w-3.5 md:h-3.5" />
+                            <span className="hidden md:inline">Tồn kho</span>
+                            <span className="md:hidden">Kho</span>
                           </span>
-                          <span className="font-semibold text-slate-800 dark:text-slate-100">
+                          <span className="font-semibold text-slate-800 dark:text-slate-100 text-xs md:text-sm">
                             {product.stock}
                           </span>
                         </div>
                       </div>
 
                       {/* Add buttons - Retail and Wholesale */}
-                      <div className="flex items-center gap-2 w-full">
+                      <div className="flex items-center gap-1 md:gap-2 w-full">
                         {/* Nút bán lẻ */}
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             addToCart(product, "retail");
                           }}
-                          className="flex-1 bg-green-600 hover:bg-green-700 text-white rounded-lg px-3 py-2 flex items-center justify-center gap-2 transition-colors text-sm font-medium"
+                          className="flex-1 bg-green-600 hover:bg-green-700 text-white rounded-lg px-2 md:px-3 py-1.5 md:py-2 flex items-center justify-center gap-1 md:gap-2 transition-colors text-xs md:text-sm font-medium"
                         >
-                          <PlusIcon className="w-4 h-4" />
-                          <span>Bán lẻ</span>
+                          <PlusIcon className="w-3 h-3 md:w-4 md:h-4" />
+                          <span className="hidden md:inline">Bán lẻ</span>
+                          <span className="md:hidden">Lẻ</span>
                         </button>
 
                         {/* Nút bán sỉ - chỉ hiển thị nếu có giá sỉ */}
@@ -667,10 +679,11 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
                               e.stopPropagation();
                               addToCart(product, "wholesale");
                             }}
-                            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-2 flex items-center justify-center gap-2 transition-colors text-sm font-medium"
+                            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-2 md:px-3 py-1.5 md:py-2 flex items-center justify-center gap-1 md:gap-2 transition-colors text-xs md:text-sm font-medium"
                           >
-                            <PlusIcon className="w-4 h-4" />
-                            <span>Bán sỉ</span>
+                            <PlusIcon className="w-3 h-3 md:w-4 md:h-4" />
+                            <span className="hidden md:inline">Bán sỉ</span>
+                            <span className="md:hidden">Sỉ</span>
                           </button>
                         )}
                       </div>
@@ -1275,9 +1288,74 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
       )}
 
       {activeTab === "history" && (
-        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200/60 dark:border-slate-700 p-4">
-          <h3 className="text-lg font-bold mb-4">Lịch sử bán hàng (50 gần nhất)</h3>
-          <div className="overflow-x-auto">
+        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200/60 dark:border-slate-700 p-2 md:p-4">
+          <h3 className="text-base md:text-lg font-bold mb-3 md:mb-4">
+            Lịch sử bán hàng (50 gần nhất)
+          </h3>
+
+          {/* Mobile view - Cards */}
+          <div className="md:hidden space-y-2">
+            {recentSales.length === 0 && (
+              <div className="p-4 text-center text-slate-500">Chưa có hoá đơn nào.</div>
+            )}
+            {recentSales.map((s: PinSale) => (
+              <div
+                key={s.id}
+                className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-3 border border-slate-200 dark:border-slate-600"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-slate-500">
+                    {new Date(s.date).toLocaleString("vi-VN")}
+                  </span>
+                  <span className="font-bold text-sm text-green-600 dark:text-green-400">
+                    {formatCurrency(s.total)}
+                  </span>
+                </div>
+                <div className="text-sm font-medium text-slate-800 dark:text-slate-100 mb-1">
+                  {s.customer?.name || "Khách lẻ"}
+                </div>
+                <div className="text-xs text-slate-600 dark:text-slate-400 mb-2 line-clamp-2">
+                  {(s.items || []).map((it: PinCartItem) => `${it.sku} x${it.quantity}`).join(", ")}
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button
+                    onClick={() => {
+                      setLastSaleData(s);
+                      setIsReceiptVisible(true);
+                    }}
+                    className="p-1.5 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30 rounded"
+                  >
+                    <PrinterIcon className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => openEdit(s)}
+                    disabled={!currentUser}
+                    className={`p-1.5 rounded ${currentUser ? "text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-900/30" : "text-slate-400 cursor-not-allowed"}`}
+                  >
+                    <PencilSquareIcon className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (!currentUser) {
+                        alert("Vui lòng đăng nhập");
+                        return;
+                      }
+                      if (window.confirm("Xoá hoá đơn này?")) {
+                        await deletePinSale(s.id);
+                      }
+                    }}
+                    disabled={!currentUser}
+                    className={`p-1.5 rounded ${currentUser ? "text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30" : "text-red-300 cursor-not-allowed"}`}
+                  >
+                    <TrashIcon className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop view - Table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left min-w-max">
               <thead className="border-b dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50">
                 <tr>
