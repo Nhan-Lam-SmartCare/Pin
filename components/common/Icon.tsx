@@ -15,6 +15,7 @@ import {
   Cube,
   CurrencyDollarSimple,
   DeviceMobile,
+  DotsThreeVertical,
   Gear,
   IdentificationCard,
   Info,
@@ -85,6 +86,7 @@ export const ICON_REGISTRY = {
   "warning-circle": WarningCircle,
   "check-circle": CheckCircle,
   "x-circle": XCircle,
+  "dots-three-vertical": DotsThreeVertical,
 } as const satisfies Record<string, PhosphorIconComponent>;
 
 export type IconName = keyof typeof ICON_REGISTRY;
@@ -143,11 +145,7 @@ export const Icon: React.FC<StandardIconProps> = ({
       {...props}
       weight={weight}
       size={sizeValues[size]}
-      className={cn(
-        "shrink-0",
-        tone ? toneClasses[tone] : undefined,
-        className
-      )}
+      className={cn("shrink-0", tone ? toneClasses[tone] : undefined, className)}
     />
   );
 };

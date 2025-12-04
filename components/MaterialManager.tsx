@@ -3841,16 +3841,28 @@ const MaterialManager: React.FC<{
   const uniqueSuppliers = [...new Set(materials.map((m) => m.supplier).filter(Boolean))];
   const uniqueUnits = [...new Set(materials.map((m) => m.unit).filter(Boolean))];
 
+  // Helper function to get supplier phone from suppliers list
+  const getSupplierPhone = (supplierName: string | undefined): string | undefined => {
+    if (!supplierName) return undefined;
+    const supplier = suppliers.find((s) => s.name?.toLowerCase() === supplierName.toLowerCase());
+    return supplier?.phone;
+  };
+
   // Advanced filtering and sorting
   const filteredMaterials = enhancedMaterials
     .filter((material) => {
+      // Get supplier phone for this material
+      const supplierPhone =
+        (material as any).supplierphone ||
+        (material as any).supplierPhone ||
+        getSupplierPhone(material.supplier) ||
+        "";
+
       const matchesSearch =
         material.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         material.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         material.supplier?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        ((material as any).supplierphone || (material as any).supplierPhone || "")
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase());
+        supplierPhone.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesSupplier = !supplierFilter || material.supplier === supplierFilter;
 
@@ -3868,6 +3880,14 @@ const MaterialManager: React.FC<{
 
       return matchesSearch && matchesSupplier && matchesStock && matchesUnit;
     })
+    .map((material) => ({
+      ...material,
+      // Enrich material with supplier phone from suppliers list
+      supplierPhone:
+        (material as any).supplierphone ||
+        (material as any).supplierPhone ||
+        getSupplierPhone(material.supplier),
+    }))
     .sort((a, b) => {
       if (!sortBy) return 0;
 
@@ -4240,9 +4260,6 @@ const MaterialManager: React.FC<{
                         </div>
                       </th>
                       <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-800 dark:text-gray-200">
-                        SKU
-                      </th>
-                      <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-800 dark:text-gray-200">
                         Đơn vị
                       </th>
                       <th
@@ -4276,9 +4293,6 @@ const MaterialManager: React.FC<{
                       <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-800 dark:text-gray-200">
                         Nhà cung cấp
                       </th>
-                      <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-800 dark:text-gray-200">
-                        SĐT NCC
-                      </th>
                       <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-800 dark:text-gray-200">
                         Thao tác
                       </th>
@@ -4288,7 +4302,7 @@ const MaterialManager: React.FC<{
                     {filteredMaterials.length === 0 ? (
                       <tr>
                         <td
-                          colSpan={11}
+                          colSpan={9}
                           className="px-4 py-8 text-center text-gray-500 dark:text-gray-400"
                         >
                           {loading ? (
@@ -4319,16 +4333,18 @@ const MaterialManager: React.FC<{
                               className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
                             />
                           </td>
-                          <td className="px-3 py-2 font-medium text-sm text-gray-900 dark:text-white">
+                          <td className="px-3 py-2">
                             <button
                               onClick={() => handleShowMaterialDetail(material)}
                               className="hover:text-cyan-500 dark:hover:text-cyan-400 transition-colors cursor-pointer text-left"
                             >
-                              {material.name}
+                              <div className="font-medium text-sm text-gray-900 dark:text-white">
+                                {material.name}
+                              </div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400 font-mono mt-0.5">
+                                {material.sku}
+                              </div>
                             </button>
-                          </td>
-                          <td className="px-3 py-2 text-xs text-gray-600 dark:text-gray-300 font-mono bg-gray-50 dark:bg-gray-700/50">
-                            {material.sku}
                           </td>
                           <td className="px-3 py-2 text-sm text-gray-700 dark:text-gray-300">
                             {material.unit}
@@ -4399,48 +4415,70 @@ const MaterialManager: React.FC<{
                               );
                             })()}
                           </td>
-                          <td className="px-3 py-2 text-sm text-gray-700 dark:text-gray-300">
-                            {material.supplier || "-"}
-                          </td>
-                          <td className="px-3 py-2 text-sm text-gray-600 dark:text-gray-400">
-                            {(material as any).supplierphone ||
-                              (material as any).supplierPhone ||
-                              "-"}
+                          <td className="px-3 py-2">
+                            {material.supplier ? (
+                              <div>
+                                <div className="text-sm text-gray-700 dark:text-gray-300">
+                                  {material.supplier}
+                                </div>
+                                {material.supplierPhone && (
+                                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                    {material.supplierPhone}
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
                           </td>
                           <td className="px-3 py-2">
-                            <div className="flex justify-center gap-1">
-                              <button
-                                onClick={() => handleShowStockAdjustment(material)}
-                                className="h-7 w-7 rounded-full flex items-center justify-center ring-1 ring-inset ring-slate-200 dark:ring-slate-600 bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 transition-all"
-                                title="Điều chỉnh tồn kho"
-                              >
-                                <Icon name="gear" weight="bold" className="w-4 h-4 text-teal-400" />
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setSelectedMaterialForEdit(material);
-                                  setShowEditModal(true);
-                                }}
-                                className="h-7 w-7 rounded-full flex items-center justify-center ring-1 ring-inset ring-slate-200 dark:ring-slate-600 bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 transition-all"
-                                title="Chỉnh sửa thông tin"
-                              >
-                                <Icon
-                                  name="pencil"
-                                  weight="bold"
-                                  className="w-4 h-4 text-amber-400"
-                                />
-                              </button>
-                              <button
-                                onClick={() => deleteMaterial(material.id)}
-                                className="h-7 w-7 rounded-full flex items-center justify-center ring-1 ring-inset ring-slate-200 dark:ring-slate-600 bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 transition-all"
-                                title="Xóa"
-                              >
-                                <Icon
-                                  name="trash"
-                                  weight="bold"
-                                  className="w-4 h-4 text-rose-400"
-                                />
-                              </button>
+                            <div className="flex justify-center">
+                              <div className="relative group">
+                                <button
+                                  className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"
+                                  title="Thao tác"
+                                >
+                                  <Icon
+                                    name="dots-three-vertical"
+                                    weight="bold"
+                                    className="w-5 h-5 text-slate-500 dark:text-slate-400"
+                                  />
+                                </button>
+                                <div className="absolute right-0 top-full mt-1 w-40 py-1 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-600 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                                  <button
+                                    onClick={() => handleShowStockAdjustment(material)}
+                                    className="w-full px-3 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2"
+                                  >
+                                    <Icon
+                                      name="gear"
+                                      weight="bold"
+                                      className="w-4 h-4 text-teal-500"
+                                    />
+                                    Điều chỉnh kho
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setSelectedMaterialForEdit(material);
+                                      setShowEditModal(true);
+                                    }}
+                                    className="w-full px-3 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2"
+                                  >
+                                    <Icon
+                                      name="pencil"
+                                      weight="bold"
+                                      className="w-4 h-4 text-amber-500"
+                                    />
+                                    Chỉnh sửa
+                                  </button>
+                                  <button
+                                    onClick={() => deleteMaterial(material.id)}
+                                    className="w-full px-3 py-2 text-left text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 flex items-center gap-2"
+                                  >
+                                    <Icon name="trash" weight="bold" className="w-4 h-4" />
+                                    Xóa
+                                  </button>
+                                </div>
+                              </div>
                             </div>
                           </td>
                         </tr>
