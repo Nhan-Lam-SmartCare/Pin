@@ -33,13 +33,27 @@ const generateMaterialSKU = (
   const mm = String(today.getMonth() + 1).padStart(2, "0");
   const yyyy = today.getFullYear();
   const dateStr = `${dd}${mm}${yyyy}`;
-  const todayPrefix = `NL-${dateStr}`;
-  // Count existing materials with today's prefix
-  const countExisting = existingMaterials.filter((m) => m.sku?.startsWith(todayPrefix)).length;
-  // Count additional SKUs in current session (e.g., from receiptItems)
-  const countAdditional = additionalSkus.filter((sku) => sku?.startsWith(todayPrefix)).length;
-  const sequence = String(countExisting + countAdditional + 1).padStart(3, "0");
-  return `NL-${dateStr}-${sequence}`;
+  const todayPrefix = `NL-${dateStr}-`;
+
+  // Collect all existing SKUs with today's prefix
+  const allSkus = [
+    ...existingMaterials.map((m) => m.sku).filter((sku) => sku?.startsWith(todayPrefix)),
+    ...additionalSkus.filter((sku) => sku?.startsWith(todayPrefix)),
+  ];
+
+  // Extract sequence numbers from existing SKUs
+  const existingNumbers = allSkus
+    .map((sku) => {
+      const match = sku?.match(new RegExp(`^${todayPrefix}(\\d+)$`));
+      return match ? parseInt(match[1], 10) : 0;
+    })
+    .filter((n) => n > 0);
+
+  // Get max sequence number and increment
+  const maxSequence = existingNumbers.length > 0 ? Math.max(...existingNumbers) : 0;
+  const newSequence = String(maxSequence + 1).padStart(3, "0");
+
+  return `NL-${dateStr}-${newSequence}`;
 };
 
 interface ReceiptItem {

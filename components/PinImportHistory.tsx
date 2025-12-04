@@ -135,14 +135,22 @@ const PinImportHistory: React.FC = () => {
       currency: "VND",
     }).format(n);
 
-  const fmtDateTime = (iso: string) =>
-    new Date(iso).toLocaleString("vi-VN", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+  const fmtDateTime = (iso: string) => {
+    const date = new Date(iso);
+    // Format: dd/mm/yyyy HH:mm (chỉ hiện giờ nếu không phải 00:00 hoặc 07:00 - timezone default)
+    const day = date.getDate().toString().padStart(2, "0");
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const year = date.getFullYear();
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+
+    // Nếu giờ là 00:00 hoặc 07:00 (thường là timezone default), chỉ hiển thị ngày
+    if ((hours === 0 && minutes === 0) || (hours === 7 && minutes === 0)) {
+      return `${day}/${month}/${year}`;
+    }
+
+    return `${day}/${month}/${year} ${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`;
+  };
 
   return (
     <div className="flex flex-col h-full bg-white dark:bg-gray-900">

@@ -11,19 +11,37 @@ import MaterialImportModal, { ImportRow } from "./MaterialImportModal";
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
 
-// Generate SKU theo format: NL-ddmmyyyy-số
-const generateMaterialSKU = (existingMaterials: PinMaterial[] = []) => {
+// Generate SKU theo format: NL-ddmmyyyy-số (đảm bảo unique)
+const generateMaterialSKU = (
+  existingMaterials: PinMaterial[] = [],
+  additionalSkus: string[] = []
+) => {
   const today = new Date();
   const dd = String(today.getDate()).padStart(2, "0");
   const mm = String(today.getMonth() + 1).padStart(2, "0");
   const yyyy = today.getFullYear();
   const dateStr = `${dd}${mm}${yyyy}`;
-  // Đếm số SKU có cùng ngày
-  const todayPrefix = `NL-${dateStr}`;
-  const countToday = existingMaterials.filter((m) => m.sku?.startsWith(todayPrefix)).length;
+  const todayPrefix = `NL-${dateStr}-`;
 
-  const sequence = String(countToday + 1).padStart(3, "0");
-  return `NL-${dateStr}-${sequence}`;
+  // Collect all existing SKUs with today's prefix
+  const allSkus = [
+    ...existingMaterials.map((m) => m.sku).filter((sku) => sku?.startsWith(todayPrefix)),
+    ...additionalSkus.filter((sku) => sku?.startsWith(todayPrefix)),
+  ];
+
+  // Extract sequence numbers from existing SKUs
+  const existingNumbers = allSkus
+    .map((sku) => {
+      const match = sku?.match(new RegExp(`^${todayPrefix}(\\d+)$`));
+      return match ? parseInt(match[1], 10) : 0;
+    })
+    .filter((n) => n > 0);
+
+  // Get max sequence number and increment
+  const maxSequence = existingNumbers.length > 0 ? Math.max(...existingNumbers) : 0;
+  const newSequence = String(maxSequence + 1).padStart(3, "0");
+
+  return `NL-${dateStr}-${newSequence}`;
 };
 
 const generateId = () => `M${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
