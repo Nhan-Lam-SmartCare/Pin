@@ -24,36 +24,33 @@ const generateUniqueId = (prefix = "") => {
   return `${prefix}${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 };
 
+// Generate SKU theo format: NL-XXXXXXXX (8 ký tự ngẫu nhiên)
 const generateMaterialSKU = (
   existingMaterials: PinMaterial[] = [],
   additionalSkus: string[] = []
 ) => {
-  const today = new Date();
-  const dd = String(today.getDate()).padStart(2, "0");
-  const mm = String(today.getMonth() + 1).padStart(2, "0");
-  const yyyy = today.getFullYear();
-  const dateStr = `${dd}${mm}${yyyy}`;
-  const todayPrefix = `NL-${dateStr}-`;
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  const generateRandomCode = () => {
+    let result = "";
+    for (let i = 0; i < 8; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return `NL-${result}`;
+  };
 
-  // Collect all existing SKUs with today's prefix
-  const allSkus = [
-    ...existingMaterials.map((m) => m.sku).filter((sku) => sku?.startsWith(todayPrefix)),
-    ...additionalSkus.filter((sku) => sku?.startsWith(todayPrefix)),
-  ];
+  const allSkus = new Set([
+    ...existingMaterials.map((m) => m.sku).filter(Boolean),
+    ...additionalSkus.filter(Boolean),
+  ]);
 
-  // Extract sequence numbers from existing SKUs
-  const existingNumbers = allSkus
-    .map((sku) => {
-      const match = sku?.match(new RegExp(`^${todayPrefix}(\\d+)$`));
-      return match ? parseInt(match[1], 10) : 0;
-    })
-    .filter((n) => n > 0);
+  let newSku = generateRandomCode();
+  let attempts = 0;
+  while (allSkus.has(newSku) && attempts < 100) {
+    newSku = generateRandomCode();
+    attempts++;
+  }
 
-  // Get max sequence number and increment
-  const maxSequence = existingNumbers.length > 0 ? Math.max(...existingNumbers) : 0;
-  const newSequence = String(maxSequence + 1).padStart(3, "0");
-
-  return `NL-${dateStr}-${newSequence}`;
+  return newSku;
 };
 
 interface ReceiptItem {

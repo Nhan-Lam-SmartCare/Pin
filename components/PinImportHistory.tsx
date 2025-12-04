@@ -44,6 +44,7 @@ const PinImportHistory: React.FC = () => {
   const [rows, setRows] = useState<ImportHistoryRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
@@ -62,6 +63,26 @@ const PinImportHistory: React.FC = () => {
     notes: "",
   });
   const [isSaving, setIsSaving] = useState(false);
+
+  // Generate random SKU (NL-XXXXXXXX)
+  const generateNewSKU = (existingSkus: Set<string>) => {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    const generateRandomCode = () => {
+      let result = "";
+      for (let i = 0; i < 8; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return `NL-${result}`;
+    };
+
+    let newSku = generateRandomCode();
+    let attempts = 0;
+    while (existingSkus.has(newSku) && attempts < 100) {
+      newSku = generateRandomCode();
+      attempts++;
+    }
+    return newSku;
+  };
 
   const fetchRows = async () => {
     setIsLoading(true);
@@ -180,6 +201,108 @@ const PinImportHistory: React.FC = () => {
     }
   };
 
+  // Regenerate ALL SKUs with new format
+  const handleRegenerateAllSKUs = async () => {
+    if (
+      !confirm(
+        `Bạn có chắc muốn TẠO LẠI TẤT CẢ mã SKU?\n\n` +
+          `✅ SKU mới sẽ theo format: NL-XXXXXXXX (8 ký tự ngẫu nhiên)\n` +
+          `✅ Đảm bảo không trùng lặp\n` +
+          `⚠️ SKU cũ sẽ bị thay thế hoàn toàn\n` +
+          `⚠️ Cập nhật cả Lịch sử và Danh sách vật liệu`
+      )
+    )
+      return;
+
+    try {
+      setIsLoading(true);
+      setError(null);
+      setSuccessMessage(null);
+
+      const usedSkus = new Set<string>();
+      let historyUpdated = 0;
+      let materialsUpdated = 0;
+
+      // 1. First, get ALL materials from pin_materials
+      const { data: allMaterials, error: fetchMatErr } = await supabase
+        .from("pin_materials")
+        .select("id, sku, name");
+
+      if (fetchMatErr) {
+        console.error("Lỗi lấy danh sách materials:", fetchMatErr.message);
+      }
+
+      // 2. Update all materials in pin_materials table
+      if (allMaterials && allMaterials.length > 0) {
+        for (const mat of allMaterials) {
+          const newSku = generateNewSKU(usedSkus);
+          usedSkus.add(newSku);
+
+          const { error: matErr } = await supabase
+            .from("pin_materials")
+            .update({ sku: newSku })
+            .eq("id", mat.id);
+
+          if (!matErr) {
+            materialsUpdated++;
+
+            // Also update all history records that reference this material
+            const { error: histErr } = await supabase
+              .from("pin_material_history")
+              .update({ material_sku: newSku })
+              .eq("material_id", mat.id);
+
+            if (!histErr) {
+              // Count how many history records were updated
+              const { count } = await supabase
+                .from("pin_material_history")
+                .select("*", { count: "exact", head: true })
+                .eq("material_id", mat.id);
+              historyUpdated += count || 0;
+            }
+          } else {
+            console.error(`Lỗi cập nhật material ${mat.id}:`, matErr.message);
+          }
+        }
+      }
+
+      // 3. Update any remaining history records without material_id (orphans)
+      const { data: orphanHistory } = await supabase
+        .from("pin_material_history")
+        .select("id")
+        .or("material_id.is.null,material_id.eq.");
+
+      if (orphanHistory && orphanHistory.length > 0) {
+        for (const hist of orphanHistory) {
+          const newSku = generateNewSKU(usedSkus);
+          usedSkus.add(newSku);
+
+          const { error: histErr } = await supabase
+            .from("pin_material_history")
+            .update({ material_sku: newSku })
+            .eq("id", hist.id);
+
+          if (!histErr) {
+            historyUpdated++;
+          }
+        }
+      }
+
+      setSuccessMessage(
+        `✅ Đã cập nhật:\n` +
+          `• ${materialsUpdated} vật liệu trong Danh sách\n` +
+          `• ${historyUpdated} bản ghi trong Lịch sử`
+      );
+
+      // Refresh data
+      await fetchRows();
+    } catch (e: any) {
+      setError((e?.message || String(e)) + " — Lỗi khi tạo lại SKU");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const suppliers = useMemo(() => {
     const set = new Set<string>();
     rows.forEach((r) => r.supplier && set.add(r.supplier));
@@ -254,6 +377,11 @@ const PinImportHistory: React.FC = () => {
           Lỗi: {error}
         </div>
       )}
+      {successMessage && (
+        <div className="p-2 md:p-3 text-xs md:text-sm text-green-800 bg-green-100 border-b border-green-300 dark:text-green-200 dark:bg-green-900/30 dark:border-green-800">
+          {successMessage}
+        </div>
+      )}
 
       {/* Filters + actions */}
       <div className="p-3 md:p-4 bg-gray-50 border-b border-gray-200 dark:bg-gray-800 dark:border-gray-700 space-y-2 md:space-y-3">
@@ -290,7 +418,15 @@ const PinImportHistory: React.FC = () => {
             className="px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={handleRegenerateAllSKUs}
+            disabled={isLoading || rows.length === 0}
+            className="px-2.5 md:px-3 py-1.5 md:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-xs md:text-sm font-medium"
+            title="Tạo lại tất cả mã SKU theo format mới (NL-XXXXXXXX)"
+          >
+            🔄 Tạo lại tất cả SKU
+          </button>
           <button
             onClick={async () => {
               if (
@@ -563,10 +699,10 @@ const PinImportHistory: React.FC = () => {
                   value={editForm.materialSku}
                   onChange={(e) => setEditForm({ ...editForm, materialSku: e.target.value })}
                   className="w-full px-3 py-2 text-sm bg-yellow-50 dark:bg-yellow-900/20 text-gray-900 dark:text-white rounded-lg border-2 border-yellow-400 dark:border-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500 font-mono"
-                  placeholder="VD: NL-04122025-011"
+                  placeholder="VD: NL-A1B2C3D4"
                 />
                 <p className="mt-1 text-xs text-yellow-600 dark:text-yellow-400">
-                  ⚠️ Sửa SKU nếu bị trùng
+                  ⚠️ Format mới: NL-XXXXXXXX (8 ký tự)
                 </p>
               </div>
 
