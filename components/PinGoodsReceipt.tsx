@@ -675,7 +675,7 @@ const PinGoodsReceiptNew: React.FC<PinGoodsReceiptNewProps> = ({
       purchasePrice: product.purchasePrice,
       retailPrice: product.retailPrice || product.purchasePrice * 1.2,
       wholesalePrice: product.wholesalePrice || product.purchasePrice * 1.1,
-      isNew: false,
+      isNew: true, // ✅ Sản phẩm mới cần được insert vào database
     };
     setReceiptItems((prev) => [...prev, newItem]);
   };

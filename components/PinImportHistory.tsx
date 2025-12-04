@@ -34,6 +34,7 @@ const PinImportHistory: React.FC = () => {
   const [rows, setRows] = useState<ImportHistoryRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
@@ -87,6 +88,123 @@ const PinImportHistory: React.FC = () => {
       setError(
         (e?.message || String(e)) + " — cần quyền DELETE/RLS policy cho pin_material_history"
       );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Đồng bộ sản phẩm từ Lịch sử sang Danh sách
+  const handleSyncMissingMaterials = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      setSuccessMessage(null);
+
+      // 1. Lấy tất cả materials hiện có
+      const { data: existingMaterials, error: matErr } = await supabase
+        .from("pin_materials")
+        .select("name, sku");
+
+      if (matErr) throw matErr;
+
+      const existingNames = new Set(
+        (existingMaterials || []).map((m: any) => m.name?.toLowerCase().trim())
+      );
+      const existingSkus = new Set(
+        (existingMaterials || []).map((m: any) => m.sku?.toLowerCase().trim())
+      );
+
+      // 2. Tìm các sản phẩm trong lịch sử nhưng không có trong danh sách
+      // Group by material name để tính tổng stock
+      const historyByName = new Map<
+        string,
+        {
+          name: string;
+          sku: string;
+          totalQty: number;
+          lastPrice: number;
+          supplier: string;
+        }
+      >();
+
+      for (const row of rows) {
+        const normalizedName = row.materialName?.toLowerCase().trim() || "";
+        if (!normalizedName) continue;
+
+        // Kiểm tra xem đã có trong danh sách chưa
+        if (existingNames.has(normalizedName)) continue;
+        if (row.materialSku && existingSkus.has(row.materialSku.toLowerCase().trim())) continue;
+
+        // Cộng dồn số lượng theo tên
+        const existing = historyByName.get(normalizedName);
+        if (existing) {
+          existing.totalQty += row.quantity;
+          // Cập nhật giá mới nhất
+          if (row.purchasePrice > 0) {
+            existing.lastPrice = row.purchasePrice;
+          }
+        } else {
+          historyByName.set(normalizedName, {
+            name: row.materialName,
+            sku: row.materialSku || `NL-${Math.random().toString(36).substr(2, 8).toUpperCase()}`,
+            totalQty: row.quantity,
+            lastPrice: row.purchasePrice,
+            supplier: row.supplier || "",
+          });
+        }
+      }
+
+      if (historyByName.size === 0) {
+        setSuccessMessage("✅ Không có sản phẩm nào bị thiếu - Danh sách đã đồng bộ!");
+        return;
+      }
+
+      // 3. Insert các sản phẩm bị thiếu
+      let insertedCount = 0;
+      const errors: string[] = [];
+
+      for (const [, data] of historyByName) {
+        try {
+          const { error: insertErr } = await supabase.from("pin_materials").insert({
+            name: data.name,
+            sku: data.sku,
+            unit: "cái",
+            purchase_price: data.lastPrice,
+            retail_price: Math.round(data.lastPrice * 1.4),
+            wholesale_price: Math.round(data.lastPrice * 1.2),
+            stock: data.totalQty,
+            committed_quantity: 0,
+            supplier: data.supplier || null,
+            updated_at: new Date().toISOString(),
+          });
+
+          if (insertErr) {
+            if (insertErr.code === "23505") {
+              // Duplicate - skip
+              console.log(`Skipped duplicate: ${data.name}`);
+            } else {
+              errors.push(`${data.name}: ${insertErr.message}`);
+            }
+          } else {
+            insertedCount++;
+          }
+        } catch (e: any) {
+          errors.push(`${data.name}: ${e.message}`);
+        }
+      }
+
+      if (insertedCount > 0) {
+        setSuccessMessage(
+          `✅ Đã thêm ${insertedCount} sản phẩm vào Danh sách!` +
+            (errors.length > 0 ? `\n⚠️ ${errors.length} lỗi` : "")
+        );
+      } else if (errors.length > 0) {
+        setError(`Lỗi khi đồng bộ: ${errors.slice(0, 3).join(", ")}`);
+      } else {
+        setSuccessMessage("✅ Không có sản phẩm mới cần thêm.");
+      }
+    } catch (e: any) {
+      setError((e?.message || String(e)) + " — Lỗi khi đồng bộ");
     } finally {
       setIsLoading(false);
     }
@@ -158,12 +276,17 @@ const PinImportHistory: React.FC = () => {
 
       {isLoading && (
         <div className="p-2 md:p-3 text-xs md:text-sm text-blue-800 bg-blue-100 border-b border-blue-300 dark:text-blue-200 dark:bg-blue-900/30 dark:border-blue-800">
-          Đang tải lịch sử...
+          Đang xử lý...
         </div>
       )}
       {error && (
         <div className="p-2 md:p-3 text-xs md:text-sm text-red-800 bg-red-100 border-b border-red-300 dark:text-red-200 dark:bg-red-900/30 dark:border-red-800">
           Lỗi: {error}
+        </div>
+      )}
+      {successMessage && (
+        <div className="p-2 md:p-3 text-xs md:text-sm text-green-800 bg-green-100 border-b border-green-300 dark:text-green-200 dark:bg-green-900/30 dark:border-green-800">
+          {successMessage}
         </div>
       )}
 
@@ -203,6 +326,14 @@ const PinImportHistory: React.FC = () => {
           />
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={handleSyncMissingMaterials}
+            disabled={isLoading || rows.length === 0}
+            className="px-2.5 md:px-3 py-1.5 md:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-xs md:text-sm font-medium"
+            title="Tạo sản phẩm trong Danh sách từ các bản ghi Lịch sử bị thiếu"
+          >
+            🔄 Đồng bộ từ Lịch sử
+          </button>
           <button
             onClick={async () => {
               if (

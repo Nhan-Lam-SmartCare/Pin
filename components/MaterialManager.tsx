@@ -2945,10 +2945,8 @@ const MaterialManager: React.FC<{
   useEffect(() => {
     const fetchTotalImportValue = async () => {
       try {
-        const { data, error } = await supabase
-          .from("pin_material_history")
-          .select("total_cost");
-        
+        const { data, error } = await supabase.from("pin_material_history").select("total_cost");
+
         if (!error && data) {
           const total = data.reduce((sum, row) => sum + (Number(row.total_cost) || 0), 0);
           setTotalImportValue(total);
@@ -2957,7 +2955,7 @@ const MaterialManager: React.FC<{
         console.error("Error fetching total import value:", e);
       }
     };
-    
+
     fetchTotalImportValue();
   }, [materials]); // Refresh when materials change
 
