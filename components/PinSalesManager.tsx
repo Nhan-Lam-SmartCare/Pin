@@ -1036,11 +1036,7 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
                           <div className="flex items-center gap-0.5">
                             <button
                               onClick={() =>
-                                updateQuantity(
-                                  item.productId,
-                                  item.quantity - 1,
-                                  item.priceType
-                                )
+                                updateQuantity(item.productId, item.quantity - 1, item.priceType)
                               }
                               className="w-7 h-7 flex items-center justify-center bg-slate-200 dark:bg-slate-600 rounded text-slate-600 dark:text-slate-300 active:bg-slate-300 dark:active:bg-slate-500"
                             >
