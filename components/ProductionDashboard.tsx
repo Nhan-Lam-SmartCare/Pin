@@ -14,9 +14,7 @@ import {
 } from "./common/Icons";
 
 const formatCurrency = (amount: number) =>
-  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
-    amount
-  );
+  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
 
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString("vi-VN", {
@@ -108,16 +106,12 @@ const ProductionOrderCard: React.FC<ProductionOrderCardProps> = ({
             <h3 className="font-semibold text-slate-800 dark:text-slate-100 text-sm">
               #{order.id}
             </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              {order.status}
-            </p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">{order.status}</p>
           </div>
         </div>
         <div className="text-right">
           <p className="text-xs text-slate-500 dark:text-slate-400">Số lượng</p>
-          <p className="font-bold text-slate-800 dark:text-slate-100">
-            {order.quantityProduced}
-          </p>
+          <p className="font-bold text-slate-800 dark:text-slate-100">{order.quantityProduced}</p>
         </div>
       </div>
 
@@ -225,9 +219,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
 
   return (
     <div className="flex-1 min-w-80">
-      <div
-        className={`${bgColor} ${textColor} rounded-t-lg p-3 flex items-center space-x-2`}
-      >
+      <div className={`${bgColor} ${textColor} rounded-t-lg p-3 flex items-center space-x-2`}>
         {icon}
         <h3 className="font-bold text-lg">{title}</h3>
         <span className="bg-white/20 px-2 py-1 rounded-full text-sm font-semibold">
@@ -296,13 +288,9 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
   onManageBOMs,
   completeOrder,
 }) => {
-  const [selectedOrder, setSelectedOrder] = useState<ProductionOrder | null>(
-    null
-  );
+  const [selectedOrder, setSelectedOrder] = useState<ProductionOrder | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [completingOrderId, setCompletingOrderId] = useState<string | null>(
-    null
-  );
+  const [completingOrderId, setCompletingOrderId] = useState<string | null>(null);
 
   // Filter orders based on search
   const filteredOrders = useMemo(() => {
@@ -335,9 +323,7 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
     // Sort by creation date (newest first)
     Object.keys(grouped).forEach((status) => {
       grouped[status as keyof typeof grouped].sort(
-        (a, b) =>
-          new Date(b.creationDate).getTime() -
-          new Date(a.creationDate).getTime()
+        (a, b) => new Date(b.creationDate).getTime() - new Date(a.creationDate).getTime()
       );
     });
 
@@ -413,9 +399,7 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
                   : "bg-blue-300 text-white/80 cursor-not-allowed opacity-50"
               }`}
               title={
-                !currentUser
-                  ? "Vui lòng đăng nhập để tạo lệnh sản xuất"
-                  : "Tạo lệnh sản xuất mới"
+                !currentUser ? "Vui lòng đăng nhập để tạo lệnh sản xuất" : "Tạo lệnh sản xuất mới"
               }
             >
               <PlusIcon className="w-5 h-5" />
@@ -425,70 +409,66 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
         </div>
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-fadeIn">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 animate-fadeIn">
           {/* Pending Orders */}
-          <div className="relative bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 p-6 rounded-2xl border-2 border-amber-200 dark:border-amber-800 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-amber-400/20 to-orange-400/20 rounded-full blur-2xl -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
-            <div className="relative flex items-center justify-between">
+          <div className="relative bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 p-3 rounded-xl border border-amber-200 dark:border-amber-800 shadow-md">
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-amber-700 dark:text-amber-300 mb-2 font-medium uppercase tracking-wide">
+                <p className="text-xs text-amber-700 dark:text-amber-300 font-medium uppercase tracking-wide">
                   Đang chờ
                 </p>
-                <p className="text-3xl font-extrabold text-amber-600 dark:text-amber-400">
+                <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
                   {ordersByStatus["Đang chờ"].length}
                 </p>
               </div>
-              <div className="w-14 h-14 bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl flex items-center justify-center shadow-lg shadow-amber-500/30">
-                <ClockIcon className="w-7 h-7 text-white" />
+              <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl flex items-center justify-center shadow-md">
+                <ClockIcon className="w-5 h-5 text-white" />
               </div>
             </div>
           </div>
 
           {/* In Progress Orders */}
-          <div className="relative bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 p-6 rounded-2xl border-2 border-blue-200 dark:border-blue-800 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400/20 to-cyan-400/20 rounded-full blur-2xl -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
-            <div className="relative flex items-center justify-between">
+          <div className="relative bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 p-3 rounded-xl border border-blue-200 dark:border-blue-800 shadow-md">
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-blue-700 dark:text-blue-300 mb-2 font-medium uppercase tracking-wide">
+                <p className="text-xs text-blue-700 dark:text-blue-300 font-medium uppercase tracking-wide">
                   Đang sản xuất
                 </p>
-                <p className="text-3xl font-extrabold text-blue-600 dark:text-blue-400">
+                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                   {ordersByStatus["Đang sản xuất"].length}
                 </p>
               </div>
-              <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/30">
-                <BeakerIcon className="w-7 h-7 text-white" />
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-md">
+                <BeakerIcon className="w-5 h-5 text-white" />
               </div>
             </div>
           </div>
 
           {/* Completed Orders */}
-          <div className="relative bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 p-6 rounded-2xl border-2 border-green-200 dark:border-green-800 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-400/20 to-emerald-400/20 rounded-full blur-2xl -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
-            <div className="relative flex items-center justify-between">
+          <div className="relative bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 p-3 rounded-xl border border-green-200 dark:border-green-800 shadow-md">
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-green-700 dark:text-green-300 mb-2 font-medium uppercase tracking-wide">
+                <p className="text-xs text-green-700 dark:text-green-300 font-medium uppercase tracking-wide">
                   Hoàn thành
                 </p>
-                <p className="text-3xl font-extrabold text-green-600 dark:text-green-400">
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400">
                   {ordersByStatus["Hoàn thành"].length}
                 </p>
               </div>
-              <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center shadow-lg shadow-green-500/30">
-                <CheckCircleIcon className="w-7 h-7 text-white" />
+              <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center shadow-md">
+                <CheckCircleIcon className="w-5 h-5 text-white" />
               </div>
             </div>
           </div>
 
           {/* Total Value */}
-          <div className="relative bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 p-6 rounded-2xl border-2 border-purple-200 dark:border-purple-800 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-full blur-2xl -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
-            <div className="relative flex items-center justify-between">
+          <div className="relative bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 p-3 rounded-xl border border-purple-200 dark:border-purple-800 shadow-md">
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-purple-700 dark:text-purple-300 mb-2 font-medium uppercase tracking-wide">
+                <p className="text-xs text-purple-700 dark:text-purple-300 font-medium uppercase tracking-wide">
                   Tổng giá trị
                 </p>
-                <p className="text-2xl font-extrabold text-purple-600 dark:text-purple-400">
+                <p className="text-lg font-bold text-purple-600 dark:text-purple-400">
                   {formatCurrency(
                     Object.values(ordersByStatus)
                       .flat()
@@ -496,8 +476,8 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
                   )}
                 </p>
               </div>
-              <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg shadow-purple-500/30">
-                <CurrencyDollarIcon className="w-7 h-7 text-white" />
+              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-md">
+                <CurrencyDollarIcon className="w-5 h-5 text-white" />
               </div>
             </div>
           </div>
@@ -601,8 +581,8 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
                       selectedOrder.status === "Hoàn thành"
                         ? "bg-green-100 text-green-800"
                         : selectedOrder.status === "Đang sản xuất"
-                        ? "bg-blue-100 text-blue-800"
-                        : "bg-amber-100 text-amber-800"
+                          ? "bg-blue-100 text-blue-800"
+                          : "bg-amber-100 text-amber-800"
                     }`}
                   >
                     {selectedOrder.status}
@@ -621,13 +601,9 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
                     <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
                       <div className="space-y-2">
                         {bom.materials.map((bomMat) => {
-                          const material = materials.find(
-                            (m) => m.id === bomMat.materialId
-                          );
-                          const required =
-                            bomMat.quantity * selectedOrder.quantityProduced;
-                          const cost =
-                            required * (material?.purchasePrice || 0);
+                          const material = materials.find((m) => m.id === bomMat.materialId);
+                          const required = bomMat.quantity * selectedOrder.quantityProduced;
+                          const cost = required * (material?.purchasePrice || 0);
 
                           return (
                             <div
@@ -655,42 +631,32 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
               })()}
 
               {/* Additional Costs */}
-              {selectedOrder.additionalCosts &&
-                selectedOrder.additionalCosts.length > 0 && (
-                  <div>
-                    <h4 className="font-semibold text-slate-800 dark:text-slate-100 mb-3">
-                      Chi phí phát sinh
-                    </h4>
-                    <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
-                      <div className="space-y-2">
-                        {selectedOrder.additionalCosts.map((cost, index) => (
-                          <div
-                            key={index}
-                            className="flex justify-between items-center"
-                          >
-                            <p className="text-slate-800 dark:text-slate-100">
-                              {cost.description}
-                            </p>
-                            <p className="font-semibold text-slate-800 dark:text-slate-100">
-                              {formatCurrency(cost.amount)}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
+              {selectedOrder.additionalCosts && selectedOrder.additionalCosts.length > 0 && (
+                <div>
+                  <h4 className="font-semibold text-slate-800 dark:text-slate-100 mb-3">
+                    Chi phí phát sinh
+                  </h4>
+                  <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
+                    <div className="space-y-2">
+                      {selectedOrder.additionalCosts.map((cost, index) => (
+                        <div key={index} className="flex justify-between items-center">
+                          <p className="text-slate-800 dark:text-slate-100">{cost.description}</p>
+                          <p className="font-semibold text-slate-800 dark:text-slate-100">
+                            {formatCurrency(cost.amount)}
+                          </p>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                )}
+                </div>
+              )}
 
               {/* Notes */}
               {selectedOrder.notes && (
                 <div>
-                  <h4 className="font-semibold text-slate-800 dark:text-slate-100 mb-3">
-                    Ghi chú
-                  </h4>
+                  <h4 className="font-semibold text-slate-800 dark:text-slate-100 mb-3">Ghi chú</h4>
                   <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
-                    <p className="text-slate-800 dark:text-slate-100">
-                      {selectedOrder.notes}
-                    </p>
+                    <p className="text-slate-800 dark:text-slate-100">{selectedOrder.notes}</p>
                   </div>
                 </div>
               )}

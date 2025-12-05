@@ -75,6 +75,7 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
+  const [showQuotePrint, setShowQuotePrint] = useState(false);
   const [newCustomerData, setNewCustomerData] = useState({
     name: "",
     phone: "",
@@ -82,19 +83,69 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
     address: "",
   });
 
-  // Filter materials based on search - chỉ hiển thị vật liệu còn tồn kho
+  // Filter materials based on search - hiển thị TẤT CẢ vật liệu (kể cả hết hàng)
   const filteredMaterials = useMemo(() => {
     if (!materialSearch.trim()) return [];
     const search = materialSearch.toLowerCase();
     return (pinMaterials || [])
       .filter(
-        (m: any) =>
-          // Chỉ hiển thị vật liệu còn tồn kho (stock > 0)
-          (m.stock || 0) > 0 &&
-          (m.name.toLowerCase().includes(search) || m.sku?.toLowerCase().includes(search))
+        (m: any) => m.name.toLowerCase().includes(search) || m.sku?.toLowerCase().includes(search)
       )
-      .slice(0, 10);
+      .slice(0, 15);
   }, [pinMaterials, materialSearch]);
+
+  // Tính toán tình trạng thiếu hàng (bao gồm cả vật liệu mới chưa có trong kho)
+  const materialShortageInfo = useMemo(() => {
+    const shortages: {
+      materialName: string;
+      needed: number;
+      inStock: number;
+      shortage: number;
+      isNew?: boolean;
+    }[] = [];
+    let hasShortage = false;
+    let hasNewMaterial = false;
+
+    (formData.materialsUsed || []).forEach((mat) => {
+      const material = (pinMaterials || []).find(
+        (m: any) => m.name.toLowerCase() === mat.materialName.toLowerCase()
+      );
+
+      // Vật liệu CHƯA có trong kho
+      if (!material) {
+        hasShortage = true;
+        hasNewMaterial = true;
+        shortages.push({
+          materialName: mat.materialName,
+          needed: mat.quantity,
+          inStock: 0,
+          shortage: mat.quantity,
+          isNew: true, // Đánh dấu vật liệu mới
+        });
+        return;
+      }
+
+      const inStock = material.stock || 0;
+      const alreadyUsedInOtherItems =
+        (formData.materialsUsed || [])
+          .filter((m) => m.materialName.toLowerCase() === mat.materialName.toLowerCase())
+          .reduce((sum, m) => sum + m.quantity, 0) - mat.quantity;
+      const availableStock = Math.max(0, inStock - alreadyUsedInOtherItems);
+
+      if (mat.quantity > availableStock) {
+        hasShortage = true;
+        shortages.push({
+          materialName: mat.materialName,
+          needed: mat.quantity,
+          inStock: availableStock,
+          shortage: mat.quantity - availableStock,
+          isNew: false,
+        });
+      }
+    });
+
+    return { hasShortage, shortages, hasNewMaterial };
+  }, [formData.materialsUsed, pinMaterials]);
 
   // Load initial data
   useEffect(() => {
@@ -224,32 +275,59 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
       return;
     }
 
-    // Check stock availability
+    // Check if material exists in inventory
     const material = (pinMaterials || []).find(
       (m: any) => m.name.toLowerCase() === materialName.toLowerCase()
     );
+
+    let inStock = 0;
+    let shortage = 0;
+    let isNewMaterial = !material; // Vật liệu chưa có trong kho
+
     if (material) {
-      // FIX: Dùng m.stock thay vì m.quantity để kiểm tra tồn kho
-      const currentStock = material.stock || material.quantity || 0;
+      const currentStock = material.stock || 0;
       const alreadyUsed =
         (formData.materialsUsed || [])
           .filter((m) => m.materialName.toLowerCase() === materialName.toLowerCase())
           .reduce((sum, m) => sum + m.quantity, 0) || 0;
-      const availableStock = currentStock - alreadyUsed;
+      const availableStock = Math.max(0, currentStock - alreadyUsed);
+      inStock = availableStock;
 
       if (materialInput.quantity > availableStock) {
-        alert(
-          `Không đủ tồn kho!\nTồn kho hiện tại: ${currentStock}\nĐã dùng: ${alreadyUsed}\nCòn lại: ${availableStock}\nBạn đang thêm: ${materialInput.quantity}`
+        shortage = materialInput.quantity - availableStock;
+        // Không chặn, chỉ cảnh báo
+        const proceed = confirm(
+          `⚠️ THIẾU HÀNG!\n\n` +
+            `Vật liệu: ${materialName}\n` +
+            `Cần: ${materialInput.quantity}\n` +
+            `Tồn kho: ${currentStock}\n` +
+            `Đã dùng trong phiếu: ${alreadyUsed}\n` +
+            `Còn lại: ${availableStock}\n` +
+            `Thiếu: ${shortage}\n\n` +
+            `Bạn vẫn muốn thêm vào báo giá?`
         );
-        return;
+        if (!proceed) return;
       }
+    } else {
+      // Vật liệu mới chưa có trong kho
+      shortage = materialInput.quantity;
+      const proceed = confirm(
+        `⚠️ VẬT LIỆU MỚI!\n\n` +
+          `"${materialName}" chưa có trong kho.\n` +
+          `Số lượng cần: ${materialInput.quantity}\n\n` +
+          `Bạn cần đặt hàng NCC.\n` +
+          `Vẫn muốn thêm vào báo giá?`
+      );
+      if (!proceed) return;
     }
 
     const newMaterial: PinRepairMaterial = {
-      materialId: generateUniqueId("MAT"),
+      materialId: material?.id || generateUniqueId("MAT-NEW"),
       materialName,
       quantity: materialInput.quantity,
-      price: materialInput.price,
+      price: materialInput.price || material?.retailPrice || 0,
+      inStock: inStock,
+      shortage: shortage > 0 ? shortage : undefined,
     };
 
     setFormData((prev) => ({
@@ -444,35 +522,35 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-7xl my-4 overflow-hidden flex flex-col max-h-[95vh]">
-        {/* Header với gradient xanh dương */}
-        <div className="px-4 sm:px-6 py-4 bg-gradient-to-r from-blue-600 via-sky-600 to-cyan-600 flex justify-between items-center flex-shrink-0">
-          <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-white">{getHeaderTitle()}</h2>
-            <p className="text-xs sm:text-sm text-blue-100 mt-1">
-              Mã: {initialOrder?.id || "Tự động sinh"}
-            </p>
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-7xl my-2 overflow-hidden flex flex-col max-h-[96vh]">
+        {/* Header compact */}
+        <div className="px-4 py-2.5 bg-gradient-to-r from-blue-600 via-sky-600 to-cyan-600 flex justify-between items-center flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <h2 className="text-base sm:text-lg font-bold text-white">{getHeaderTitle()}</h2>
+            <span className="text-xs text-blue-200 bg-white/20 px-2 py-0.5 rounded">
+              {initialOrder?.id || "Mới"}
+            </span>
           </div>
           <button
             onClick={onClose}
-            className="text-white hover:bg-white/20 rounded-lg p-2 transition-colors flex-shrink-0"
+            className="text-white hover:bg-white/20 rounded-lg p-1.5 transition-colors flex-shrink-0"
             type="button"
             aria-label="Đóng"
           >
-            <XMarkIcon className="w-5 h-5 sm:w-6 sm:h-6" />
+            <XMarkIcon className="w-5 h-5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
-          {/* Layout 2 cột: Desktop 60/40, Mobile 1 cột */}
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6 p-4 sm:p-6">
+          {/* Layout 2 cột */}
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 p-3 sm:p-4">
             {/* CỘT TRÁI (60%) - Form chính */}
-            <div className="lg:col-span-3 space-y-4">
+            <div className="lg:col-span-3 space-y-3">
               {/* Card: Thông tin khách hàng */}
-              <div className="bg-white dark:bg-slate-800 rounded-xl p-5 sm:p-6 border-2 border-slate-200 dark:border-slate-700 shadow-lg shadow-slate-200/50 dark:shadow-slate-900/50 hover:shadow-xl transition-shadow">
-                <h3 className="text-base sm:text-lg font-bold mb-3 flex items-center gap-2 text-slate-800 dark:text-slate-100">
+              <div className="bg-white dark:bg-slate-800 rounded-lg p-3 sm:p-4 border border-slate-200 dark:border-slate-700 shadow-sm">
+                <h3 className="text-sm font-semibold mb-2 flex items-center gap-1.5 text-slate-700 dark:text-slate-200">
                   <svg
-                    className="w-5 h-5 text-blue-600"
+                    className="w-4 h-4 text-blue-500"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -484,7 +562,7 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
                       d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
                     />
                   </svg>
-                  Khách hàng <span className="text-red-500 ml-1">*</span>
+                  Khách hàng <span className="text-red-500">*</span>
                 </h3>
 
                 {/* Input tìm kiếm + nút thêm mới */}
@@ -608,10 +686,10 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
               </div>
 
               {/* Card: Thiết bị & Sự cố */}
-              <div className="bg-white dark:bg-slate-800 rounded-xl p-5 sm:p-6 border-2 border-purple-200 dark:border-purple-800 shadow-lg shadow-purple-100/50 dark:shadow-purple-900/30 hover:shadow-xl transition-shadow">
-                <h3 className="text-base sm:text-lg font-bold mb-3 flex items-center gap-2 text-slate-800 dark:text-slate-100">
+              <div className="bg-white dark:bg-slate-800 rounded-lg p-3 sm:p-4 border border-purple-200 dark:border-purple-700 shadow-sm">
+                <h3 className="text-sm font-semibold mb-2 flex items-center gap-1.5 text-slate-700 dark:text-slate-200">
                   <svg
-                    className="w-5 h-5 text-purple-600"
+                    className="w-4 h-4 text-purple-500"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -625,9 +703,9 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
                   </svg>
                   Thiết bị & Sự cố
                 </h3>
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <div>
-                    <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5">
+                    <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
                       Tên thiết bị
                     </label>
                     <input
@@ -635,7 +713,7 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
                       name="deviceName"
                       value={formData.deviceName || ""}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-2.5 border-2 border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 transition-all"
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-1 focus:ring-purple-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm"
                       placeholder="VD: iPhone 13 Pro Max"
                     />
                   </div>
@@ -657,9 +735,9 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
               </div>
 
               {/* Card ngang: Trạng thái & Kỹ thuật viên */}
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div className="bg-white dark:bg-slate-800 rounded-xl p-4 sm:p-5 border-2 border-amber-200 dark:border-amber-700 shadow-md hover:shadow-lg transition-shadow">
-                  <label className="block text-xs sm:text-sm font-semibold text-amber-800 dark:text-amber-300 mb-2 flex items-center gap-2">
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div className="bg-white dark:bg-slate-800 rounded-lg p-3 sm:p-4 border border-amber-200 dark:border-amber-700 shadow-sm">
+                  <label className="block text-xs font-semibold text-amber-800 dark:text-amber-300 mb-1.5 flex items-center gap-1.5">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
                         strokeLinecap="round"
@@ -677,9 +755,13 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
                     className="w-full px-4 py-2.5 border-2 border-amber-300 dark:border-amber-700 rounded-lg focus:ring-2 focus:ring-amber-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-medium transition-all"
                   >
                     <option value="Tiếp nhận">🆕 Tiếp nhận</option>
+                    <option value="Chờ báo giá">📋 Chờ báo giá</option>
+                    <option value="Chờ vật liệu">📦 Chờ vật liệu</option>
+                    <option value="Sẵn sàng sửa">✅ Sẵn sàng sửa</option>
                     <option value="Đang sửa">🔧 Đang sửa</option>
-                    <option value="Đã sửa xong">✅ Đã sửa xong</option>
-                    <option value="Trả máy">📦 Trả máy</option>
+                    <option value="Đã sửa xong">✨ Đã sửa xong</option>
+                    <option value="Trả máy">📤 Trả máy</option>
+                    <option value="Đã hủy">❌ Đã hủy</option>
                   </select>
                 </div>
 
@@ -707,8 +789,8 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
               </div>
 
               {/* Card: Phí dịch vụ */}
-              <div className="bg-white dark:bg-slate-800 rounded-xl p-5 sm:p-6 border-2 border-green-200 dark:border-green-800 shadow-lg shadow-green-100/50 dark:shadow-green-900/30 hover:shadow-xl transition-shadow">
-                <h3 className="text-base sm:text-lg font-bold mb-4 flex items-center gap-2 text-slate-800 dark:text-slate-100">
+              <div className="bg-white dark:bg-slate-800 rounded-lg p-3 sm:p-4 border border-green-200 dark:border-green-800 shadow-sm">
+                <h3 className="text-sm font-semibold mb-2 flex items-center gap-2 text-slate-800 dark:text-slate-100">
                   <svg
                     className="w-5 h-5 text-green-600"
                     fill="none"
@@ -787,8 +869,8 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
             {/* CỘT PHẢI (40%) - Vật liệu & Thanh toán */}
             <div className="lg:col-span-2 space-y-4">
               {/* Card: Vật liệu */}
-              <div className="bg-white dark:bg-slate-800 rounded-xl p-5 sm:p-6 border-2 border-indigo-200 dark:border-indigo-700 shadow-lg shadow-indigo-100/50 dark:shadow-indigo-900/30 hover:shadow-xl transition-shadow">
-                <h3 className="text-base sm:text-lg font-bold mb-4 flex items-center gap-2 text-indigo-900 dark:text-indigo-100">
+              <div className="bg-white dark:bg-slate-800 rounded-lg p-3 sm:p-4 border border-indigo-200 dark:border-indigo-700 shadow-sm">
+                <h3 className="text-sm font-semibold mb-2 flex items-center gap-2 text-indigo-900 dark:text-indigo-100">
                   <svg
                     className="w-5 h-5 text-indigo-600"
                     fill="none"
@@ -827,37 +909,53 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
                       />
                       {showMaterialDropdown && filteredMaterials.length > 0 && (
                         <div className="absolute z-30 w-full mt-1 bg-white dark:bg-slate-800 border-2 border-indigo-300 dark:border-indigo-600 rounded-lg shadow-2xl max-h-60 overflow-y-auto">
-                          {filteredMaterials.map((material: any) => (
-                            <button
-                              key={material.id}
-                              type="button"
-                              onClick={() => {
-                                setMaterialInput({
-                                  materialName: material.name,
-                                  quantity: 1,
-                                  price: material.retailPrice || material.purchasePrice || 0,
-                                });
-                                setMaterialSearch(material.name);
-                                setShowMaterialDropdown(false);
-                              }}
-                              className="w-full text-left px-4 py-3 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 border-b dark:border-slate-700 last:border-0 transition-colors"
-                            >
-                              <div className="font-semibold text-slate-900 dark:text-slate-100 flex justify-between">
-                                <span>{material.name}</span>
-                                <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
-                                  Tồn: {material.stock || 0}
-                                </span>
-                              </div>
-                              <div className="text-xs text-slate-500 dark:text-slate-400 flex justify-between mt-0.5">
-                                <span>SKU: {material.sku}</span>
-                                <span className="font-semibold text-indigo-600 dark:text-indigo-400">
-                                  {formatCurrency(
-                                    material.retailPrice || material.purchasePrice || 0
-                                  )}
-                                </span>
-                              </div>
-                            </button>
-                          ))}
+                          {filteredMaterials.map((material: any) => {
+                            const stock = material.stock || 0;
+                            const isOutOfStock = stock <= 0;
+                            return (
+                              <button
+                                key={material.id}
+                                type="button"
+                                onClick={() => {
+                                  setMaterialInput({
+                                    materialName: material.name,
+                                    quantity: 1,
+                                    price: material.retailPrice || material.purchasePrice || 0,
+                                  });
+                                  setMaterialSearch(material.name);
+                                  setShowMaterialDropdown(false);
+                                }}
+                                className={`w-full text-left px-4 py-3 border-b dark:border-slate-700 last:border-0 transition-colors ${
+                                  isOutOfStock
+                                    ? "bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30"
+                                    : "hover:bg-indigo-50 dark:hover:bg-indigo-900/30"
+                                }`}
+                              >
+                                <div className="font-semibold text-slate-900 dark:text-slate-100 flex justify-between items-center">
+                                  <span>{material.name}</span>
+                                  <span
+                                    className={`text-xs px-2 py-0.5 rounded-full ${
+                                      isOutOfStock
+                                        ? "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400"
+                                        : stock < 5
+                                          ? "bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400"
+                                          : "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
+                                    }`}
+                                  >
+                                    {isOutOfStock ? "⚠️ Hết hàng" : `Tồn: ${stock}`}
+                                  </span>
+                                </div>
+                                <div className="text-xs text-slate-500 dark:text-slate-400 flex justify-between mt-0.5">
+                                  <span>SKU: {material.sku}</span>
+                                  <span className="font-semibold text-indigo-600 dark:text-indigo-400">
+                                    {formatCurrency(
+                                      material.retailPrice || material.purchasePrice || 0
+                                    )}
+                                  </span>
+                                </div>
+                              </button>
+                            );
+                          })}
                         </div>
                       )}
                     </div>
@@ -898,35 +996,143 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
                   </div>
                 </div>
 
+                {/* Cảnh báo thiếu hàng */}
+                {materialShortageInfo.hasShortage && (
+                  <div className="mb-3 p-3 bg-red-50 dark:bg-red-900/30 border-2 border-red-300 dark:border-red-700 rounded-lg">
+                    <div className="flex items-start gap-2">
+                      <svg
+                        className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                        />
+                      </svg>
+                      <div className="flex-1">
+                        <p className="font-semibold text-red-800 dark:text-red-300 text-sm">
+                          ⚠️ Thiếu vật liệu - Cần đặt hàng NCC
+                        </p>
+                        <ul className="text-xs text-red-700 dark:text-red-400 mt-1 space-y-0.5">
+                          {materialShortageInfo.shortages.map((s, idx) => (
+                            <li key={idx} className="flex items-center gap-1">
+                              {s.isNew ? (
+                                <>
+                                  <span className="inline-block px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded text-[10px] font-bold">
+                                    MỚI
+                                  </span>
+                                  <span>
+                                    "{s.materialName}" - <strong>chưa có trong kho</strong>, cần mua{" "}
+                                    {s.shortage}
+                                  </span>
+                                </>
+                              ) : (
+                                <>
+                                  <span className="inline-block px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded text-[10px] font-bold">
+                                    THIẾU
+                                  </span>
+                                  <span>
+                                    {s.materialName}: cần {s.needed}, kho còn {s.inStock},{" "}
+                                    <strong>thiếu {s.shortage}</strong>
+                                  </span>
+                                </>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                        <p className="text-xs text-red-600 dark:text-red-400 mt-2 italic">
+                          💡 Gợi ý: Chuyển trạng thái sang "Chờ báo giá" hoặc "Chờ vật liệu"
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Danh sách vật liệu đã thêm */}
                 {(formData.materialsUsed || []).length > 0 ? (
                   <div className="space-y-2 max-h-64 overflow-y-auto">
-                    {(formData.materialsUsed || []).map((m, i) => (
-                      <div
-                        key={i}
-                        className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 rounded-lg border-2 border-indigo-200 dark:border-indigo-700 hover:border-indigo-400 dark:hover:border-indigo-500 transition-all"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-slate-900 dark:text-slate-100 truncate">
-                            {m.materialName}
-                          </div>
-                          <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-                            {m.quantity} × {formatCurrency(m.price)} ={" "}
-                            <span className="font-bold text-indigo-600 dark:text-indigo-400">
-                              {formatCurrency(m.quantity * m.price)}
-                            </span>
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveMaterial(i)}
-                          className="ml-3 p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
-                          aria-label="Xóa"
+                    {(formData.materialsUsed || []).map((m, i) => {
+                      // Kiểm tra tồn kho cho từng vật liệu
+                      const material = (pinMaterials || []).find(
+                        (mat: any) => mat.name.toLowerCase() === m.materialName.toLowerCase()
+                      );
+                      const isNewMaterial = !material; // Vật liệu chưa có trong kho
+                      const inStock = material?.stock || 0;
+                      const isShortage = m.quantity > inStock;
+
+                      return (
+                        <div
+                          key={i}
+                          className={`flex justify-between items-center p-3 bg-white dark:bg-slate-800 rounded-lg border-2 transition-all ${
+                            isNewMaterial
+                              ? "border-purple-300 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/20"
+                              : isShortage
+                                ? "border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20"
+                                : "border-indigo-200 dark:border-indigo-700 hover:border-indigo-400 dark:hover:border-indigo-500"
+                          }`}
                         >
-                          <TrashIcon className="w-5 h-5" />
-                        </button>
-                      </div>
-                    ))}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-semibold text-slate-900 dark:text-slate-100 truncate">
+                                {m.materialName}
+                              </span>
+                              {isNewMaterial ? (
+                                <span className="text-xs px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-400 rounded font-bold">
+                                  🆕 MỚI - Chưa có trong kho
+                                </span>
+                              ) : isShortage ? (
+                                <span className="text-xs px-1.5 py-0.5 bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400 rounded">
+                                  ⚠️ Thiếu {m.quantity - inStock}
+                                </span>
+                              ) : (
+                                <span className="text-xs px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded">
+                                  ✓ Đủ hàng
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs text-slate-600 dark:text-slate-400 mt-1 flex items-center gap-2 flex-wrap">
+                              <span>
+                                {m.quantity} × {formatCurrency(m.price)} ={" "}
+                              </span>
+                              <span className="font-bold text-indigo-600 dark:text-indigo-400">
+                                {formatCurrency(m.quantity * m.price)}
+                              </span>
+                              {!isNewMaterial && (
+                                <>
+                                  <span className="text-slate-400">|</span>
+                                  <span
+                                    className={
+                                      isShortage
+                                        ? "text-red-600 dark:text-red-400"
+                                        : "text-slate-500"
+                                    }
+                                  >
+                                    Kho: {inStock}
+                                  </span>
+                                </>
+                              )}
+                              {isNewMaterial && (
+                                <span className="text-purple-600 dark:text-purple-400 italic">
+                                  (cần mua {m.quantity})
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveMaterial(i)}
+                            className="ml-3 p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                            aria-label="Xóa"
+                          >
+                            <TrashIcon className="w-5 h-5" />
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="text-center py-8 text-slate-400 dark:text-slate-500">
@@ -962,9 +1168,118 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
                 )}
               </div>
 
+              {/* Card: Báo giá (chỉ hiện khi có vật liệu) */}
+              {(formData.materialsUsed || []).length > 0 && (
+                <div className="bg-white dark:bg-slate-800 rounded-lg p-3 sm:p-4 border border-amber-200 dark:border-amber-700 shadow-sm">
+                  <h3 className="text-sm font-semibold mb-2 flex items-center gap-2 text-amber-900 dark:text-amber-100">
+                    <svg
+                      className="w-5 h-5 text-amber-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                      />
+                    </svg>
+                    💰 Báo giá
+                    {materialShortageInfo.hasShortage && (
+                      <span className="ml-2 text-xs px-2 py-0.5 bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400 rounded-full">
+                        ⚠️ Thiếu hàng
+                      </span>
+                    )}
+                  </h3>
+
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-slate-600 dark:text-slate-400">Vật liệu:</span>
+                      <span className="font-medium text-slate-800 dark:text-slate-200">
+                        {formatCurrency(materialsTotal)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-600 dark:text-slate-400">Công sửa chữa:</span>
+                      <span className="font-medium text-slate-800 dark:text-slate-200">
+                        {formatCurrency(formData.laborCost || 0)}
+                      </span>
+                    </div>
+                    <div className="border-t border-amber-200 dark:border-amber-700 pt-2 mt-2">
+                      <div className="flex justify-between font-bold text-base">
+                        <span className="text-amber-800 dark:text-amber-300">TỔNG BÁO GIÁ:</span>
+                        <span className="text-amber-600 dark:text-amber-400">
+                          {formatCurrency(total)}
+                        </span>
+                      </div>
+                    </div>
+                    {(formData.depositAmount || 0) > 0 && (
+                      <>
+                        <div className="flex justify-between text-green-600 dark:text-green-400">
+                          <span>Đã đặt cọc:</span>
+                          <span>-{formatCurrency(formData.depositAmount || 0)}</span>
+                        </div>
+                        <div className="flex justify-between font-bold">
+                          <span className="text-slate-700 dark:text-slate-300">Còn lại:</span>
+                          <span className="text-rose-600 dark:text-rose-400">
+                            {formatCurrency(remaining)}
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Checkbox khách duyệt báo giá */}
+                  <div className="mt-4 pt-3 border-t border-amber-200 dark:border-amber-700">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.quoteApproved || false}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            quoteApproved: e.target.checked,
+                            quoteApprovedAt: e.target.checked
+                              ? new Date().toISOString()
+                              : undefined,
+                          }))
+                        }
+                        className="w-4 h-4 rounded border-amber-300 text-amber-600 focus:ring-amber-500"
+                      />
+                      <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                        ✅ Khách đã đồng ý báo giá
+                      </span>
+                    </label>
+                    {formData.quoteApproved && formData.quoteApprovedAt && (
+                      <p className="text-xs text-green-600 dark:text-green-400 mt-1 ml-6">
+                        Duyệt lúc: {new Date(formData.quoteApprovedAt).toLocaleString("vi-VN")}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Nút In báo giá */}
+                  <button
+                    type="button"
+                    onClick={() => setShowQuotePrint(true)}
+                    className="mt-4 w-full px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-lg font-semibold flex items-center justify-center gap-2 shadow-md transition-all"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
+                      />
+                    </svg>
+                    🖨️ In báo giá
+                  </button>
+                </div>
+              )}
+
               {/* Card: Thanh toán */}
-              <div className="bg-white dark:bg-slate-800 rounded-xl p-5 sm:p-6 border-2 border-emerald-200 dark:border-emerald-700 shadow-lg shadow-emerald-100/50 dark:shadow-emerald-900/30 hover:shadow-xl transition-shadow">
-                <h3 className="text-base sm:text-lg font-bold mb-4 flex items-center gap-2 text-emerald-900 dark:text-emerald-100">
+              <div className="bg-white dark:bg-slate-800 rounded-lg p-3 sm:p-4 border border-emerald-200 dark:border-emerald-700 shadow-sm">
+                <h3 className="text-sm font-semibold mb-2 flex items-center gap-2 text-emerald-900 dark:text-emerald-100">
                   <svg
                     className="w-5 h-5 text-emerald-600"
                     fill="none"
@@ -1048,8 +1363,8 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
               </div>
 
               {/* Card: Tổng kết thanh toán */}
-              <div className="bg-gradient-to-br from-blue-600 via-cyan-600 to-teal-600 rounded-xl p-5 sm:p-6 shadow-2xl shadow-blue-500/30">
-                <h3 className="text-base font-bold mb-4 text-white flex items-center gap-2">
+              <div className="bg-gradient-to-br from-blue-600 via-cyan-600 to-teal-600 rounded-lg p-3 sm:p-4 shadow-lg">
+                <h3 className="text-sm font-semibold mb-2 text-white flex items-center gap-2">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
@@ -1222,6 +1537,234 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
               >
                 <PlusIcon className="w-5 h-5" />
                 Thêm khách hàng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal In báo giá */}
+      {showQuotePrint && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex justify-between items-center p-4 border-b">
+              <h3 className="text-lg font-bold text-slate-800">🖨️ Xem trước Báo giá</h3>
+              <button
+                onClick={() => setShowQuotePrint(false)}
+                className="p-2 hover:bg-slate-100 rounded-lg"
+              >
+                <XMarkIcon className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Nội dung báo giá để in */}
+            <div id="quote-print-content" className="p-6 bg-white text-black">
+              {/* Header công ty */}
+              <div className="text-center mb-6 border-b-2 border-slate-300 pb-4">
+                <h1 className="text-2xl font-bold text-slate-800">PIN CORP</h1>
+                <p className="text-sm text-slate-600">Chuyên sửa chữa Pin - Laptop - Điện thoại</p>
+                <p className="text-xs text-slate-500 mt-1">Hotline: 0123.456.789</p>
+              </div>
+
+              {/* Tiêu đề báo giá */}
+              <div className="text-center mb-6">
+                <h2 className="text-xl font-bold text-amber-600">BÁO GIÁ SỬA CHỮA</h2>
+                <p className="text-sm text-slate-500">
+                  Ngày: {new Date().toLocaleDateString("vi-VN")}
+                </p>
+                <p className="text-sm text-slate-500">Mã phiếu: {initialOrder?.id || "Mới"}</p>
+              </div>
+
+              {/* Thông tin khách hàng */}
+              <div className="mb-6 p-4 bg-slate-50 rounded-lg">
+                <h3 className="font-semibold text-slate-700 mb-2">👤 KHÁCH HÀNG</h3>
+                <p className="text-sm">
+                  <strong>Họ tên:</strong> {formData.customerName}
+                </p>
+                <p className="text-sm">
+                  <strong>SĐT:</strong> {formData.customerPhone}
+                </p>
+              </div>
+
+              {/* Thông tin thiết bị */}
+              <div className="mb-6 p-4 bg-slate-50 rounded-lg">
+                <h3 className="font-semibold text-slate-700 mb-2">📱 THIẾT BỊ</h3>
+                <p className="text-sm">
+                  <strong>Tên thiết bị:</strong> {formData.deviceName || "N/A"}
+                </p>
+                <p className="text-sm">
+                  <strong>Tình trạng:</strong> {formData.issueDescription}
+                </p>
+              </div>
+
+              {/* Bảng chi tiết báo giá */}
+              <div className="mb-6">
+                <h3 className="font-semibold text-slate-700 mb-2">📋 CHI TIẾT BÁO GIÁ</h3>
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="bg-slate-100">
+                      <th className="border border-slate-300 px-3 py-2 text-left">Hạng mục</th>
+                      <th className="border border-slate-300 px-3 py-2 text-center">SL</th>
+                      <th className="border border-slate-300 px-3 py-2 text-right">Đơn giá</th>
+                      <th className="border border-slate-300 px-3 py-2 text-right">Thành tiền</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(formData.materialsUsed || []).map((m, i) => (
+                      <tr key={i}>
+                        <td className="border border-slate-300 px-3 py-2">{m.materialName}</td>
+                        <td className="border border-slate-300 px-3 py-2 text-center">
+                          {m.quantity}
+                        </td>
+                        <td className="border border-slate-300 px-3 py-2 text-right">
+                          {formatCurrency(m.price)}
+                        </td>
+                        <td className="border border-slate-300 px-3 py-2 text-right">
+                          {formatCurrency(m.quantity * m.price)}
+                        </td>
+                      </tr>
+                    ))}
+                    {(formData.laborCost || 0) > 0 && (
+                      <tr>
+                        <td className="border border-slate-300 px-3 py-2">Công sửa chữa</td>
+                        <td className="border border-slate-300 px-3 py-2 text-center">1</td>
+                        <td className="border border-slate-300 px-3 py-2 text-right">
+                          {formatCurrency(formData.laborCost || 0)}
+                        </td>
+                        <td className="border border-slate-300 px-3 py-2 text-right">
+                          {formatCurrency(formData.laborCost || 0)}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                  <tfoot>
+                    <tr className="bg-amber-50 font-bold">
+                      <td colSpan={3} className="border border-slate-300 px-3 py-2 text-right">
+                        TỔNG CỘNG:
+                      </td>
+                      <td className="border border-slate-300 px-3 py-2 text-right text-amber-600">
+                        {formatCurrency(total)}
+                      </td>
+                    </tr>
+                    {(formData.depositAmount || 0) > 0 && (
+                      <>
+                        <tr>
+                          <td
+                            colSpan={3}
+                            className="border border-slate-300 px-3 py-2 text-right text-green-600"
+                          >
+                            Đặt cọc:
+                          </td>
+                          <td className="border border-slate-300 px-3 py-2 text-right text-green-600">
+                            -{formatCurrency(formData.depositAmount || 0)}
+                          </td>
+                        </tr>
+                        <tr className="font-bold">
+                          <td colSpan={3} className="border border-slate-300 px-3 py-2 text-right">
+                            Còn lại:
+                          </td>
+                          <td className="border border-slate-300 px-3 py-2 text-right text-rose-600">
+                            {formatCurrency(remaining)}
+                          </td>
+                        </tr>
+                      </>
+                    )}
+                  </tfoot>
+                </table>
+              </div>
+
+              {/* Cảnh báo thiếu hàng */}
+              {materialShortageInfo.hasShortage && (
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <h3 className="font-semibold text-red-700 mb-2">⚠️ LƯU Ý - VẬT LIỆU THIẾU</h3>
+                  <ul className="text-sm text-red-600">
+                    {materialShortageInfo.shortages.map((s, i) => (
+                      <li key={i}>
+                        • {s.materialName}: thiếu {s.shortage} (đang đặt hàng)
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-xs text-red-500 mt-2 italic">
+                    Thời gian chờ hàng: 2-5 ngày làm việc
+                  </p>
+                </div>
+              )}
+
+              {/* Ghi chú */}
+              <div className="mb-6 p-4 bg-blue-50 rounded-lg text-sm">
+                <h3 className="font-semibold text-blue-700 mb-2">📌 GHI CHÚ</h3>
+                <ul className="text-blue-600 space-y-1">
+                  <li>• Báo giá có hiệu lực 7 ngày kể từ ngày lập</li>
+                  <li>• Yêu cầu đặt cọc 50% để tiến hành sửa chữa</li>
+                  <li>• Bảo hành: 3-6 tháng tùy loại linh kiện</li>
+                  <li>• Miễn phí kiểm tra nếu không sửa</li>
+                </ul>
+              </div>
+
+              {/* Chữ ký */}
+              <div className="grid grid-cols-2 gap-8 mt-8 pt-4 border-t text-center text-sm">
+                <div>
+                  <p className="font-semibold text-slate-700">Khách hàng</p>
+                  <p className="text-slate-500 text-xs mt-1">(Ký, ghi rõ họ tên)</p>
+                  <div className="h-16"></div>
+                </div>
+                <div>
+                  <p className="font-semibold text-slate-700">Nhân viên</p>
+                  <p className="text-slate-500 text-xs mt-1">(Ký, ghi rõ họ tên)</p>
+                  <div className="h-16"></div>
+                  <p className="font-medium">{formData.technicianName || currentUser?.name}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer buttons */}
+            <div className="flex gap-3 p-4 border-t bg-slate-50">
+              <button
+                onClick={() => setShowQuotePrint(false)}
+                className="flex-1 px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-lg font-semibold transition-colors"
+              >
+                Đóng
+              </button>
+              <button
+                onClick={() => {
+                  const printContent = document.getElementById("quote-print-content");
+                  if (printContent) {
+                    const printWindow = window.open("", "_blank");
+                    if (printWindow) {
+                      printWindow.document.write(`
+                        <html>
+                          <head>
+                            <title>Báo giá - ${formData.customerName}</title>
+                            <style>
+                              body { font-family: Arial, sans-serif; padding: 20px; }
+                              table { width: 100%; border-collapse: collapse; }
+                              th, td { border: 1px solid #ccc; padding: 8px; }
+                              th { background: #f5f5f5; }
+                              .text-right { text-align: right; }
+                              .text-center { text-align: center; }
+                              @media print { body { print-color-adjust: exact; } }
+                            </style>
+                          </head>
+                          <body>${printContent.innerHTML}</body>
+                        </html>
+                      `);
+                      printWindow.document.close();
+                      printWindow.print();
+                    }
+                  }
+                }}
+                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-lg font-bold shadow-lg transition-all flex items-center justify-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
+                  />
+                </svg>
+                In báo giá
               </button>
             </div>
           </div>

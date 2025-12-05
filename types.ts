@@ -650,7 +650,22 @@ export interface PinRepairMaterial {
   materialName: string;
   quantity: number;
   price: number; // price at time of repair
+  // Thêm fields để track tồn kho
+  inStock?: number; // Tồn kho tại thời điểm tạo
+  shortage?: number; // Số lượng thiếu (nếu có)
 }
+
+// Status mới cho flow báo giá
+export type PinRepairStatus =
+  | "Tiếp nhận" // Mới tạo phiếu
+  | "Chờ báo giá" // Đã chọn vật liệu, chờ khách duyệt
+  | "Chờ vật liệu" // Khách OK, đang chờ hàng về
+  | "Sẵn sàng sửa" // Đủ hàng, chờ bắt đầu
+  | "Đang sửa" // Đang tiến hành (đã trừ kho)
+  | "Đã sửa xong" // Hoàn thành, chờ khách lấy
+  | "Trả máy" // Đã thanh toán + trả máy
+  | "Đã hủy" // Hủy phiếu
+  | "Chờ"; // Legacy status
 
 export interface PinRepairOrder {
   id: string;
@@ -660,7 +675,7 @@ export interface PinRepairOrder {
   deviceName: string;
   issueDescription: string;
   technicianName?: string;
-  status: "Tiếp nhận" | "Đang sửa" | "Đã sửa xong" | "Trả máy" | "Chờ";
+  status: PinRepairStatus;
   materialsUsed?: PinRepairMaterial[];
   laborCost: number;
   total: number;
@@ -673,6 +688,18 @@ export interface PinRepairOrder {
   dueDate?: string; // Thời gian hẹn trả - để nhắc nợ
   cashTransactionId?: string;
   created_at?: string;
+
+  // === Báo giá & Quản lý vật liệu ===
+  quotedAt?: string; // Ngày tạo báo giá
+  quoteApprovedAt?: string; // Ngày khách duyệt báo giá
+  quoteApproved?: boolean; // Khách đã duyệt báo giá?
+  quotedMaterialsCost?: number; // Tổng tiền vật liệu báo giá
+  quotedLaborCost?: number; // Tiền công báo giá
+  quotedTotal?: number; // Tổng báo giá
+  hasMaterialShortage?: boolean; // Có thiếu vật liệu không?
+  linkedPurchaseOrderId?: string; // Liên kết với phiếu nhập hàng (nếu đặt NCC)
+  materialsDeducted?: boolean; // Đã trừ kho chưa? (để tránh trừ 2 lần)
+  materialsDeductedAt?: string; // Thời điểm trừ kho
 }
 
 // =====================================================

@@ -188,38 +188,34 @@ const PinReportManager: React.FC<PinReportManagerProps> = ({ sales, orders = [] 
 
   return (
     <div className="space-y-4 md:space-y-6 pb-20 md:pb-0">
-      {/* Page Header */}
-      <div className="flex flex-col gap-3 md:gap-4">
+      {/* Page Header with inline Date Filter */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div>
-          <h1 className="text-xl md:text-3xl font-bold text-pin-gray-900 dark:text-pin-dark-900">
+          <h1 className="text-xl md:text-2xl font-bold text-pin-gray-900 dark:text-pin-dark-900">
             Báo cáo & Thống kê
           </h1>
-          <p className="text-xs md:text-sm text-pin-gray-500 dark:text-pin-dark-500 mt-1">
+          <p className="text-xs text-pin-gray-500 dark:text-pin-dark-500">
             Phân tích doanh thu và hiệu quả kinh doanh
           </p>
         </div>
 
-        {/* Date Filter - Mobile optimized */}
-        <Card padding="sm" className="w-full">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
-            <Icon name="calendar" size="md" tone="muted" className="hidden sm:block" />
-            <div className="flex items-center gap-2 flex-1">
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="flex-1 px-2 md:px-3 py-2 md:py-1.5 rounded-lg border border-pin-gray-200 dark:border-pin-dark-400 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-pin-blue-500 min-w-0"
-              />
-              <span className="text-pin-gray-400 text-xs md:text-sm">đến</span>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="flex-1 px-2 md:px-3 py-2 md:py-1.5 rounded-lg border border-pin-gray-200 dark:border-pin-dark-400 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-pin-blue-500 min-w-0"
-              />
-            </div>
-          </div>
-        </Card>
+        {/* Compact Date Filter */}
+        <div className="flex items-center gap-2 bg-pin-gray-100 dark:bg-pin-dark-200 rounded-lg px-3 py-1.5">
+          <Icon name="calendar" size="sm" tone="muted" />
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="px-2 py-1 rounded border border-pin-gray-200 dark:border-pin-dark-400 bg-white dark:bg-pin-dark-100 text-xs focus:outline-none focus:ring-1 focus:ring-pin-blue-500 w-28"
+          />
+          <span className="text-pin-gray-400 text-xs">→</span>
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="px-2 py-1 rounded border border-pin-gray-200 dark:border-pin-dark-400 bg-white dark:bg-pin-dark-100 text-xs focus:outline-none focus:ring-1 focus:ring-pin-blue-500 w-28"
+          />
+        </div>
       </div>
 
       {/* Stats Cards - Responsive Grid */}

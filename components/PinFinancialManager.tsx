@@ -717,32 +717,32 @@ const PinFinancialManager: React.FC = () => {
   ];
 
   return (
-    <div className="p-2 md:p-4 space-y-4 bg-slate-900 min-h-screen pb-20 md:pb-4">
+    <div className="p-2 md:p-4 space-y-3 bg-slate-900 min-h-screen pb-20 md:pb-4">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div>
           <h1 className="text-lg md:text-xl font-bold text-white flex items-center gap-2">
-            <span className="text-xl md:text-2xl">💰</span> Quản lý Tài chính
+            <span className="text-lg">💰</span> Quản lý Tài chính
           </h1>
-          <p className="text-gray-400 text-xs md:text-sm mt-1">
+          <p className="text-gray-400 text-xs">
             Quản lý sổ quỹ, khoản vay và các giao dịch tài chính
           </p>
         </div>
 
         {/* Tab Navigation as Pills - Scrollable on mobile */}
-        <div className="flex items-center gap-1 md:gap-2 bg-slate-800/50 rounded-full p-1 overflow-x-auto scrollbar-hide">
+        <div className="flex items-center gap-1 bg-slate-800/50 rounded-full p-1 overflow-x-auto scrollbar-hide">
           {tabs.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`flex-shrink-0 flex items-center gap-1 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-medium transition-all duration-200 ${
+              className={`flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
                 activeTab === tab.key
                   ? "bg-blue-600 text-white shadow-lg"
                   : "text-gray-400 hover:text-white hover:bg-slate-700/50"
               }`}
             >
               <span
-                className={`w-1.5 md:w-2 h-1.5 md:h-2 rounded-full ${
+                className={`w-1.5 h-1.5 rounded-full ${
                   activeTab === tab.key ? "bg-green-400" : "bg-gray-500"
                 }`}
               />
@@ -754,83 +754,80 @@ const PinFinancialManager: React.FC = () => {
 
       {/* ====== CASHBOOK TAB ====== */}
       {activeTab === "cashbook" && (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {/* Section Title */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-base md:text-lg font-semibold text-white">Sổ quỹ</h2>
-              <p className="text-gray-400 text-xs md:text-sm">
-                Theo dõi thu chi tiền mặt và chuyển khoản
-              </p>
+              <h2 className="text-sm font-semibold text-white">Sổ quỹ</h2>
+              <p className="text-gray-400 text-xs">Theo dõi thu chi tiền mặt và chuyển khoản</p>
             </div>
             <button
               onClick={() => setShowAddTransaction(true)}
-              className="flex items-center justify-center gap-2 px-3 md:px-4 py-2 bg-white text-slate-900 rounded-lg hover:bg-gray-100 transition-colors font-medium text-sm"
+              className="flex items-center gap-1 px-3 py-1.5 bg-white text-slate-900 rounded-lg hover:bg-gray-100 transition-colors font-medium text-xs"
             >
               <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">Thêm giao dịch</span>
-              <span className="sm:hidden">Thêm</span>
+              <span>Thêm giao dịch</span>
             </button>
           </div>
 
-          {/* Summary Cards - Mobile: 2 cols, Desktop: 5 cols */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-2 md:gap-4">
+          {/* Summary Cards - Compact, 2 cols on mobile, 5 on desktop */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-1.5 md:gap-2">
             {/* Thu (Income) */}
-            <div className="bg-gradient-to-br from-teal-600/20 to-teal-700/10 border border-teal-500/30 rounded-xl p-3 md:p-4">
-              <div className="flex items-center gap-2 text-teal-400 text-xs md:text-sm mb-1 md:mb-2">
-                <TrendingUp className="w-3 h-3 md:w-4 md:h-4" />
+            <div className="bg-gradient-to-br from-teal-600/20 to-teal-700/10 border border-teal-500/30 rounded-lg p-2">
+              <div className="flex items-center gap-1 text-teal-400 text-[10px] md:text-xs mb-0.5">
+                <TrendingUp className="w-3 h-3" />
                 Thu
               </div>
-              <p className="text-base md:text-2xl font-bold text-teal-400 truncate">
+              <p className="text-xs md:text-sm font-bold text-teal-400 truncate">
                 {formatCurrency(cashbookSummary.totalIncome)}
               </p>
             </div>
 
             {/* Chi (Expense) */}
-            <div className="bg-gradient-to-br from-red-600/20 to-red-700/10 border border-red-500/30 rounded-xl p-3 md:p-4">
-              <div className="flex items-center gap-2 text-red-400 text-xs md:text-sm mb-1 md:mb-2">
-                <TrendingDown className="w-3 h-3 md:w-4 md:h-4" />
+            <div className="bg-gradient-to-br from-red-600/20 to-red-700/10 border border-red-500/30 rounded-lg p-2">
+              <div className="flex items-center gap-1 text-red-400 text-[10px] md:text-xs mb-0.5">
+                <TrendingDown className="w-3 h-3" />
                 Chi
               </div>
-              <p className="text-base md:text-2xl font-bold text-red-400 truncate">
+              <p className="text-xs md:text-sm font-bold text-red-400 truncate">
                 -{formatCurrency(cashbookSummary.totalExpense)}
               </p>
             </div>
 
             {/* Chênh lệch (Difference) */}
-            <div className="bg-gradient-to-br from-purple-600/20 to-purple-700/10 border border-purple-500/30 rounded-xl p-3 md:p-4">
-              <div className="flex items-center gap-2 text-purple-400 text-xs md:text-sm mb-1 md:mb-2">
-                <DollarSign className="w-3 h-3 md:w-4 md:h-4" />
+            <div className="bg-gradient-to-br from-purple-600/20 to-purple-700/10 border border-purple-500/30 rounded-lg p-2">
+              <div className="flex items-center gap-1 text-purple-400 text-[10px] md:text-xs mb-0.5">
+                <DollarSign className="w-3 h-3" />
                 Chênh lệch
               </div>
               <p
-                className={`text-base md:text-2xl font-bold truncate ${cashbookSummary.difference >= 0 ? "text-purple-400" : "text-red-400"}`}
+                className={`text-xs md:text-sm font-bold truncate ${cashbookSummary.difference >= 0 ? "text-purple-400" : "text-red-400"}`}
               >
                 {formatCurrency(cashbookSummary.difference)}
               </p>
             </div>
 
             {/* Tiền mặt (Cash) */}
-            <div className="bg-gradient-to-br from-yellow-600/20 to-yellow-700/10 border border-yellow-500/30 rounded-xl p-3 md:p-4">
-              <div className="flex items-center gap-2 text-yellow-400 text-xs md:text-sm mb-1 md:mb-2">
-                <Wallet className="w-3 h-3 md:w-4 md:h-4" />
+            <div className="bg-gradient-to-br from-yellow-600/20 to-yellow-700/10 border border-yellow-500/30 rounded-lg p-2">
+              <div className="flex items-center gap-1 text-yellow-400 text-[10px] md:text-xs mb-0.5">
+                <Wallet className="w-3 h-3" />
                 Tiền mặt
               </div>
               <p
-                className={`text-base md:text-2xl font-bold truncate ${cashbookSummary.cashBalance >= 0 ? "text-yellow-400" : "text-red-400"}`}
+                className={`text-xs md:text-sm font-bold truncate ${cashbookSummary.cashBalance >= 0 ? "text-yellow-400" : "text-red-400"}`}
               >
                 {formatCurrency(cashbookSummary.cashBalance)}
               </p>
             </div>
 
             {/* Ngân hàng (Bank) */}
-            <div className="col-span-2 md:col-span-1 bg-gradient-to-br from-blue-600/20 to-blue-700/10 border border-blue-500/30 rounded-xl p-3 md:p-4">
-              <div className="flex items-center gap-2 text-blue-400 text-xs md:text-sm mb-1 md:mb-2">
-                <Building className="w-3 h-3 md:w-4 md:h-4" />
+            <div className="bg-gradient-to-br from-blue-600/20 to-blue-700/10 border border-blue-500/30 rounded-lg p-2 col-span-2 md:col-span-1">
+              <div className="flex items-center gap-1 text-blue-400 text-[10px] md:text-xs mb-0.5">
+                <Building className="w-3 h-3" />
                 Ngân hàng
               </div>
               <p
-                className={`text-base md:text-2xl font-bold truncate ${cashbookSummary.bankBalance >= 0 ? "text-blue-400" : "text-red-400"}`}
+                className={`text-xs md:text-sm font-bold truncate ${cashbookSummary.bankBalance >= 0 ? "text-blue-400" : "text-red-400"}`}
               >
                 {formatCurrency(cashbookSummary.bankBalance)}
               </p>

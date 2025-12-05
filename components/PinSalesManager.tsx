@@ -145,7 +145,7 @@ const FloatingCartButton: React.FC<{
   total: number;
   onClick: () => void;
 }> = ({ count, total, onClick }) => (
-  <div className="lg:hidden fixed bottom-4 right-4 left-4 z-20">
+  <div className="lg:hidden fixed bottom-20 right-4 left-4 z-20">
     <button
       onClick={onClick}
       className="w-full bg-orange-500 text-white font-bold rounded-lg shadow-lg flex items-center py-3 px-5 hover:bg-orange-600 transition-transform hover:scale-105"
@@ -183,7 +183,7 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
   const { currentUser, pinSales, deletePinSale, updatePinSale, pinMaterials } = usePinContext();
   const [discount, setDiscount] = useState(0);
   const [discountType, setDiscountType] = useState<"VND" | "%">("VND");
-  const [paymentMethod, setPaymentMethod] = useState<"cash" | "bank" | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "bank">("cash");
   // New: payment modes
   const [paymentMode, setPaymentMode] = useState<"full" | "partial" | "debt">("full");
   const [paidAmount, setPaidAmount] = useState<number>(0);
@@ -515,192 +515,217 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
         onClose={() => setIsReceiptVisible(false)}
         saleData={lastSaleData}
       />
-      <div className="mb-4 border-b border-slate-200 dark:border-slate-700">
-        <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+      {/* Mobile-optimized Tab Navigation */}
+      <div className="mb-2 md:mb-4 border-b border-slate-200 dark:border-slate-700">
+        <nav className="-mb-px flex space-x-4 md:space-x-8" aria-label="Tabs">
           <button
             onClick={() => setActiveTab("pos")}
-            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+            className={`py-2 md:py-4 px-1 border-b-2 font-medium text-xs md:text-sm ${
               activeTab === "pos"
                 ? "border-sky-500 text-sky-600 dark:text-sky-400"
                 : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
             }`}
           >
-            Bán hàng
+            🛒 Bán hàng
           </button>
           <button
             onClick={() => setActiveTab("history")}
-            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+            className={`py-2 md:py-4 px-1 border-b-2 font-medium text-xs md:text-sm ${
               activeTab === "history"
                 ? "border-sky-500 text-sky-600 dark:text-sky-400"
                 : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
             }`}
           >
-            Lịch sử
+            📋 Lịch sử
           </button>
         </nav>
       </div>
 
       {activeTab === "pos" && (
         <div
-          className={`lg:grid lg:gap-6 h-full transition-all duration-300 ${cartItems.length > 0 ? "lg:grid-cols-3" : "lg:grid-cols-1"}`}
+          className={`lg:grid lg:gap-4 h-full transition-all duration-300 ${cartItems.length > 0 ? "lg:grid-cols-3" : "lg:grid-cols-1"}`}
         >
           {/* Product List */}
           <div
             className={`${
               mobileView === "products" ? "flex" : "hidden"
-            } lg:flex flex-col bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border dark:border-slate-700 h-full ${cartItems.length > 0 ? "lg:col-span-2" : "lg:col-span-1"}`}
+            } lg:flex flex-col bg-white dark:bg-slate-800 p-2 md:p-4 rounded-lg shadow-sm border dark:border-slate-700 h-full ${cartItems.length > 0 ? "lg:col-span-2" : "lg:col-span-1"}`}
           >
+            {/* Compact Search for mobile */}
             <input
               type="text"
-              placeholder="Tìm sản phẩm hoặc nguyên liệu..."
+              placeholder="🔍 Tìm sản phẩm..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-md mb-3 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+              className="w-full p-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg mb-2 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-sky-500 focus:border-transparent"
             />
 
-            {/* Category Filter */}
-            <div className="flex gap-1 md:gap-2 mb-3 md:mb-4 overflow-x-auto pb-1">
+            {/* Category Filter - Compact on mobile */}
+            <div className="flex gap-1 mb-2 overflow-x-auto pb-1 scrollbar-hide">
               <button
                 onClick={() => setSalesCategory("all")}
-                className={`px-2 md:px-3 py-1 text-[10px] md:text-xs font-medium rounded-full transition-colors whitespace-nowrap ${
+                className={`px-2 py-1 text-[10px] font-medium rounded-full transition-colors whitespace-nowrap ${
                   salesCategory === "all"
-                    ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-                    : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                    ? "bg-blue-500 text-white"
+                    : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
                 }`}
               >
-                🏪 <span className="hidden md:inline">Tất cả</span> ({availableItems.length})
+                Tất cả ({availableItems.length})
               </button>
               <button
                 onClick={() => setSalesCategory("products")}
-                className={`px-2 md:px-3 py-1 text-[10px] md:text-xs font-medium rounded-full transition-colors whitespace-nowrap ${
+                className={`px-2 py-1 text-[10px] font-medium rounded-full transition-colors whitespace-nowrap ${
                   salesCategory === "products"
-                    ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                    : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                    ? "bg-green-500 text-white"
+                    : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
                 }`}
               >
-                📱 <span className="hidden md:inline">Thành phẩm</span>
-                <span className="md:hidden">TP</span> ({products.filter((p) => p.stock > 0).length})
+                📱 TP ({products.filter((p) => p.stock > 0).length})
               </button>
               <button
                 onClick={() => setSalesCategory("materials")}
-                className={`px-2 md:px-3 py-1 text-[10px] md:text-xs font-medium rounded-full transition-colors whitespace-nowrap ${
+                className={`px-2 py-1 text-[10px] font-medium rounded-full transition-colors whitespace-nowrap ${
                   salesCategory === "materials"
-                    ? "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200"
-                    : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                    ? "bg-orange-500 text-white"
+                    : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
                 }`}
               >
-                📦 <span className="hidden md:inline">Nguyên liệu</span>
-                <span className="md:hidden">NVL</span> (
-                {(pinMaterials || []).filter((m: PinMaterial) => (m.stock || 0) > 0).length})
+                📦 NVL ({(pinMaterials || []).filter((m: PinMaterial) => (m.stock || 0) > 0).length}
+                )
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto pr-2 -mr-2">
+            <div className="flex-1 overflow-y-auto pr-1 -mr-1 pb-24 md:pb-0">
               {availableProducts.length > 0 ? (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-2 md:gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-3">
                   {availableProducts.map((product: PinProduct & { type?: string }) => (
                     <div
                       key={product.id}
-                      className="bg-white dark:bg-slate-800 p-2 md:p-4 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-sky-500 dark:hover:border-sky-400 hover:bg-sky-50/50 dark:hover:bg-sky-900/20 transition-colors duration-150 h-fit"
+                      className="bg-white dark:bg-slate-800 p-2 md:p-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-sky-500 dark:hover:border-sky-400 hover:shadow-md transition-all duration-150"
                     >
-                      {/* Header with name and type badge */}
-                      <div className="flex items-start justify-between gap-1 md:gap-2 mb-2 md:mb-3">
-                        <h3 className="font-semibold text-slate-800 dark:text-slate-100 group-hover:text-sky-700 dark:group-hover:text-sky-300 text-xs md:text-sm leading-tight flex-1 line-clamp-2">
-                          {product.name}
-                        </h3>
+                      {/* Mobile: Single row layout */}
+                      <div className="md:hidden flex items-center gap-2">
+                        {/* Type badge */}
                         <span
-                          className={`px-1.5 md:px-2 py-0.5 text-[10px] md:text-xs font-medium rounded-full flex-shrink-0 ${
+                          className={`w-6 h-6 flex items-center justify-center text-xs rounded flex-shrink-0 ${
                             (product as any).type === "material"
-                              ? "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300"
-                              : "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                              ? "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300"
+                              : "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
                           }`}
                         >
-                          <span className="hidden md:inline">
-                            {(product as any).type === "material" ? "📦 NVL" : "📱 TP"}
-                          </span>
-                          <span className="md:hidden">
-                            {(product as any).type === "material" ? "📦" : "📱"}
-                          </span>
+                          {(product as any).type === "material" ? "📦" : "📱"}
                         </span>
-                      </div>
 
-                      {/* SKU */}
-                      <p className="text-[10px] md:text-xs font-mono text-slate-600 dark:text-slate-400 mb-2 md:mb-3 bg-slate-50 dark:bg-slate-700/50 px-1.5 md:px-2 py-0.5 md:py-1 rounded truncate">
-                        <span className="hidden md:inline">SKU: </span>
-                        {product.sku}
-                      </p>
-
-                      {/* Price and Stock */}
-                      <div className="space-y-1 md:space-y-2 mb-2 md:mb-4">
-                        {/* Luôn hiển thị giá cho cả material và product */}
-                        <div className="flex items-center justify-between">
-                          <span className="flex items-center gap-0.5 md:gap-1 text-[10px] md:text-xs text-slate-600 dark:text-slate-400">
-                            <BanknotesIcon className="w-3 h-3 md:w-3.5 md:h-3.5" />
-                            <span className="hidden md:inline">Giá lẻ</span>
-                            <span className="md:hidden">Lẻ</span>
-                          </span>
-                          <span className="font-semibold text-slate-800 dark:text-slate-100 text-xs md:text-sm">
-                            {formatCurrency(
-                              (product as any).retailPrice ?? product.sellingPrice ?? 0
-                            )}
-                          </span>
-                        </div>
-
-                        {/* Hiển thị giá sỉ nếu có */}
-                        {((product as any).wholesalePrice || 0) > 0 && (
-                          <div className="flex items-center justify-between">
-                            <span className="flex items-center gap-0.5 md:gap-1 text-[10px] md:text-xs text-slate-600 dark:text-slate-400">
-                              <BanknotesIcon className="w-3 h-3 md:w-3.5 md:h-3.5" />
-                              <span className="hidden md:inline">Giá sỉ</span>
-                              <span className="md:hidden">Sỉ</span>
+                        {/* Name + Info */}
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-medium text-slate-800 dark:text-slate-100 text-sm truncate">
+                            {product.name}
+                          </h3>
+                          <div className="flex items-center gap-3 text-xs text-slate-500">
+                            <span className="font-semibold text-amber-600 dark:text-amber-400">
+                              {formatCurrency(
+                                (product as any).retailPrice ?? product.sellingPrice ?? 0
+                              )}
                             </span>
-                            <span className="font-semibold text-slate-800 dark:text-slate-100 text-xs md:text-sm">
-                              {formatCurrency((product as any).wholesalePrice || 0)}
+                            <span>
+                              Kho:{" "}
+                              <span className="font-medium text-slate-700 dark:text-slate-300">
+                                {product.stock}
+                              </span>
                             </span>
                           </div>
-                        )}
-
-                        {/* Tồn kho */}
-                        <div className="flex items-center justify-between">
-                          <span className="flex items-center gap-0.5 md:gap-1 text-[10px] md:text-xs text-slate-600 dark:text-slate-400">
-                            <ArchiveBoxIcon className="w-3 h-3 md:w-3.5 md:h-3.5" />
-                            <span className="hidden md:inline">Tồn kho</span>
-                            <span className="md:hidden">Kho</span>
-                          </span>
-                          <span className="font-semibold text-slate-800 dark:text-slate-100 text-xs md:text-sm">
-                            {product.stock}
-                          </span>
                         </div>
-                      </div>
 
-                      {/* Add buttons - Retail and Wholesale */}
-                      <div className="flex items-center gap-1 md:gap-2 w-full">
-                        {/* Nút bán lẻ */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            addToCart(product, "retail");
-                          }}
-                          className="flex-1 bg-green-600 hover:bg-green-700 text-white rounded-lg px-2 md:px-3 py-1.5 md:py-2 flex items-center justify-center gap-1 md:gap-2 transition-colors text-xs md:text-sm font-medium"
-                        >
-                          <PlusIcon className="w-3 h-3 md:w-4 md:h-4" />
-                          <span className="hidden md:inline">Bán lẻ</span>
-                          <span className="md:hidden">Lẻ</span>
-                        </button>
-
-                        {/* Nút bán sỉ - chỉ hiển thị nếu có giá sỉ */}
-                        {((product as any).wholesalePrice || 0) > 0 && (
+                        {/* Action buttons */}
+                        <div className="flex gap-1 flex-shrink-0">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              addToCart(product, "wholesale");
+                              addToCart(product, "retail");
                             }}
-                            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-2 md:px-3 py-1.5 md:py-2 flex items-center justify-center gap-1 md:gap-2 transition-colors text-xs md:text-sm font-medium"
+                            className="bg-emerald-500 active:bg-emerald-600 text-white rounded px-2.5 py-1.5 text-xs font-medium"
                           >
-                            <PlusIcon className="w-3 h-3 md:w-4 md:h-4" />
-                            <span className="hidden md:inline">Bán sỉ</span>
-                            <span className="md:hidden">Sỉ</span>
+                            +Lẻ
                           </button>
-                        )}
+                          {((product as any).wholesalePrice || 0) > 0 && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                addToCart(product, "wholesale");
+                              }}
+                              className="bg-sky-500 active:bg-sky-600 text-white rounded px-2.5 py-1.5 text-xs font-medium"
+                            >
+                              +Sỉ
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Desktop: Original card layout */}
+                      <div className="hidden md:block">
+                        {/* Header with name and type badge */}
+                        <div className="flex items-start justify-between gap-1 mb-1.5">
+                          <h3 className="font-medium text-slate-800 dark:text-slate-100 text-sm leading-tight flex-1 line-clamp-2">
+                            {product.name}
+                          </h3>
+                          <span
+                            className={`px-1 py-0.5 text-[10px] font-medium rounded flex-shrink-0 ${
+                              (product as any).type === "material"
+                                ? "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300"
+                                : "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
+                            }`}
+                          >
+                            {(product as any).type === "material" ? "📦" : "📱"}
+                          </span>
+                        </div>
+
+                        {/* SKU */}
+                        <p className="text-[10px] font-mono text-slate-500 dark:text-slate-400 mb-2 bg-slate-50 dark:bg-slate-700/50 px-1.5 py-0.5 rounded truncate">
+                          {product.sku}
+                        </p>
+
+                        {/* Price and Stock */}
+                        <div className="space-y-0.5 mb-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] text-slate-500">Giá</span>
+                            <span className="font-semibold text-slate-800 dark:text-slate-100 text-xs">
+                              {formatCurrency(
+                                (product as any).retailPrice ?? product.sellingPrice ?? 0
+                              )}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] text-slate-500">Kho</span>
+                            <span className="font-medium text-slate-700 dark:text-slate-300 text-xs">
+                              {product.stock}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Add buttons */}
+                        <div className="flex gap-1">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              addToCart(product, "retail");
+                            }}
+                            className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white rounded px-1.5 py-1.5 flex items-center justify-center gap-0.5 transition-colors text-xs font-medium"
+                          >
+                            <PlusIcon className="w-3 h-3" />
+                            <span>Lẻ</span>
+                          </button>
+                          {((product as any).wholesalePrice || 0) > 0 && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                addToCart(product, "wholesale");
+                              }}
+                              className="flex-1 bg-sky-500 hover:bg-sky-600 text-white rounded px-1.5 py-1.5 flex items-center justify-center gap-0.5 transition-colors text-xs font-medium"
+                            >
+                              <PlusIcon className="w-3 h-3" />
+                              <span>Sỉ</span>
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -973,80 +998,64 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
                 </div>
               </div>
 
-              {/* 2. Cart Items List - Đặt dưới Khách hàng */}
+              {/* 2. Cart Items List - Compact */}
               {cartItems.length > 0 && (
-                <div className="space-y-2 mb-4 pb-4 border-b border-slate-200 dark:border-slate-700">
-                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                <div className="space-y-1.5 mb-3 pb-3 border-b border-slate-200 dark:border-slate-700">
+                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                     🛒 Sản phẩm trong giỏ:
                   </p>
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     {cartItems.map((item) => (
                       <div
                         key={`${item.productId}-${item.priceType || "retail"}`}
-                        className="bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-lg p-3"
+                        className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-2"
                       >
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-slate-800 dark:text-slate-100 text-sm truncate">
-                                {item.name}
-                              </span>
-                              <span
-                                className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${
-                                  item.priceType === "wholesale"
-                                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-                                    : "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-                                }`}
-                              >
-                                {item.priceType === "wholesale" ? "Sỉ" : "Lẻ"}
-                              </span>
-                            </div>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                              {formatCurrency(item.sellingPrice)} × {item.quantity} ={" "}
-                              <span className="font-semibold text-orange-600 dark:text-orange-400">
-                                {formatCurrency(item.sellingPrice * item.quantity)}
-                              </span>
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-1">
+                        {/* Row 1: Name + Price Type */}
+                        <div className="flex items-start justify-between gap-2 mb-1">
+                          <span className="font-medium text-slate-800 dark:text-slate-100 text-sm leading-tight">
+                            {item.name}
+                          </span>
+                          <span
+                            className={`flex-shrink-0 px-1.5 py-0.5 text-[10px] font-medium rounded ${
+                              item.priceType === "wholesale"
+                                ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+                                : "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                            }`}
+                          >
+                            {item.priceType === "wholesale" ? "Sỉ" : "Lẻ"}
+                          </span>
+                        </div>
+                        {/* Row 2: Price calculation + Quantity controls */}
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            {formatCurrency(item.sellingPrice)} × {item.quantity} ={" "}
+                            <span className="font-semibold text-orange-600 dark:text-orange-400">
+                              {formatCurrency(item.sellingPrice * item.quantity)}
+                            </span>
+                          </p>
+                          <div className="flex items-center gap-0.5">
                             <button
                               onClick={() =>
                                 updateQuantity(
                                   item.productId,
-                                  Math.max(1, item.quantity - 1),
+                                  item.quantity - 1,
                                   item.priceType
                                 )
                               }
-                              className="w-6 h-6 flex items-center justify-center bg-slate-200 dark:bg-slate-600 rounded text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-500"
+                              className="w-7 h-7 flex items-center justify-center bg-slate-200 dark:bg-slate-600 rounded text-slate-600 dark:text-slate-300 active:bg-slate-300 dark:active:bg-slate-500"
                             >
-                              <MinusIcon className="w-3 h-3" />
+                              <MinusIcon className="w-4 h-4" />
                             </button>
-                            <span className="w-6 text-center text-sm font-medium">
+                            <span className="w-8 text-center text-sm font-bold">
                               {item.quantity}
                             </span>
                             <button
                               onClick={() =>
                                 updateQuantity(item.productId, item.quantity + 1, item.priceType)
                               }
-                              className="w-6 h-6 flex items-center justify-center bg-slate-200 dark:bg-slate-600 rounded text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-500"
+                              className="w-7 h-7 flex items-center justify-center bg-slate-200 dark:bg-slate-600 rounded text-slate-600 dark:text-slate-300 active:bg-slate-300 dark:active:bg-slate-500"
                             >
-                              <PlusIcon className="w-3 h-3" />
-                            </button>
-                            <button
-                              onClick={() =>
-                                setCartItems((prev) =>
-                                  prev.filter(
-                                    (i) =>
-                                      !(
-                                        i.productId === item.productId &&
-                                        (i.priceType || "retail") === (item.priceType || "retail")
-                                      )
-                                  )
-                                )
-                              }
-                              className="w-6 h-6 flex items-center justify-center text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 rounded ml-1"
-                            >
-                              <TrashIcon className="w-3 h-3" />
+                              <PlusIcon className="w-4 h-4" />
                             </button>
                           </div>
                         </div>
@@ -1119,14 +1128,14 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
               </div>
 
               {/* Payment Method */}
-              <div className="space-y-3">
+              <div className="space-y-3 pb-4 md:pb-0">
                 <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
                   💳 Phương thức thanh toán
                 </label>
-                <div className="flex gap-3">
+                <div className="grid grid-cols-2 gap-2">
                   <button
                     onClick={() => setPaymentMethod("cash")}
-                    className={`flex-1 flex items-center justify-center gap-2 p-3 border-2 rounded-lg transition-all ${
+                    className={`flex items-center justify-center gap-2 p-2.5 border-2 rounded-lg transition-all text-sm ${
                       paymentMethod === "cash"
                         ? "border-green-500 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 shadow-md"
                         : "border-slate-300 dark:border-slate-600 hover:border-green-300 dark:hover:border-green-600"
@@ -1137,94 +1146,97 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
                   </button>
                   <button
                     onClick={() => setPaymentMethod("bank")}
-                    className={`flex-1 flex items-center justify-center gap-2 p-3 border-2 rounded-lg transition-all ${
+                    className={`flex items-center justify-center gap-2 p-2.5 border-2 rounded-lg transition-all text-sm ${
                       paymentMethod === "bank"
                         ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 shadow-md"
                         : "border-slate-300 dark:border-slate-600 hover:border-blue-300 dark:hover:border-blue-600"
                     }`}
                   >
-                    <span className="text-lg">🏦</span>
+                    <span className="text-base">🏦</span>
                     <span className="font-medium">Chuyển khoản</span>
                   </button>
                 </div>
-                {/* Payment Mode (full / partial / debt) */}
-                <div className="mt-3">
-                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                    📌 Hình thức
-                  </label>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setPaymentMode("full")}
-                      className={`flex-1 p-2 border-2 rounded-lg text-sm ${
-                        paymentMode === "full"
-                          ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300"
-                          : "border-slate-300 dark:border-slate-600 hover:border-emerald-300 dark:hover:border-emerald-600"
-                      }`}
-                    >
-                      Thanh toán đủ
-                    </button>
-                    <button
-                      onClick={() => {
-                        setPaymentMode("partial");
-                        setPaidAmount((prev) => (prev > 0 ? prev : total));
-                      }}
-                      className={`flex-1 p-2 border-2 rounded-lg text-sm ${
-                        paymentMode === "partial"
-                          ? "border-amber-500 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300"
-                          : "border-slate-300 dark:border-slate-600 hover:border-amber-300 dark:hover:border-amber-600"
-                      }`}
-                    >
-                      Thanh toán 1 phần
-                    </button>
-                    <button
-                      onClick={() => {
-                        setPaymentMode("debt");
-                        setPaidAmount(0);
-                      }}
-                      className={`flex-1 p-2 border-2 rounded-lg text-sm ${
-                        paymentMode === "debt"
-                          ? "border-red-500 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300"
-                          : "border-slate-300 dark:border-slate-600 hover:border-red-300 dark:hover:border-red-600"
-                      }`}
-                    >
-                      Ghi nợ
-                    </button>
-                  </div>
 
-                  {paymentMode === "partial" && (
-                    <div className="mt-3 flex items-center justify-between">
-                      <label className="text-sm text-slate-600 dark:text-slate-400">
-                        Số tiền khách trả
-                      </label>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="number"
-                          min={1}
-                          max={total - 1}
-                          value={paidAmount || ""}
-                          onChange={(e) => setPaidAmount(Number(e.target.value || 0))}
-                          className="w-36 p-2 border border-slate-300 dark:border-slate-600 rounded-md text-right bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm"
-                        />
-                        <span className="text-xs text-slate-500">
-                          Còn lại: {formatCurrency(Math.max(0, total - (paidAmount || 0)))}
-                        </span>
+                {/* Payment Mode - Only show when payment method is selected */}
+                {paymentMethod && (
+                  <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                      📌 Hình thức
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      <button
+                        onClick={() => setPaymentMode("full")}
+                        className={`p-2 border-2 rounded-lg text-xs font-medium text-center ${
+                          paymentMode === "full"
+                            ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300"
+                            : "border-slate-300 dark:border-slate-600 hover:border-emerald-300 dark:hover:border-emerald-600"
+                        }`}
+                      >
+                        Đủ
+                      </button>
+                      <button
+                        onClick={() => {
+                          setPaymentMode("partial");
+                          setPaidAmount((prev) => (prev > 0 ? prev : total));
+                        }}
+                        className={`p-2 border-2 rounded-lg text-xs font-medium text-center ${
+                          paymentMode === "partial"
+                            ? "border-amber-500 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300"
+                            : "border-slate-300 dark:border-slate-600 hover:border-amber-300 dark:hover:border-amber-600"
+                        }`}
+                      >
+                        1 phần
+                      </button>
+                      <button
+                        onClick={() => {
+                          setPaymentMode("debt");
+                          setPaidAmount(0);
+                        }}
+                        className={`p-2 border-2 rounded-lg text-xs font-medium text-center ${
+                          paymentMode === "debt"
+                            ? "border-red-500 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300"
+                            : "border-slate-300 dark:border-slate-600 hover:border-red-300 dark:hover:border-red-600"
+                        }`}
+                      >
+                        Ghi nợ
+                      </button>
+                    </div>
+
+                    {paymentMode === "partial" && (
+                      <div className="mt-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                        <label className="text-sm text-slate-600 dark:text-slate-400">
+                          Số tiền khách trả
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min={1}
+                            max={total - 1}
+                            value={paidAmount || ""}
+                            onChange={(e) => setPaidAmount(Number(e.target.value || 0))}
+                            className="flex-1 md:w-36 p-2 border border-slate-300 dark:border-slate-600 rounded-md text-right bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm"
+                          />
+                          <span className="text-xs text-slate-500 whitespace-nowrap">
+                            Còn: {formatCurrency(Math.max(0, total - (paidAmount || 0)))}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                  {paymentMode === "debt" && (
-                    <div className="mt-3 flex items-center justify-between">
-                      <label className="text-sm text-slate-600 dark:text-slate-400">
-                        Hạn thanh toán
-                      </label>
-                      <input
-                        type="date"
-                        value={dueDate}
-                        onChange={(e) => setDueDate(e.target.value)}
-                        className="p-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm [color-scheme:light] dark:[color-scheme:dark]"
-                      />
-                    </div>
-                  )}
-                </div>
+                    )}
+                    {paymentMode === "debt" && (
+                      <div className="mt-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                        <label className="text-sm text-slate-600 dark:text-slate-400">
+                          Hạn thanh toán
+                        </label>
+                        <input
+                          type="date"
+                          value={dueDate}
+                          onChange={(e) => setDueDate(e.target.value)}
+                          className="p-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm [color-scheme:light] dark:[color-scheme:dark]"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Checkout Options */}
@@ -1234,58 +1246,54 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
                     type="checkbox"
                     checked={printReceipt}
                     onChange={(e) => setPrintReceipt(e.target.checked)}
-                    className="mr-3 h-4 w-4 rounded text-orange-600 focus:ring-orange-500 focus:ring-2"
+                    className="mr-2 h-4 w-4 rounded text-orange-600 focus:ring-orange-500 focus:ring-2"
                   />
-                  <span className="flex items-center gap-2">
-                    🖨️ <span>In hóa đơn sau khi thanh toán</span>
+                  <span className="flex items-center gap-1.5">
+                    🖨️ <span className="text-xs md:text-sm">In hóa đơn sau khi thanh toán</span>
                   </span>
                 </label>
               </div>
 
-              {/* Final Checkout Button */}
-              <button
-                onClick={finalizeSale}
-                disabled={
-                  !currentUser ||
-                  cartItems.length === 0 ||
-                  !paymentMethod ||
-                  (paymentMode === "partial" && !(paidAmount > 0 && paidAmount < total))
-                }
-                title={
-                  !currentUser
-                    ? "Bạn phải đăng nhập để thực hiện thanh toán"
-                    : cartItems.length === 0
-                      ? "Giỏ hàng trống"
-                      : !paymentMethod
-                        ? "Chọn phương thức thanh toán"
+              {/* Final Checkout Button - With bottom padding for mobile */}
+              <div className="pb-20 md:pb-0">
+                <button
+                  onClick={finalizeSale}
+                  disabled={
+                    !currentUser ||
+                    cartItems.length === 0 ||
+                    (paymentMode === "partial" && !(paidAmount > 0 && paidAmount < total))
+                  }
+                  title={
+                    !currentUser
+                      ? "Bạn phải đăng nhập để thực hiện thanh toán"
+                      : cartItems.length === 0
+                        ? "Giỏ hàng trống"
                         : "Hoàn tất thanh toán"
-                }
-                className={`w-full font-bold py-4 rounded-lg text-lg flex items-center justify-center gap-3 transition-all shadow-lg ${
-                  !currentUser ||
-                  cartItems.length === 0 ||
-                  !paymentMethod ||
-                  (paymentMode === "partial" && !(paidAmount > 0 && paidAmount < total))
-                    ? "bg-slate-300 dark:bg-slate-600 text-slate-500 dark:text-slate-400 cursor-not-allowed"
-                    : "bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700 transform hover:scale-105 active:scale-95"
-                }`}
-              >
-                {!currentUser ? (
-                  <>🔐 Đăng nhập để thanh toán</>
-                ) : cartItems.length === 0 ? (
-                  <>🛒 Giỏ hàng trống</>
-                ) : !paymentMethod ? (
-                  <>💳 Chọn phương thức thanh toán</>
-                ) : paymentMode === "partial" ? (
-                  <>
-                    ✨ Thanh {formatCurrency(Math.min(paidAmount || 0, total))} • Nợ{" "}
-                    {formatCurrency(Math.max(0, total - (paidAmount || 0)))}{" "}
-                  </>
-                ) : paymentMode === "debt" ? (
-                  <>📝 Ghi nợ {formatCurrency(total)}</>
-                ) : (
-                  <>✨ Thanh toán {formatCurrency(total)}</>
-                )}
-              </button>
+                  }
+                  className={`w-full font-bold py-3 md:py-4 rounded-lg text-base md:text-lg flex items-center justify-center gap-2 transition-all shadow-lg ${
+                    !currentUser ||
+                    cartItems.length === 0 ||
+                    (paymentMode === "partial" && !(paidAmount > 0 && paidAmount < total))
+                      ? "bg-slate-300 dark:bg-slate-600 text-slate-500 dark:text-slate-400 cursor-not-allowed"
+                      : "bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700 transform hover:scale-105 active:scale-95"
+                  }`}
+                >
+                  {!currentUser ? (
+                    <>🔐 Đăng nhập</>
+                  ) : cartItems.length === 0 ? (
+                    <>🛒 Giỏ hàng trống</>
+                  ) : paymentMode === "partial" ? (
+                    <>
+                      ✨ Thanh {formatCurrency(Math.min(paidAmount || 0, total))} • Nợ{" "}
+                      {formatCurrency(Math.max(0, total - (paidAmount || 0)))}{" "}
+                    </>
+                  ) : paymentMode === "debt" ? (
+                    <>📝 Ghi nợ {formatCurrency(total)}</>
+                  ) : (
+                    <>✨ Thanh toán {formatCurrency(total)}</>
+                  )}
+                </button>
+              </div>
             </div>
           )}
         </div>

@@ -578,182 +578,164 @@ export default function ReceivablesNew() {
   ];
 
   return (
-    <div className="p-2 md:p-4 lg:p-6 space-y-4 md:space-y-6 animate-fade-in pb-20 md:pb-6">
-      {/* Header */}
-      <div className="flex flex-col gap-2 md:gap-4">
+    <div className="p-2 md:p-4 lg:p-6 space-y-3 animate-fade-in pb-20 md:pb-6">
+      {/* Header with inline Stats */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div>
-          <h1 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-slate-100">
+          <h1 className="text-lg md:text-xl font-bold text-slate-800 dark:text-slate-100">
             Quản lý Công Nợ
           </h1>
-          <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 mt-1">
+          <p className="text-xs text-slate-600 dark:text-slate-400">
             Theo dõi công nợ khách hàng và nhà cung cấp
           </p>
         </div>
-      </div>
 
-      {/* Stats Cards - Mobile: 2 cols */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-4">
-        <div className="col-span-2 md:col-span-1">
-          <StatsCard
-            title="Tổng công nợ"
-            value={`${fmt(totalCustomerDebt + totalSupplierDebt)} đ`}
-            iconName="money"
-            variant="primary"
-          />
+        {/* Compact Stats - inline with header */}
+        <div className="flex items-center gap-3">
+          <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2.5 rounded-xl min-w-[120px]">
+            <div className="text-xs opacity-80">Tổng công nợ</div>
+            <div className="text-base font-bold">
+              {fmt(totalCustomerDebt + totalSupplierDebt)} đ
+            </div>
+            <div className="text-[10px] opacity-70">
+              ↗{customerRows.length + supplierRows.length} khoản
+            </div>
+          </div>
+          <div className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2.5 rounded-xl min-w-[120px]">
+            <div className="text-xs opacity-80">Công nợ KH</div>
+            <div className="text-base font-bold">{fmt(totalCustomerDebt)} đ</div>
+            <div className="text-[10px] opacity-70">↗{customerRows.length} khoản</div>
+          </div>
+          <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-2.5 rounded-xl min-w-[120px]">
+            <div className="text-xs opacity-80">Công nợ NCC</div>
+            <div className="text-base font-bold">{fmt(totalSupplierDebt)} đ</div>
+            <div className="text-[10px] opacity-70">↗{supplierRows.length} khoản</div>
+          </div>
         </div>
-        <StatsCard
-          title="Công nợ KH"
-          value={`${fmt(totalCustomerDebt)} đ`}
-          iconName="customers"
-          trend={{
-            value: customerRows.length,
-            label: "khoản",
-          }}
-          variant="success"
-        />
-        <StatsCard
-          title="Công nợ NCC"
-          value={`${fmt(totalSupplierDebt)} đ`}
-          iconName="stock"
-          trend={{
-            value: supplierRows.length,
-            label: "khoản",
-          }}
-          variant="warning"
-        />
       </div>
 
       {/* Main Card */}
-      <Card>
-        <div className="p-3 md:p-4 border-b border-slate-200 dark:border-slate-700 space-y-3 md:space-y-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-            {/* Tab buttons - Mobile scrollable */}
-            <div className="flex gap-1 md:gap-2 overflow-x-auto scrollbar-hide">
-              <button
-                onClick={() => {
-                  setActiveTab("customers");
-                  setSelected({});
-                }}
-                className={`flex-shrink-0 flex items-center px-3 md:px-4 py-2 text-xs md:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
-                  activeTab === "customers"
-                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                    : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
-                }`}
-              >
-                <Icon
-                  name="customers"
-                  size="sm"
-                  tone={activeTab === "customers" ? "primary" : "muted"}
-                  className="mr-1 md:mr-2"
-                />
-                <span className="hidden sm:inline">Công nợ</span> KH ({customerRows.length})
-              </button>
-              <button
-                onClick={() => {
-                  setActiveTab("suppliers");
-                  setSelected({});
-                }}
-                className={`flex-shrink-0 flex items-center px-3 md:px-4 py-2 text-xs md:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
-                  activeTab === "suppliers"
-                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                    : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
-                }`}
-              >
-                <Icon
-                  name="stock"
-                  size="sm"
-                  tone={activeTab === "suppliers" ? "primary" : "muted"}
-                  className="mr-1 md:mr-2"
-                />
-                <span className="hidden sm:inline">Công nợ</span> NCC ({supplierRows.length})
-              </button>
-            </div>
-
-            {/* Total Display */}
-            <div className="lg:ml-auto text-xs md:text-sm text-slate-600 dark:text-slate-400">
-              Tổng:
-              <span className="ml-1 font-semibold text-rose-600">{fmt(totalDebt)} đ</span>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => {
-                  if (activeTab === "customers") {
-                    // Nếu có chọn 1 công nợ, tự động điền vào modal
-                    const firstSelectedId = selectedIds.length === 1 ? selectedIds[0] : undefined;
-                    setPreSelectedDebtId(firstSelectedId);
-                    setShowCollectModal(true);
-                  } else {
-                    setShowSupplierPayModal(true);
-                  }
-                }}
-                className="whitespace-nowrap text-xs md:text-sm"
-              >
-                <Icon
-                  name={activeTab === "customers" ? "success" : "money"}
-                  size="sm"
-                  tone="contrast"
-                  className="mr-1 md:mr-2"
-                />
-                {activeTab === "customers" ? "Thu nợ" : "Thanh toán"}
-              </Button>
-              {selectedIds.length > 0 && (
-                <Button
-                  variant="secondary"
-                  onClick={() => setSelected({})}
-                  className="whitespace-nowrap"
-                >
-                  Xóa lựa chọn
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Search and Actions */}
-        <div className="p-4 border-b border-slate-200 dark:border-slate-700">
-          <div className="flex flex-col sm:flex-row gap-3">
-            {/* Search */}
-            <div className="flex-1 relative">
+      <Card padding="sm">
+        {/* Tab, Search and Actions - Compact single row */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+          {/* Tab buttons */}
+          <div className="flex gap-1 overflow-x-auto scrollbar-hide">
+            <button
+              onClick={() => {
+                setActiveTab("customers");
+                setSelected({});
+              }}
+              className={`flex-shrink-0 flex items-center px-2 py-1 text-xs font-medium rounded transition-colors whitespace-nowrap ${
+                activeTab === "customers"
+                  ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                  : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+              }`}
+            >
               <Icon
-                name="search"
-                size="md"
-                tone="muted"
-                className="absolute left-3 top-1/2 -translate-y-1/2"
+                name="customers"
+                size="sm"
+                tone={activeTab === "customers" ? "primary" : "muted"}
+                className="mr-1"
               />
-              <input
-                type="text"
-                placeholder={
-                  activeTab === "customers"
-                    ? "Tìm theo tên, SĐT..."
-                    : "Tìm theo tên nhà cung cấp..."
-                }
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              Công nợKH ({customerRows.length})
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab("suppliers");
+                setSelected({});
+              }}
+              className={`flex-shrink-0 flex items-center px-2 py-1 text-xs font-medium rounded transition-colors whitespace-nowrap ${
+                activeTab === "suppliers"
+                  ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                  : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+              }`}
+            >
+              <Icon
+                name="stock"
+                size="sm"
+                tone={activeTab === "suppliers" ? "primary" : "muted"}
+                className="mr-1"
               />
-            </div>
+              Công nợNCC ({supplierRows.length})
+            </button>
+          </div>
 
-            {/* Bulk Actions */}
-            {selectedIds.length > 0 && (
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-slate-600 dark:text-slate-400">
-                  Đã chọn {selectedIds.length} ({fmt(selectedDebt)} đ)
-                </span>
-                <Button variant="primary" onClick={handleCollectAllSelected}>
-                  <Icon name="success" size="sm" tone="contrast" className="mr-2" />
-                  {activeTab === "customers" ? "Thu nợ" : "Thanh toán"}
-                </Button>
-              </div>
-            )}
+          {/* Search - compact */}
+          <div className="flex-1 relative">
+            <Icon
+              name="search"
+              size="sm"
+              tone="muted"
+              className="absolute left-2 top-1/2 -translate-y-1/2"
+            />
+            <input
+              type="text"
+              placeholder={
+                activeTab === "customers" ? "Tìm theo tên, SĐT..." : "Tìm theo tên nhà cung cấp..."
+              }
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="w-full pl-8 pr-3 py-1.5 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+
+          {/* Total and Action */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-600 dark:text-slate-400">
+              Tổng: <span className="font-semibold text-rose-600">{fmt(totalDebt)} đ</span>
+            </span>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => {
+                if (activeTab === "customers") {
+                  const firstSelectedId = selectedIds.length === 1 ? selectedIds[0] : undefined;
+                  setPreSelectedDebtId(firstSelectedId);
+                  setShowCollectModal(true);
+                } else {
+                  setShowSupplierPayModal(true);
+                }
+              }}
+              className="whitespace-nowrap text-xs px-2 py-1"
+            >
+              <Icon
+                name={activeTab === "customers" ? "success" : "money"}
+                size="sm"
+                tone="contrast"
+                className="mr-1"
+              />
+              {activeTab === "customers" ? "Thu nợ" : "Thanh toán"}
+            </Button>
           </div>
         </div>
+        {/* Bulk Actions - only show when items selected */}
+        {selectedIds.length > 0 && (
+          <div className="mt-2 flex items-center gap-2 text-xs">
+            <span className="text-slate-600 dark:text-slate-400">
+              Đã chọn {selectedIds.length} ({fmt(selectedDebt)} đ)
+            </span>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleCollectAllSelected}
+              className="text-xs px-2 py-1"
+            >
+              <Icon name="success" size="sm" tone="contrast" className="mr-1" />
+              {activeTab === "customers" ? "Thu nợ" : "Thanh toán"}
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setSelected({})}
+              className="text-xs px-2 py-1"
+            >
+              Xóa chọn
+            </Button>
+          </div>
+        )}
 
         {/* DataTable */}
-        <div className="p-0 sm:p-4">
+        <div className="mt-2">
           <DataTable
             data={activeList}
             columns={

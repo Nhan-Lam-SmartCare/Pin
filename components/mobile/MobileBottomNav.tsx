@@ -4,8 +4,8 @@ import {
   ShoppingCartIcon,
   CubeIcon,
   BeakerIcon,
-  ChartBarIcon,
-  Squares2X2Icon,
+  WrenchScrewdriverIcon,
+  BanknotesIcon,
 } from "../common/Icons";
 
 interface NavItem {
@@ -39,26 +39,21 @@ export const MobileBottomNav: React.FC = () => {
       activeColor: "text-rose-500",
     },
     {
-      to: "/reports",
-      IconComponent: ChartBarIcon,
-      label: "Báo cáo",
-      activeColor: "text-violet-500",
+      to: "/repairs",
+      IconComponent: WrenchScrewdriverIcon,
+      label: "Sửa chữa",
+      activeColor: "text-pink-500",
     },
     {
-      to: "/more",
-      IconComponent: Squares2X2Icon,
-      label: "Thêm",
-      activeColor: "text-slate-600",
+      to: "/financial",
+      IconComponent: BanknotesIcon,
+      label: "Tài chính",
+      activeColor: "text-cyan-500",
     },
   ];
 
   // Check if current path matches a nav item
   const isActive = (to: string) => {
-    if (to === "/more") {
-      // "More" is active if we're on any page not in the main nav
-      const mainPaths = navItems.filter((n) => n.to !== "/more").map((n) => n.to);
-      return !mainPaths.some((p) => location.pathname.startsWith(p));
-    }
     return location.pathname.startsWith(to);
   };
 

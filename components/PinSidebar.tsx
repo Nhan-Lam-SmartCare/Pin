@@ -33,9 +33,9 @@ const PinNavItem: React.FC<{
   color?: string;
 }> = ({ to, icon, label, color = "text-sky-600 dark:text-sky-400" }) => {
   const baseItem =
-    "flex flex-col items-center justify-center text-center p-2 rounded-xl w-24 h-20 transition-all duration-200 border";
+    "flex flex-col items-center justify-center text-center px-2 py-1.5 rounded-lg w-16 h-14 transition-all duration-200 border";
   const activeClass =
-    "bg-white border-slate-200 shadow-lg shadow-slate-200/80 dark:bg-slate-800 dark:border-slate-600 dark:shadow-none";
+    "bg-white border-slate-200 shadow-md shadow-slate-200/60 dark:bg-slate-800 dark:border-slate-600 dark:shadow-none";
   const inactiveClass =
     "bg-transparent border-transparent hover:bg-slate-50 hover:border-slate-200 dark:hover:bg-slate-700/40 dark:hover:border-slate-600";
 
@@ -47,20 +47,20 @@ const PinNavItem: React.FC<{
       {({ isActive }) => (
         <>
           <div
-            className={`w-10 h-10 rounded-full flex items-center justify-center ring-1 ring-inset transition-colors duration-200 ${
+            className={`w-7 h-7 rounded-full flex items-center justify-center ring-1 ring-inset transition-colors duration-200 ${
               isActive
                 ? "bg-slate-50 ring-slate-200 dark:bg-slate-700 dark:ring-slate-500"
                 : "bg-slate-100 ring-transparent dark:bg-slate-800/40"
             }`}
           >
             {React.cloneElement(icon, {
-              className: `w-6 h-6 transition-opacity duration-200 ${color} ${
+              className: `w-4 h-4 transition-opacity duration-200 ${color} ${
                 isActive ? "opacity-100" : "opacity-75"
               }`,
             })}
           </div>
           <span
-            className={`text-xs font-medium mt-1.5 truncate w-full ${
+            className={`text-[10px] font-medium mt-1 truncate w-full ${
               isActive ? "text-slate-900 dark:text-slate-100" : "text-slate-500 dark:text-slate-400"
             }`}
           >
@@ -144,17 +144,17 @@ export const PinTopNav: React.FC<{
 
   return (
     <header className="bg-white dark:bg-slate-800 shadow-sm print:hidden border-b border-slate-200 dark:border-slate-700/50 sticky top-0 z-30">
-      <div className="mx-auto px-4">
-        <div className="flex justify-between items-center h-20">
-          <div className="flex items-center gap-3">
+      <div className="mx-auto px-3">
+        <div className="flex justify-between items-center h-16">
+          <div className="flex items-center gap-2">
             {/* Clickable Logo with Dropdown Menu */}
             <div className="relative">
               <button
                 onClick={() => setShowLogoMenu(!showLogoMenu)}
-                className="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
               >
-                <Logo size={36} className="hidden sm:block" />
-                <CpuChipIcon className="w-8 h-8 text-sky-500 sm:hidden" />
+                <Logo size={28} className="hidden sm:block" />
+                <CpuChipIcon className="w-6 h-6 text-sky-500 sm:hidden" />
               </button>
 
               {showLogoMenu && (
@@ -187,12 +187,39 @@ export const PinTopNav: React.FC<{
 
                       {/* Menu Items */}
                       <NavLink
-                        to="/repairs"
+                        to="/receivables"
                         onClick={() => setShowLogoMenu(false)}
                         className="w-full text-left flex items-center gap-3 p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 text-sm"
                       >
-                        <WrenchScrewdriverIcon className="w-4 h-4" />
-                        Sửa chữa
+                        <BanknotesIcon className="w-4 h-4" />
+                        Công nợ
+                      </NavLink>
+
+                      <NavLink
+                        to="/reports"
+                        onClick={() => setShowLogoMenu(false)}
+                        className="w-full text-left flex items-center gap-3 p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 text-sm"
+                      >
+                        <ChartBarIcon className="w-4 h-4" />
+                        Báo cáo
+                      </NavLink>
+
+                      <NavLink
+                        to="/analytics"
+                        onClick={() => setShowLogoMenu(false)}
+                        className="w-full text-left flex items-center gap-3 p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 text-sm"
+                      >
+                        <SparklesIcon className="w-4 h-4" />
+                        Phân tích
+                      </NavLink>
+
+                      <NavLink
+                        to="/products"
+                        onClick={() => setShowLogoMenu(false)}
+                        className="w-full text-left flex items-center gap-3 p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 text-sm"
+                      >
+                        <TagIcon className="w-4 h-4" />
+                        Sản phẩm
                       </NavLink>
 
                       <NavLink
@@ -258,10 +285,10 @@ export const PinTopNav: React.FC<{
               )}
             </div>
 
-            <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">PIN Corp</h1>
+            <h1 className="text-base font-bold text-slate-800 dark:text-slate-100">PIN Corp</h1>
           </div>
-          <div className="flex items-center gap-3">
-            <nav className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
+            <nav className="flex items-center gap-0.5">
               {navLinks.map((link, index) => (
                 <PinNavItem
                   key={link.to}
@@ -340,22 +367,10 @@ export const PinMobileNav: React.FC = () => {
       color: "text-pink-400",
     },
     {
-      to: "/reports",
-      icon: <ChartBarIcon className="w-6 h-6" />,
-      label: "Báo cáo",
-      color: "text-violet-400",
-    },
-    {
       to: "/financial",
       icon: <BanknotesIcon className="w-6 h-6" />,
       label: "Tài chính",
       color: "text-cyan-400",
-    },
-    {
-      to: "/receivables",
-      icon: <BanknotesIcon className="w-6 h-6" />,
-      label: "Công Nợ",
-      color: "text-amber-400",
     },
   ];
 

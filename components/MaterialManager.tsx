@@ -3943,24 +3943,162 @@ const MaterialManager: React.FC<{
     });
 
   return (
-    <div className="flex flex-col h-full min-h-0 gap-1 p-1 pb-20 md:pb-1">
-      {/* Toolbar: tabs on the left, actions on the right */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 flex-shrink-0 sticky top-0 z-20 bg-slate-100 dark:bg-slate-900 py-1">
+    <div className="flex flex-col h-full min-h-0 pb-20 md:pb-1">
+      {/* Mobile Header - Clean & Simple */}
+      <div className="md:hidden bg-slate-800 px-3 py-2 sticky top-0 z-20">
+        {/* Row 1: Tabs + Actions */}
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex gap-1">
+            <button
+              onClick={() => setActiveView("materials")}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg ${
+                activeView === "materials"
+                  ? "bg-green-500 text-white"
+                  : "bg-slate-700 text-slate-300"
+              }`}
+            >
+              📦 Vật liệu
+            </button>
+            <button
+              onClick={() => setActiveView("history")}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg ${
+                activeView === "history" ? "bg-green-500 text-white" : "bg-slate-700 text-slate-300"
+              }`}
+            >
+              📊 Lịch sử
+            </button>
+          </div>
+          {activeView === "materials" && (
+            <div className="flex gap-1">
+              <button
+                onClick={() => setShowImportModal(true)}
+                className="p-2 bg-purple-600 text-white rounded-lg"
+              >
+                📥
+              </button>
+              <button
+                onClick={() => navigate("/materials/goods-receipt/new")}
+                className="flex items-center gap-1 bg-green-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium"
+              >
+                + Nhập
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Row 2: Search */}
+        <input
+          type="text"
+          placeholder="🔍 Tìm kiếm..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 text-sm"
+        />
+
+        {/* Row 3: Filters - Compact */}
+        <div className="flex items-center gap-2 mt-2">
+          <select
+            value={supplierFilter}
+            onChange={(e) => setSupplierFilter(e.target.value)}
+            className="flex-1 px-2 py-1.5 bg-slate-700 border border-slate-600 rounded text-white text-xs"
+          >
+            <option value="">Tất cả NCC</option>
+            {uniqueSuppliers.map((supplier) => (
+              <option key={supplier} value={supplier}>
+                {supplier}
+              </option>
+            ))}
+          </select>
+          <select
+            value={unitFilter}
+            onChange={(e) => setUnitFilter(e.target.value)}
+            className="px-2 py-1.5 bg-slate-700 border border-slate-600 rounded text-white text-xs"
+          >
+            <option value="">Đơn vị</option>
+            {uniqueUnits.map((unit) => (
+              <option key={unit} value={unit}>
+                {unit}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Row 4: Stats - Single line */}
+        <div className="flex items-center justify-between mt-2 text-xs">
+          <span className="text-blue-400 font-medium">
+            {filteredMaterials.length}/{materials.length} SP
+          </span>
+          <span className="text-emerald-400">
+            Tồn: {materials.reduce((sum, m) => sum + (m.stock || 0), 0).toLocaleString()}
+          </span>
+          <span className="text-amber-400">Giá trị: {formatCurrency(totalImportValue)}</span>
+        </div>
+
+        {/* Row 5: Stock Filter Tabs - Horizontal scroll */}
+        <div className="flex gap-1 mt-2 overflow-x-auto scrollbar-hide">
+          <button
+            onClick={() => setStockFilter("")}
+            className={`flex-shrink-0 px-2.5 py-1 rounded-full text-xs font-medium ${
+              stockFilter === "" ? "bg-slate-600 text-white" : "bg-slate-700 text-slate-300"
+            }`}
+          >
+            Tất cả <span className="ml-1 opacity-70">{materials.length}</span>
+          </button>
+          <button
+            onClick={() => setStockFilter("normal")}
+            className={`flex-shrink-0 px-2.5 py-1 rounded-full text-xs font-medium ${
+              stockFilter === "normal"
+                ? "bg-emerald-500 text-white"
+                : "bg-emerald-900/50 text-emerald-300"
+            }`}
+          >
+            Còn hàng{" "}
+            <span className="ml-1 opacity-70">
+              {materials.filter((m) => (m.stock || 0) > 10).length}
+            </span>
+          </button>
+          <button
+            onClick={() => setStockFilter("low")}
+            className={`flex-shrink-0 px-2.5 py-1 rounded-full text-xs font-medium ${
+              stockFilter === "low" ? "bg-amber-500 text-white" : "bg-amber-900/50 text-amber-300"
+            }`}
+          >
+            Sắp hết{" "}
+            <span className="ml-1 opacity-70">
+              {materials.filter((m) => (m.stock || 0) > 0 && (m.stock || 0) <= 10).length}
+            </span>
+          </button>
+          <button
+            onClick={() => setStockFilter("empty")}
+            className={`flex-shrink-0 px-2.5 py-1 rounded-full text-xs font-medium ${
+              stockFilter === "empty" ? "bg-red-500 text-white" : "bg-red-900/50 text-red-300"
+            }`}
+          >
+            Hết hàng{" "}
+            <span className="ml-1 opacity-70">
+              {materials.filter((m) => (m.stock || 0) === 0).length}
+            </span>
+          </button>
+        </div>
+      </div>
+
+      {/* Desktop Header - Keep original */}
+      <div className="hidden md:flex flex-col md:flex-row md:items-center md:justify-between gap-2 flex-shrink-0 sticky top-0 z-20 bg-slate-100 dark:bg-slate-900 py-1 px-1">
         {/* Tabs */}
         <div className="flex gap-1 overflow-x-auto scrollbar-hide">
           <button
             onClick={() => setActiveView("materials")}
-            className={`flex-shrink-0 px-2 md:px-3 py-1.5 text-xs md:text-sm font-medium rounded-lg transition-all ${
+            className={`flex-shrink-0 px-3 py-1.5 text-sm font-medium rounded-lg transition-all ${
               activeView === "materials"
                 ? "bg-blue-500 text-white shadow-sm"
                 : "text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
             }`}
           >
-            📦 <span className="hidden sm:inline">Danh sách</span> Vật liệu
+            📦 Danh sách Vật liệu
           </button>
           <button
             onClick={() => setActiveView("history")}
-            className={`flex-shrink-0 px-2 md:px-3 py-1.5 text-xs md:text-sm font-medium rounded-lg transition-all ${
+            className={`flex-shrink-0 px-3 py-1.5 text-sm font-medium rounded-lg transition-all ${
               activeView === "history"
                 ? "bg-blue-500 text-white shadow-sm"
                 : "text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
@@ -3976,25 +4114,23 @@ const MaterialManager: React.FC<{
             <>
               <button
                 onClick={() => setShowImportModal(true)}
-                className="flex items-center gap-1 bg-purple-600 hover:bg-purple-700 text-white px-2 md:px-3 py-1.5 rounded-lg text-xs md:text-sm font-medium shadow-sm transition-all"
-                title="Upload danh sách CSV"
+                className="flex items-center gap-1 bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium shadow-sm transition-all"
               >
-                📥 <span className="hidden md:inline">Import</span>
+                📥 Import
               </button>
               <button
                 onClick={() => navigate("/materials/goods-receipt/new")}
-                className="flex items-center gap-1 bg-green-500 hover:bg-green-600 text-white px-2 md:px-3 py-1.5 rounded-lg text-xs md:text-sm font-medium shadow-sm transition-all"
+                className="flex items-center gap-1 bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium shadow-sm transition-all"
               >
-                <PlusIcon className="w-3 h-3 md:w-4 md:h-4" />
-                <span className="hidden md:inline">Tạo phiếu</span>
-                <span className="md:hidden">Nhập</span>
+                <PlusIcon className="w-4 h-4" />
+                Tạo phiếu nhập
               </button>
             </>
           )}
         </div>
       </div>
       {/* Content based on active view */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden px-1 md:px-0">
         {(() => {
           console.log("🔍 MaterialManager activeView:", activeView);
           return null;
@@ -4091,60 +4227,51 @@ const MaterialManager: React.FC<{
               </div>
             )}
 
-            {/* Compact Search and Filters - Mobile optimized */}
-            <div className="bg-white dark:bg-slate-800 px-2 md:px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
-              <div className="flex flex-col md:flex-row md:flex-wrap md:items-center gap-2">
-                {/* Search Bar - Takes most space */}
-                <div className="flex-1 min-w-[150px] md:min-w-[180px]">
+            {/* Desktop Only: Search and Filters */}
+            <div className="hidden md:block bg-white dark:bg-slate-800 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Search Bar */}
+                <div className="flex-1 min-w-[180px]">
                   <input
                     type="text"
                     placeholder="🔍 Tìm kiếm..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full px-3 py-2 md:py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                    className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
                   />
                 </div>
 
-                {/* Filters Row - Mobile: 2 cols, Desktop: inline */}
-                <div className="flex flex-wrap items-center gap-2">
-                  {/* Supplier Filter */}
-                  <div className="flex items-center gap-1">
-                    <Icon name="storefront" className="w-4 h-4 text-teal-500 hidden md:block" />
-                    <select
-                      value={supplierFilter}
-                      onChange={(e) => setSupplierFilter(e.target.value)}
-                      className="flex-1 md:flex-none px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:border-teal-400 focus:ring-1 focus:ring-teal-400/20 transition-all"
-                    >
-                      <option value="">Tất cả NCC</option>
-                      {uniqueSuppliers.map((supplier) => (
-                        <option key={supplier} value={supplier}>
-                          {supplier}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
+                {/* Supplier Filter */}
+                <select
+                  value={supplierFilter}
+                  onChange={(e) => setSupplierFilter(e.target.value)}
+                  className="px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs"
+                >
+                  <option value="">Tất cả NCC</option>
+                  {uniqueSuppliers.map((supplier) => (
+                    <option key={supplier} value={supplier}>
+                      {supplier}
+                    </option>
+                  ))}
+                </select>
 
                 {/* Unit Filter */}
-                <div className="flex items-center gap-1">
-                  <Icon name="package" className="w-4 h-4 text-cyan-500 hidden sm:block" />
-                  <select
-                    value={unitFilter}
-                    onChange={(e) => setUnitFilter(e.target.value)}
-                    className="px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/20 transition-all"
-                  >
-                    <option value="">Đơn vị</option>
-                    {uniqueUnits.map((unit) => (
-                      <option key={unit} value={unit}>
-                        {unit}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <select
+                  value={unitFilter}
+                  onChange={(e) => setUnitFilter(e.target.value)}
+                  className="px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs"
+                >
+                  <option value="">Đơn vị</option>
+                  {uniqueUnits.map((unit) => (
+                    <option key={unit} value={unit}>
+                      {unit}
+                    </option>
+                  ))}
+                </select>
 
-                {/* Stats - Tổng sản phẩm và giá trị tồn kho */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <div className="px-2 py-1 bg-blue-50 dark:bg-blue-900/40 rounded border border-blue-200 dark:border-blue-800 whitespace-nowrap text-xs">
+                {/* Stats */}
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-1 bg-blue-50 dark:bg-blue-900/40 rounded text-xs">
                     <span className="font-bold text-blue-600 dark:text-blue-400">
                       {filteredMaterials.length}
                     </span>
@@ -4152,21 +4279,19 @@ const MaterialManager: React.FC<{
                       {" "}
                       / {materials.length} SP
                     </span>
-                  </div>
-                  <div className="px-2 py-1 bg-emerald-50 dark:bg-emerald-900/40 rounded border border-emerald-200 dark:border-emerald-800 whitespace-nowrap text-xs">
-                    <span className="text-slate-600 dark:text-slate-400">Tồn: </span>
+                  </span>
+                  <span className="px-2 py-1 bg-emerald-50 dark:bg-emerald-900/40 rounded text-xs">
+                    Tồn:{" "}
                     <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                      {materials
-                        .reduce((sum, m) => sum + (m.stock || 0), 0)
-                        .toLocaleString("vi-VN")}
+                      {materials.reduce((sum, m) => sum + (m.stock || 0), 0).toLocaleString()}
                     </span>
-                  </div>
-                  <div className="px-2 py-1 bg-amber-50 dark:bg-amber-900/40 rounded border border-amber-200 dark:border-amber-800 whitespace-nowrap text-xs">
-                    <span className="text-slate-600 dark:text-slate-400">Giá trị: </span>
+                  </span>
+                  <span className="px-2 py-1 bg-amber-50 dark:bg-amber-900/40 rounded text-xs">
+                    Giá trị:{" "}
                     <span className="font-bold text-amber-600 dark:text-amber-400">
                       {formatCurrency(totalImportValue)}
                     </span>
-                  </div>
+                  </span>
                 </div>
               </div>
             </div>
@@ -4184,8 +4309,8 @@ const MaterialManager: React.FC<{
               </div>
             )}
 
-            {/* Quick Stock Filter Tabs */}
-            <div className="flex items-center gap-2 bg-white dark:bg-slate-800 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+            {/* Quick Stock Filter Tabs - Desktop Only (Mobile has in header) */}
+            <div className="hidden md:flex items-center gap-2 bg-white dark:bg-slate-800 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
               <button
                 onClick={() => setStockFilter("")}
                 className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
@@ -4522,17 +4647,17 @@ const MaterialManager: React.FC<{
               </div>
             </div>
 
-            {/* Materials Cards - Mobile Only */}
-            <div className="md:hidden flex-1 overflow-auto space-y-2">
+            {/* Materials Cards - Mobile Only - Compact Design */}
+            <div className="md:hidden flex-1 overflow-auto space-y-1.5 pb-20">
               {filteredMaterials.length === 0 ? (
-                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 p-6 text-center text-gray-500 dark:text-gray-400">
+                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 p-4 text-center text-gray-500 dark:text-gray-400">
                   {loading ? (
                     <div className="flex items-center justify-center gap-2">
                       <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                      <span className="text-sm">Đang tải...</span>
+                      <span className="text-xs">Đang tải...</span>
                     </div>
                   ) : (
-                    <div className="text-sm">Không có nguyên vật liệu nào</div>
+                    <div className="text-xs">Không có nguyên vật liệu nào</div>
                   )}
                 </div>
               ) : (
@@ -4541,112 +4666,88 @@ const MaterialManager: React.FC<{
                   let stockBadgeColor = "";
                   let stockIcon = "";
                   if (stockValue === 0) {
-                    stockBadgeColor =
-                      "bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300";
+                    stockBadgeColor = "bg-rose-500/20 text-rose-400";
                     stockIcon = "🔴";
                   } else if (stockValue < 100) {
-                    stockBadgeColor =
-                      "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300";
+                    stockBadgeColor = "bg-amber-500/20 text-amber-400";
                     stockIcon = "🟡";
                   } else if (stockValue < 500) {
-                    stockBadgeColor =
-                      "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300";
+                    stockBadgeColor = "bg-blue-500/20 text-blue-400";
                     stockIcon = "🔵";
                   } else {
-                    stockBadgeColor =
-                      "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300";
+                    stockBadgeColor = "bg-emerald-500/20 text-emerald-400";
                     stockIcon = "🟢";
                   }
 
                   return (
                     <div
                       key={material.id}
-                      className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 p-3 shadow-sm ${
-                        selectedItems.has(material.id)
-                          ? "ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                          : ""
+                      className={`bg-slate-800 rounded-lg p-2.5 ${
+                        selectedItems.has(material.id) ? "ring-1 ring-blue-500" : ""
                       }`}
                     >
-                      {/* Header: Name + Stock Badge */}
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <div className="flex-1 min-w-0">
-                          <button
-                            onClick={() => handleShowMaterialDetail(material)}
-                            className="text-sm font-medium text-gray-900 dark:text-white hover:text-cyan-500 dark:hover:text-cyan-400 text-left truncate block w-full"
-                          >
-                            {material.name}
-                          </button>
-                          <div className="text-xs text-gray-500 dark:text-gray-400 font-mono mt-0.5">
-                            {material.sku}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1 flex-shrink-0">
-                          <span className="text-xs">{stockIcon}</span>
-                          <span
-                            className={`px-2 py-0.5 rounded-full text-xs font-bold ${stockBadgeColor}`}
-                          >
-                            {stockValue}
-                          </span>
-                        </div>
+                      {/* Row 1: Name + Stock */}
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <button
+                          onClick={() => handleShowMaterialDetail(material)}
+                          className="flex-1 text-left text-sm font-medium text-white truncate"
+                        >
+                          {material.name}
+                        </button>
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-xs font-bold ${stockBadgeColor}`}
+                        >
+                          {stockIcon} {stockValue}
+                        </span>
                       </div>
 
-                      {/* Info Grid */}
-                      <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs mb-2">
-                        <div className="text-gray-500 dark:text-gray-400">
-                          Đơn vị:{" "}
-                          <span className="text-gray-700 dark:text-gray-300">{material.unit}</span>
-                        </div>
-                        <div className="text-gray-500 dark:text-gray-400">
-                          Giá nhập:{" "}
-                          <span className="font-medium text-gray-900 dark:text-white">
-                            {formatCurrency(material.purchasePrice)}
-                          </span>
-                        </div>
-                        {material.supplier && (
-                          <div className="col-span-2 text-gray-500 dark:text-gray-400 truncate">
-                            NCC:{" "}
-                            <span className="text-gray-700 dark:text-gray-300">
-                              {material.supplier}
-                            </span>
-                          </div>
-                        )}
+                      {/* Row 2: SKU + Unit + Price */}
+                      <div className="flex items-center justify-between text-xs text-slate-400 mb-1.5">
+                        <span className="font-mono">{material.sku}</span>
+                        <span>{material.unit}</span>
+                        <span className="text-amber-400 font-medium">
+                          {formatCurrency(material.purchasePrice)}
+                        </span>
                       </div>
 
-                      {/* Actions */}
-                      <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-700">
-                        <label className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            checked={selectedItems.has(material.id)}
-                            onChange={(e) => handleSelectItem(material.id, e.target.checked)}
-                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-                          />
-                          <span className="text-xs text-gray-500">Chọn</span>
-                        </label>
+                      {/* Row 3: Supplier if exists */}
+                      {material.supplier && (
+                        <div className="text-xs text-slate-500 truncate mb-1.5">
+                          NCC: {material.supplier}
+                        </div>
+                      )}
+
+                      {/* Row 4: Actions - No checkbox on mobile */}
+                      <div className="flex items-center justify-end pt-1.5 border-t border-slate-700">
                         <div className="flex gap-1">
                           <button
                             onClick={() => handleShowStockAdjustment(material)}
-                            className="h-8 w-8 rounded-full flex items-center justify-center bg-teal-50 dark:bg-teal-900/30 hover:bg-teal-100 dark:hover:bg-teal-900/50"
-                            title="Điều chỉnh tồn kho"
+                            className="h-7 w-7 rounded-full flex items-center justify-center bg-teal-900/40 active:bg-teal-800"
                           >
-                            <Icon name="gear" weight="bold" className="w-4 h-4 text-teal-500" />
+                            <Icon name="gear" weight="bold" className="w-3.5 h-3.5 text-teal-400" />
                           </button>
                           <button
                             onClick={() => {
                               setSelectedMaterialForEdit(material);
                               setShowEditModal(true);
                             }}
-                            className="h-8 w-8 rounded-full flex items-center justify-center bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-900/50"
-                            title="Chỉnh sửa"
+                            className="h-7 w-7 rounded-full flex items-center justify-center bg-amber-900/40 active:bg-amber-800"
                           >
-                            <Icon name="pencil" weight="bold" className="w-4 h-4 text-amber-500" />
+                            <Icon
+                              name="pencil"
+                              weight="bold"
+                              className="w-3.5 h-3.5 text-amber-400"
+                            />
                           </button>
                           <button
                             onClick={() => deleteMaterial(material.id)}
-                            className="h-8 w-8 rounded-full flex items-center justify-center bg-rose-50 dark:bg-rose-900/30 hover:bg-rose-100 dark:hover:bg-rose-900/50"
-                            title="Xóa"
+                            className="h-7 w-7 rounded-full flex items-center justify-center bg-rose-900/40 active:bg-rose-800"
                           >
-                            <Icon name="trash" weight="bold" className="w-4 h-4 text-rose-500" />
+                            <Icon
+                              name="trash"
+                              weight="bold"
+                              className="w-3.5 h-3.5 text-rose-400"
+                            />
                           </button>
                         </div>
                       </div>

@@ -49,10 +49,7 @@ export interface CardHeaderProps {
   className?: string;
 }
 
-export const CardHeader: React.FC<CardHeaderProps> = ({
-  children,
-  className,
-}) => {
+export const CardHeader: React.FC<CardHeaderProps> = ({ children, className }) => {
   return (
     <div
       className={cn(
@@ -90,13 +87,9 @@ export const CardTitle: React.FC<CardTitleProps> = ({
           </div>
         )}
         <div className="flex-1 min-w-0">
-          <h3 className="text-lg font-bold text-pin-gray-900 dark:text-pin-dark-900">
-            {children}
-          </h3>
+          <h3 className="text-lg font-bold text-pin-gray-900 dark:text-pin-dark-900">{children}</h3>
           {subtitle && (
-            <p className="text-sm text-pin-gray-500 dark:text-pin-dark-500 mt-1">
-              {subtitle}
-            </p>
+            <p className="text-sm text-pin-gray-500 dark:text-pin-dark-500 mt-1">{subtitle}</p>
           )}
         </div>
       </div>
@@ -119,10 +112,7 @@ export interface CardFooterProps {
   className?: string;
 }
 
-export const CardFooter: React.FC<CardFooterProps> = ({
-  children,
-  className,
-}) => {
+export const CardFooter: React.FC<CardFooterProps> = ({ children, className }) => {
   return (
     <div
       className={cn(
@@ -148,7 +138,7 @@ export interface StatsCardProps {
     value: number;
     label: string;
   };
-  variant?: "default" | "primary" | "success" | "warning" | "danger";
+  variant?: "default" | "primary" | "success" | "warning" | "danger" | "info";
   appearance?: "gradient" | "flat";
   className?: string;
   valueClassName?: string;
@@ -161,6 +151,7 @@ const gradientVariantClasses = {
   success: "from-pin-green-500 to-pin-green-600",
   warning: "from-pin-orange-500 to-pin-orange-600",
   danger: "from-pin-red-500 to-pin-red-600",
+  info: "from-slate-400 to-slate-500",
 };
 
 const flatVariantStyles = {
@@ -194,6 +185,12 @@ const flatVariantStyles = {
     value: "text-pin-red-700 dark:text-pin-red-200",
     iconTone: "danger" as IconTone,
   },
+  info: {
+    border: "border-slate-200 dark:border-slate-700",
+    iconBg: "bg-slate-100 dark:bg-slate-800",
+    value: "text-slate-700 dark:text-slate-200",
+    iconTone: "muted" as IconTone,
+  },
 };
 
 export const StatsCard: React.FC<StatsCardProps> = ({
@@ -213,10 +210,7 @@ export const StatsCard: React.FC<StatsCardProps> = ({
   const variantKey = variant ?? "default";
   const flatVariant = flatVariantStyles[variantKey];
   const computedIconTone =
-    iconTone ??
-    (appearance === "gradient"
-      ? "contrast"
-      : flatVariant?.iconTone ?? "default");
+    iconTone ?? (appearance === "gradient" ? "contrast" : (flatVariant?.iconTone ?? "default"));
 
   const resolvedIcon =
     icon ||
@@ -315,15 +309,11 @@ export const StatsCard: React.FC<StatsCardProps> = ({
                 "flex-shrink-0 rounded-md flex items-center justify-center",
                 appearance === "gradient"
                   ? "bg-white/20"
-                  : flatVariant?.iconBg ?? "bg-pin-gray-50",
-                compact
-                  ? "w-8 h-8 sm:w-10 sm:h-10"
-                  : "w-10 h-10 sm:w-12 sm:h-12"
+                  : (flatVariant?.iconBg ?? "bg-pin-gray-50"),
+                compact ? "w-8 h-8 sm:w-10 sm:h-10" : "w-10 h-10 sm:w-12 sm:h-12"
               )}
             >
-              <div className={cn(compact ? "scale-75" : "scale-90")}>
-                {resolvedIcon}
-              </div>
+              <div className={cn(compact ? "scale-75" : "scale-90")}>{resolvedIcon}</div>
             </div>
           )}
         </div>
@@ -332,9 +322,7 @@ export const StatsCard: React.FC<StatsCardProps> = ({
           <div
             className={cn(
               "flex items-center gap-1.5 text-xs",
-              appearance === "gradient"
-                ? "text-white"
-                : "text-pin-gray-500 dark:text-pin-dark-500"
+              appearance === "gradient" ? "text-white" : "text-pin-gray-500 dark:text-pin-dark-500"
             )}
           >
             <span
@@ -345,8 +333,8 @@ export const StatsCard: React.FC<StatsCardProps> = ({
                     ? "text-white"
                     : "text-white/70"
                   : trend.value >= 0
-                  ? "text-pin-green-600 dark:text-pin-green-400"
-                  : "text-pin-red-600 dark:text-pin-red-400"
+                    ? "text-pin-green-600 dark:text-pin-green-400"
+                    : "text-pin-red-600 dark:text-pin-red-400"
               )}
             >
               {trend.value >= 0 ? "↗" : "↘"} {Math.abs(trend.value)}%
@@ -374,19 +362,9 @@ const gridColsClasses = {
   6: "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6",
 };
 
-export const CardGrid: React.FC<CardGridProps> = ({
-  children,
-  cols = 3,
-  className,
-}) => {
+export const CardGrid: React.FC<CardGridProps> = ({ children, cols = 3, className }) => {
   return (
-    <div
-      className={cn(
-        "grid gap-3 sm:gap-4 md:gap-6",
-        gridColsClasses[cols],
-        className
-      )}
-    >
+    <div className={cn("grid gap-3 sm:gap-4 md:gap-6", gridColsClasses[cols], className)}>
       {children}
     </div>
   );

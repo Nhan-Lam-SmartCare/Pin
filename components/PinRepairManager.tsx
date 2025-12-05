@@ -517,82 +517,86 @@ const PinRepairManagerNew: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-4 md:space-y-6 pb-20 md:pb-0">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+    <div className="space-y-3 md:space-y-4 pb-20 md:pb-0">
+      {/* Page Header - Compact on mobile */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
         <div>
-          <h1 className="text-xl md:text-2xl font-bold text-pin-gray-900 dark:text-pin-dark-900">
-            Quản lý Sửa chữa
+          <h1 className="text-lg md:text-xl font-bold text-pin-gray-900 dark:text-pin-dark-900 flex items-center gap-2">
+            🔧 Quản lý Sửa chữa
           </h1>
-          <p className="text-xs text-pin-gray-500 dark:text-pin-dark-500">
+          <p className="text-[10px] md:text-xs text-pin-gray-500 dark:text-pin-dark-500">
             Quản lý phiếu sửa chữa và bảo hành
           </p>
         </div>
       </div>
 
-      {/* Row 1: Stats Cards - 5 items in 1 row */}
-      <div className="grid grid-cols-5 gap-2 md:gap-3">
+      {/* Row 1: Stats Cards - 3 cols on mobile, 5 on desktop */}
+      <div className="grid grid-cols-3 md:grid-cols-5 gap-1.5 md:gap-3">
         <button
           onClick={() => setStatusFilter("all")}
-          className={`p-3 rounded-xl border-2 transition-all ${
+          className={`p-2 md:p-3 rounded-lg md:rounded-xl border-2 transition-all ${
             statusFilter === "all"
               ? "border-pin-blue-500 bg-pin-blue-50 dark:bg-pin-blue-900/20"
               : "border-pin-gray-200 dark:border-pin-dark-400 hover:border-pin-blue-300"
           }`}
         >
-          <div className="text-2xl md:text-3xl font-bold text-pin-blue-600 dark:text-pin-blue-400">
+          <div className="text-xl md:text-3xl font-bold text-pin-blue-600 dark:text-pin-blue-400">
             {stats.total}
           </div>
-          <div className="text-xs text-pin-gray-600 dark:text-pin-dark-600 mt-1">Tổng phiếu</div>
+          <div className="text-[9px] md:text-xs text-pin-gray-600 dark:text-pin-dark-600">Tổng</div>
         </button>
 
         <button
           onClick={() => setStatusFilter("pending")}
-          className={`p-3 rounded-xl border-2 transition-all ${
+          className={`p-2 md:p-3 rounded-lg md:rounded-xl border-2 transition-all ${
             statusFilter === "pending"
               ? "border-pin-amber-500 bg-pin-amber-50 dark:bg-pin-amber-900/20"
               : "border-pin-gray-200 dark:border-pin-dark-400 hover:border-pin-amber-300"
           }`}
         >
-          <div className="text-2xl md:text-3xl font-bold text-pin-amber-600 dark:text-pin-amber-400">
+          <div className="text-xl md:text-3xl font-bold text-pin-amber-600 dark:text-pin-amber-400">
             {stats.pending}
           </div>
-          <div className="text-xs text-pin-gray-600 dark:text-pin-dark-600 mt-1">Chờ xử lý</div>
+          <div className="text-[9px] md:text-xs text-pin-gray-600 dark:text-pin-dark-600">Chờ</div>
         </button>
 
         <button
           onClick={() => setStatusFilter("inProgress")}
-          className={`p-3 rounded-xl border-2 transition-all ${
+          className={`p-2 md:p-3 rounded-lg md:rounded-xl border-2 transition-all ${
             statusFilter === "inProgress"
               ? "border-pin-cyan-500 bg-pin-cyan-50 dark:bg-pin-cyan-900/20"
               : "border-pin-gray-200 dark:border-pin-dark-400 hover:border-pin-cyan-300"
           }`}
         >
-          <div className="text-2xl md:text-3xl font-bold text-pin-cyan-600 dark:text-pin-cyan-400">
+          <div className="text-xl md:text-3xl font-bold text-pin-cyan-600 dark:text-pin-cyan-400">
             {stats.inProgress}
           </div>
-          <div className="text-xs text-pin-gray-600 dark:text-pin-dark-600 mt-1">Đang sửa</div>
+          <div className="text-[9px] md:text-xs text-pin-gray-600 dark:text-pin-dark-600">
+            Đang sửa
+          </div>
         </button>
 
         <button
           onClick={() => setStatusFilter("completed")}
-          className={`p-3 rounded-xl border-2 transition-all ${
+          className={`p-2 md:p-3 rounded-lg md:rounded-xl border-2 transition-all col-span-1 ${
             statusFilter === "completed"
               ? "border-pin-green-500 bg-pin-green-50 dark:bg-pin-green-900/20"
               : "border-pin-gray-200 dark:border-pin-dark-400 hover:border-pin-green-300"
           }`}
         >
-          <div className="text-2xl md:text-3xl font-bold text-pin-green-600 dark:text-pin-green-400">
+          <div className="text-xl md:text-3xl font-bold text-pin-green-600 dark:text-pin-green-400">
             {stats.completed}
           </div>
-          <div className="text-xs text-pin-gray-600 dark:text-pin-dark-600 mt-1">Hoàn thành</div>
+          <div className="text-[9px] md:text-xs text-pin-gray-600 dark:text-pin-dark-600">Xong</div>
         </button>
 
-        <div className="p-3 rounded-xl border-2 border-pin-emerald-200 dark:border-pin-emerald-700 bg-gradient-to-br from-pin-emerald-50 to-pin-green-50 dark:from-pin-emerald-900/20 dark:to-pin-green-900/20">
-          <div className="text-lg md:text-xl font-bold text-pin-emerald-600 dark:text-pin-emerald-400 truncate">
+        <div className="p-2 md:p-3 rounded-lg md:rounded-xl border-2 border-pin-emerald-200 dark:border-pin-emerald-700 bg-gradient-to-br from-pin-emerald-50 to-pin-green-50 dark:from-pin-emerald-900/20 dark:to-pin-green-900/20 col-span-2 md:col-span-1">
+          <div className="text-sm md:text-xl font-bold text-pin-emerald-600 dark:text-pin-emerald-400 truncate">
             {formatCurrency(stats.totalRevenue)}
           </div>
-          <div className="text-xs text-pin-gray-600 dark:text-pin-dark-600 mt-1">Doanh thu</div>
+          <div className="text-[9px] md:text-xs text-pin-gray-600 dark:text-pin-dark-600">
+            Doanh thu
+          </div>
         </div>
       </div>
 

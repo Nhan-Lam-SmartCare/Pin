@@ -253,7 +253,7 @@ const PinProductManager: React.FC<PinProductManagerProps> = ({ products, updateP
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
 
   return (
-    <div className="space-y-3 p-1">
+    <div className="space-y-2 p-1">
       {/* Advanced deletion modal */}
       <ProductDeletionModal
         product={deletionModalProduct}
@@ -289,29 +289,25 @@ const PinProductManager: React.FC<PinProductManagerProps> = ({ products, updateP
         onSave={updateProduct}
         product={editingProduct}
       />
-      <div className="flex flex-col md:flex-row justify-between md:items-center gap-3 animate-fadeIn">
-        <h1 className="text-xl md:text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent flex items-center gap-2 md:gap-3">
-          <Icon name="cube" className="w-7 h-7 md:w-10 md:h-10 text-blue-600 dark:text-blue-400" />
-          <span className="hidden md:inline">Quản lý Thành phẩm</span>
-          <span className="md:hidden">Thành phẩm</span>
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 animate-fadeIn">
+        <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent flex items-center gap-2">
+          <Icon name="cube" className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+          Quản lý Thành phẩm
         </h1>
-        <div className="flex items-center gap-2 md:gap-4 overflow-x-auto">
+        <div className="flex items-center gap-2 overflow-x-auto">
           <button
             onClick={syncProductsFromCompletedOrders}
-            className="px-3 md:px-6 py-2 md:py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg md:rounded-xl font-semibold shadow-lg shadow-blue-500/30 hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 flex items-center gap-1 md:gap-2 text-xs md:text-base whitespace-nowrap"
+            className="px-3 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg font-semibold shadow-md hover:shadow-lg transition-all duration-200 flex items-center gap-1 text-xs whitespace-nowrap"
           >
-            <Icon name="arrows-clockwise" className="w-4 h-4 md:w-5 md:h-5 text-white" />
-            <span className="hidden md:inline">Sync từ Đơn hoàn thành</span>
-            <span className="md:hidden">Sync</span>
+            <Icon name="arrows-clockwise" className="w-4 h-4 text-white" />
+            Sync từ Đơn hoàn thành
           </button>
-          <div className="px-3 md:px-5 py-2 md:py-3 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/40 dark:to-purple-900/40 rounded-lg md:rounded-xl border-2 border-blue-200 dark:border-blue-800 whitespace-nowrap">
-            <span className="text-xs md:text-sm font-semibold text-slate-600 dark:text-slate-400">
-              Tổng:{" "}
-            </span>
-            <span className="text-sm md:text-lg font-bold text-blue-600 dark:text-blue-400">
+          <div className="px-3 py-2 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/40 dark:to-purple-900/40 rounded-lg border border-blue-200 dark:border-blue-800 whitespace-nowrap">
+            <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Tổng: </span>
+            <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
               {products.length}
             </span>
-            <span className="hidden md:inline text-sm font-semibold text-slate-600 dark:text-slate-400">
+            <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">
               {" "}
               sản phẩm
             </span>
@@ -319,14 +315,14 @@ const PinProductManager: React.FC<PinProductManagerProps> = ({ products, updateP
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-800 p-3 md:p-6 rounded-xl md:rounded-2xl shadow-xl border-2 border-slate-200 dark:border-slate-700 animate-fadeIn">
-        <div className="flex flex-col md:flex-row gap-3 md:gap-4 md:items-center">
+      <div className="bg-white dark:bg-slate-800 p-3 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 animate-fadeIn">
+        <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
           <input
             type="text"
             placeholder="Tìm theo tên hoặc SKU..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="flex-1 px-3 md:px-5 py-3 md:py-4 border-2 border-slate-300 dark:border-slate-600 rounded-lg md:rounded-xl bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 text-sm md:text-base font-medium focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all duration-200 shadow-sm"
+            className="flex-1 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 text-sm font-medium focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
           />
           {filteredProducts.length !== products.length && (
             <div className="px-3 md:px-5 py-2 md:py-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/40 dark:to-emerald-900/40 rounded-lg md:rounded-xl border-2 border-green-200 dark:border-green-800 text-center md:text-left">

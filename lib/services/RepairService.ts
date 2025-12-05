@@ -31,6 +31,17 @@ interface DBPinRepairOrder {
   due_date?: string;
   cash_transaction_id?: string;
   created_at?: string;
+  // Báo giá fields
+  quoted_at?: string;
+  quote_approved_at?: string;
+  quote_approved?: boolean;
+  quoted_materials_cost?: number;
+  quoted_labor_cost?: number;
+  quoted_total?: number;
+  has_material_shortage?: boolean;
+  linked_purchase_order_id?: string;
+  materials_deducted?: boolean;
+  materials_deducted_at?: string;
 }
 
 export function createRepairService(ctx: PinContextType): RepairService {
@@ -168,6 +179,17 @@ export function createRepairService(ctx: PinContextType): RepairService {
           payment_date: order.paymentDate,
           due_date: order.dueDate,
           cash_transaction_id: order.cashTransactionId,
+          // Báo giá fields
+          quoted_at: order.quotedAt,
+          quote_approved_at: order.quoteApprovedAt,
+          quote_approved: order.quoteApproved,
+          quoted_materials_cost: order.quotedMaterialsCost,
+          quoted_labor_cost: order.quotedLaborCost,
+          quoted_total: order.quotedTotal,
+          has_material_shortage: order.hasMaterialShortage,
+          linked_purchase_order_id: order.linkedPurchaseOrderId,
+          materials_deducted: order.materialsDeducted,
+          materials_deducted_at: order.materialsDeductedAt,
         };
 
         const { error: upErr } = await supabase
@@ -185,24 +207,50 @@ export function createRepairService(ctx: PinContextType): RepairService {
         }
 
         // Deduct materials used if order is completed (check Vietnamese status)
+        // Chỉ trừ kho khi chuyển sang status hoàn thành VÀ chưa trừ trước đó
         const completedStatuses = ["completed", "Đã sửa xong", "Trả máy"];
-        if (completedStatuses.includes(order.status) && order.materialsUsed) {
-          for (const m of order.materialsUsed) {
-            const mat = ctx.pinMaterials.find(
+        const shouldDeductMaterials =
+          completedStatuses.includes(order.status) &&
+          order.materialsUsed &&
+          order.materialsUsed.length > 0 &&
+          !order.materialsDeducted; // Kiểm tra đã trừ kho chưa
+
+        if (shouldDeductMaterials) {
+          for (const m of order.materialsUsed!) {
+            // Tìm material bằng ID hoặc theo tên
+            let mat = ctx.pinMaterials.find(
               (material: PinMaterial) => material.id === m.materialId
             );
+            // Nếu không tìm thấy theo ID, tìm theo tên
+            if (!mat && m.materialName) {
+              mat = ctx.pinMaterials.find(
+                (material: PinMaterial) =>
+                  material.name.toLowerCase() === m.materialName.toLowerCase()
+              );
+            }
             if (!mat) continue;
+
             const remaining = Math.max(0, (mat.stock || 0) - (m.quantity || 0));
-            await supabase
-              .from("pin_materials")
-              .update({ stock: remaining })
-              .eq("id", m.materialId);
+            await supabase.from("pin_materials").update({ stock: remaining }).eq("id", mat.id);
             ctx.setPinMaterials((prev: PinMaterial[]) =>
               prev.map((material: PinMaterial) =>
-                material.id === m.materialId ? { ...material, stock: remaining } : material
+                material.id === mat!.id ? { ...material, stock: remaining } : material
               )
             );
           }
+
+          // Cập nhật flag đã trừ kho
+          await supabase
+            .from("pin_repair_orders")
+            .update({
+              materials_deducted: true,
+              materials_deducted_at: new Date().toISOString(),
+            })
+            .eq("id", order.id);
+
+          // Update local state
+          order.materialsDeducted = true;
+          order.materialsDeductedAt = new Date().toISOString();
         }
 
         // Create cash transaction for payment
