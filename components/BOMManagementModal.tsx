@@ -134,7 +134,7 @@ const BOMManagementModal: React.FC<BOMManagementModalProps> = ({
   const handleCreateBOM = () => {
     setIsCreating(true);
     setBomForm({
-      id: generateUuid(),
+      id: "", // Để trống, DB sẽ tự tạo ID mới khi insert
       productName: "",
       productSku: "",
       notes: "",
@@ -172,8 +172,10 @@ const BOMManagementModal: React.FC<BOMManagementModalProps> = ({
       return;
     }
 
+    // Nếu đang edit (có id hợp lệ), giữ nguyên id
+    // Nếu tạo mới (id rỗng), tạo một ID tạm để Backend nhận biết và tạo ID mới từ DB
     const bomToSave: PinBOM = {
-      id: bomForm.id,
+      id: bomForm.id || "new-bom-temp-id", // ID tạm, Backend sẽ phát hiện và tạo ID mới
       productName: bomForm.productName.trim(),
       productSku: bomForm.productSku.trim(),
       notes: bomForm.notes.trim(),
@@ -182,7 +184,8 @@ const BOMManagementModal: React.FC<BOMManagementModalProps> = ({
     };
 
     onSaveBOM(bomToSave);
-    setIsCreating(false);
+    
+    // Reset form để có thể tạo BOM mới tiếp
     setBomForm({
       id: "",
       productName: "",
@@ -190,6 +193,9 @@ const BOMManagementModal: React.FC<BOMManagementModalProps> = ({
       notes: "",
       materials: [],
     });
+    
+    // Giữ modal mở và ở chế độ tạo mới
+    // setIsCreating(false); // Không đóng form, để người dùng tiếp tục tạo BOM mới
   };
 
   const handleAddMaterial = () => {
