@@ -184,7 +184,7 @@ const BOMManagementModal: React.FC<BOMManagementModalProps> = ({
     };
 
     onSaveBOM(bomToSave);
-    
+
     // Reset form để có thể tạo BOM mới tiếp
     setBomForm({
       id: "",
@@ -193,7 +193,7 @@ const BOMManagementModal: React.FC<BOMManagementModalProps> = ({
       notes: "",
       materials: [],
     });
-    
+
     // Giữ modal mở và ở chế độ tạo mới
     // setIsCreating(false); // Không đóng form, để người dùng tiếp tục tạo BOM mới
   };
