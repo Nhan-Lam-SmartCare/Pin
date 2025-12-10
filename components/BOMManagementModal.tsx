@@ -172,12 +172,27 @@ const BOMManagementModal: React.FC<BOMManagementModalProps> = ({
       return;
     }
 
+    // Tự động tạo SKU nếu người dùng không nhập
+    let productSku = bomForm.productSku.trim();
+    if (!productSku) {
+      // Tạo SKU từ tên sản phẩm: BOM-TENSANPHAM-TIMESTAMP
+      const nameSlug = bomForm.productName
+        .trim()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "") // Bỏ dấu tiếng Việt
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, "") // Chỉ giữ chữ và số
+        .substring(0, 10); // Giới hạn 10 ký tự
+      const timestamp = Date.now().toString(36).toUpperCase(); // Timestamp ngắn gọn
+      productSku = `BOM-${nameSlug}-${timestamp}`;
+    }
+
     // Nếu đang edit (có id hợp lệ), giữ nguyên id
     // Nếu tạo mới (id rỗng), tạo một ID tạm để Backend nhận biết và tạo ID mới từ DB
     const bomToSave: PinBOM = {
       id: bomForm.id || "new-bom-temp-id", // ID tạm, Backend sẽ phát hiện và tạo ID mới
       productName: bomForm.productName.trim(),
-      productSku: bomForm.productSku.trim(),
+      productSku: productSku,
       notes: bomForm.notes.trim(),
       materials: bomForm.materials.filter((m) => m.materialId && m.quantity > 0),
       created_at: new Date().toISOString(),
