@@ -692,11 +692,16 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
                                 (product as any).retailPrice ?? product.sellingPrice ?? 0
                               )}
                             </span>
-                            <span>
-                              Kho:{" "}
-                              <span className="font-medium text-slate-700 dark:text-slate-300">
-                                {product.stock}
-                              </span>
+                            <span
+                              className={`px-1.5 py-0.5 rounded text-xs font-medium ${
+                                product.stock === 0
+                                  ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
+                                  : product.stock <= 5
+                                    ? "bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400"
+                                    : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
+                              }`}
+                            >
+                              {product.stock === 0 ? "Hết" : `Kho: ${product.stock}`}
                             </span>
                           </div>
                         </div>
@@ -1515,10 +1520,20 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
                   <tr key={s.id} className="border-t dark:border-slate-700">
                     <td className="p-3 text-sm">{new Date(s.date).toLocaleString("vi-VN")}</td>
                     <td className="p-3 text-sm">{s.customer?.name || ""}</td>
-                    <td className="p-3 text-sm">
-                      {(s.items || [])
-                        .map((it: PinCartItem) => `${it.sku} x${it.quantity}`)
-                        .join(", ")}
+                    <td className="p-3 text-sm max-w-md">
+                      <div className="space-y-0.5">
+                        {(s.items || []).slice(0, 3).map((it: PinCartItem, idx: number) => (
+                          <div key={idx} className="flex items-center gap-1">
+                            <span className="text-slate-800 dark:text-slate-200">{it.name}</span>
+                            <span className="text-slate-500 text-xs">x{it.quantity}</span>
+                          </div>
+                        ))}
+                        {(s.items || []).length > 3 && (
+                          <div className="text-xs text-slate-500">
+                            +{(s.items || []).length - 3} sản phẩm khác
+                          </div>
+                        )}
+                      </div>
                     </td>
                     <td className="p-3 text-right font-semibold">{formatCurrency(s.total)}</td>
                     <td className="p-3 text-right">

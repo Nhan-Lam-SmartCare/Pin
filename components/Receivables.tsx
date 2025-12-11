@@ -178,9 +178,9 @@ export default function ReceivablesNew() {
       const total = Number((sale as any).total ?? 0);
       if (total <= 0) continue;
 
-      // Check payment status first - skip fully paid sales
+      // Check payment status first - skip fully paid sales and installment sales (handled in installments tab)
       const paymentStatus = (sale as any).paymentStatus;
-      if (paymentStatus === "paid") continue;
+      if (paymentStatus === "paid" || paymentStatus === "installment") continue;
 
       // Calculate paid amount from sale record first, then fallback to cash transactions
       const salePaidAmount = Number((sale as any).paidAmount ?? 0);
