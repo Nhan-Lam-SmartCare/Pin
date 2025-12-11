@@ -170,7 +170,9 @@ export default function BusinessSettingsPage() {
 
       {/* Thông tin cơ bản */}
       <Card>
-        <h2 className="text-lg font-semibold mb-4 text-slate-800 dark:text-slate-100">Thông tin cơ bản</h2>
+        <h2 className="text-lg font-semibold mb-4 text-slate-800 dark:text-slate-100">
+          Thông tin cơ bản
+        </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
@@ -277,7 +279,9 @@ export default function BusinessSettingsPage() {
 
       {/* Liên hệ */}
       <Card>
-        <h2 className="text-lg font-semibold mb-4 text-slate-800 dark:text-slate-100">Thông tin liên hệ</h2>
+        <h2 className="text-lg font-semibold mb-4 text-slate-800 dark:text-slate-100">
+          Thông tin liên hệ
+        </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
@@ -323,7 +327,9 @@ export default function BusinessSettingsPage() {
 
       {/* Thông tin pháp lý */}
       <Card>
-        <h2 className="text-lg font-semibold mb-4 text-slate-800 dark:text-slate-100">Thông tin pháp lý & Thuế</h2>
+        <h2 className="text-lg font-semibold mb-4 text-slate-800 dark:text-slate-100">
+          Thông tin pháp lý & Thuế
+        </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
@@ -380,7 +386,9 @@ export default function BusinessSettingsPage() {
 
       {/* Thông tin ngân hàng */}
       <Card>
-        <h2 className="text-lg font-semibold mb-4 text-slate-800 dark:text-slate-100">Thông tin ngân hàng</h2>
+        <h2 className="text-lg font-semibold mb-4 text-slate-800 dark:text-slate-100">
+          Thông tin ngân hàng
+        </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
@@ -425,7 +433,9 @@ export default function BusinessSettingsPage() {
 
       {/* Cài đặt hóa đơn */}
       <Card>
-        <h2 className="text-lg font-semibold mb-4 text-slate-800 dark:text-slate-100">Cài đặt Hóa đơn</h2>
+        <h2 className="text-lg font-semibold mb-4 text-slate-800 dark:text-slate-100">
+          Cài đặt Hóa đơn
+        </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">

@@ -83,13 +83,13 @@ export const TaxReportPage: React.FC = () => {
     const to = new Date(toDate + "T23:59:59");
 
     // Filter sales within date range
-    const filteredSales = pinSales.filter(sale => {
+    const filteredSales = pinSales.filter((sale) => {
       const saleDate = new Date(sale.date);
       return saleDate >= from && saleDate <= to;
     });
 
     // Convert sales to tax items
-    const taxSales: TaxSaleItem[] = filteredSales.map(sale => {
+    const taxSales: TaxSaleItem[] = filteredSales.map((sale) => {
       const amount = sale.total;
       const vatAmount = (amount * vatRate) / (100 + vatRate);
       const baseAmount = amount - vatAmount;
