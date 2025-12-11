@@ -251,6 +251,24 @@ export const PinTopNav: React.FC<{
                         Danh bạ
                       </NavLink>
 
+                      <NavLink
+                        to="/business-settings"
+                        onClick={() => setShowLogoMenu(false)}
+                        className="w-full text-left flex items-center gap-3 p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 text-sm"
+                      >
+                        <CogIcon className="w-4 h-4" />
+                        Cài đặt doanh nghiệp
+                      </NavLink>
+
+                      <NavLink
+                        to="/tax-report"
+                        onClick={() => setShowLogoMenu(false)}
+                        className="w-full text-left flex items-center gap-3 p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 text-sm"
+                      >
+                        <DocumentChartBarIcon className="w-4 h-4" />
+                        Báo cáo thuế
+                      </NavLink>
+
                       <button
                         onClick={() => {
                           onSwitchApp();

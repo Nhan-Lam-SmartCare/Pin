@@ -16,6 +16,8 @@ import PinProductionReset from "./PinProductionReset";
 import PinSettings from "./PinSettings";
 import Receivables from "./Receivables";
 import AdvancedAnalyticsDashboard from "./AdvancedAnalyticsDashboard";
+import BusinessSettings from "./BusinessSettings";
+import { TaxReportPage } from "./TaxReportPage";
 import { MobileMoreMenu } from "./mobile";
 import { CashTransaction, PinSale } from "../types";
 
@@ -147,6 +149,8 @@ const PinCorpApp: React.FC<PinCorpAppProps> = ({ onSwitchApp }) => {
           <Route path="/financial" element={<PinFinancialManager />} />
           <Route path="/receivables" element={<Receivables />} />
           <Route path="/settings" element={<PinSettings />} />
+          <Route path="/business-settings" element={<BusinessSettings />} />
+          <Route path="/tax-report" element={<TaxReportPage />} />
           <Route path="/analytics" element={<AdvancedAnalyticsDashboard />} />
           <Route path="/production-reset" element={<PinProductionReset />} />
           {/* More menu route for mobile */}
