@@ -323,10 +323,7 @@ export default function ReceivablesNew() {
         }
 
         // Tính số tiền còn lại CHÍNH XÁC từ các kỳ thanh toán
-        const totalInstallmentAmount = (plan.payments || []).reduce(
-          (sum, p) => sum + p.amount,
-          0
-        );
+        const totalInstallmentAmount = (plan.payments || []).reduce((sum, p) => sum + p.amount, 0);
         const totalPaid = (plan.payments || [])
           .filter((p) => p.status === "paid")
           .reduce((sum, p) => sum + p.amount, 0);
