@@ -521,6 +521,14 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
   const [editingSale, setEditingSale] = useState<PinSale | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
+  // Load installment plans for sales
+  const [installmentPlans, setInstallmentPlans] = useState<InstallmentPlan[]>([]);
+  useEffect(() => {
+    InstallmentService.getAllInstallmentPlans().then((plans) => {
+      setInstallmentPlans(plans);
+    });
+  }, [pinSales]);
+
   // Persist modal state
   useEffect(() => {
     const saved = localStorage.getItem("pinSalesHistory_editModal");
@@ -537,6 +545,10 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
   const [editDiscount, setEditDiscount] = useState<number>(0);
   const [editDiscountType, setEditDiscountType] = useState<"VND" | "%">("VND");
   const [editPayment, setEditPayment] = useState<"cash" | "bank">("cash");
+
+  // Payment detail modal
+  const [paymentDetailSale, setPaymentDetailSale] = useState<PinSale | null>(null);
+  const [showPaymentDetail, setShowPaymentDetail] = useState(false);
 
   const openEdit = (s: PinSale) => {
     setEditingSale(s);
@@ -1437,63 +1449,234 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
             {recentSales.length === 0 && (
               <div className="p-4 text-center text-slate-500">Chưa có hoá đơn nào.</div>
             )}
-            {recentSales.map((s: PinSale) => (
-              <div
-                key={s.id}
-                className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-3 border border-slate-200 dark:border-slate-600"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-slate-500">
-                    {new Date(s.date).toLocaleString("vi-VN")}
-                  </span>
-                  <span className="font-bold text-sm text-green-600 dark:text-green-400">
-                    {formatCurrency(s.total)}
-                  </span>
+            {recentSales.map((s: PinSale) => {
+              // Tìm installment plan từ database nếu có
+              const linkedPlan = installmentPlans.find((p) => p.saleId === s.id);
+              const actualInstallmentPlan = s.installmentPlan || linkedPlan;
+
+              // Xác định trạng thái thanh toán từ dữ liệu thực tế
+              let paymentStatus: "paid" | "partial" | "debt" | "installment";
+
+              // Ưu tiên check installment trước
+              if (s.isInstallment || actualInstallmentPlan) {
+                paymentStatus = "installment";
+              }
+              // Heuristic: Nếu đã trả 1 phần (20-80% tổng tiền) và paymentStatus trong DB là "installment",
+              // hoặc có code chứa "INST" thì coi như trả góp
+              else if (
+                s.paidAmount !== undefined &&
+                s.paidAmount > 0 &&
+                s.paidAmount < s.total &&
+                (s.paymentStatus === "installment" || (s.code && s.code.includes("INST")))
+              ) {
+                paymentStatus = "installment";
+              } else if (s.paidAmount !== undefined && s.paidAmount > 0 && s.paidAmount < s.total) {
+                paymentStatus = "partial";
+              } else if (s.paidAmount === 0 || s.paymentStatus === "debt") {
+                paymentStatus = "debt";
+              } else {
+                paymentStatus = "paid";
+              }
+
+              const statusConfig = {
+                paid: {
+                  label: "Đã thanh toán",
+                  color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
+                },
+                partial: {
+                  label: `Trả ${formatCurrency(s.paidAmount || 0)}/${formatCurrency(s.total)}`,
+                  color: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300",
+                  detail: `Còn nợ: ${formatCurrency(s.total - (s.paidAmount || 0))}`,
+                },
+                debt: {
+                  label: "Công nợ",
+                  color: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300",
+                  detail: s.dueDate
+                    ? `Hạn: ${new Date(s.dueDate).toLocaleDateString("vi-VN")}`
+                    : undefined,
+                },
+                installment: {
+                  label: "Trả góp",
+                  color: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
+                  detail: actualInstallmentPlan
+                    ? `${actualInstallmentPlan.payments?.filter((p) => p.status === "paid").length || 0}/${actualInstallmentPlan.numberOfInstallments} kỳ - Lãi ${actualInstallmentPlan.interestRate}%`
+                    : undefined,
+                },
+              }[paymentStatus];
+
+              return (
+                <div
+                  key={s.id}
+                  className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-3 border border-slate-200 dark:border-slate-600"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-xs font-mono font-semibold text-blue-600 dark:text-blue-400">
+                        {s.code || s.id.slice(0, 8)}
+                      </span>
+                      <span className="text-xs text-slate-500">
+                        {new Date(s.date).toLocaleString("vi-VN")}
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="font-bold text-sm text-slate-800 dark:text-slate-100">
+                        {formatCurrency(s.total)}
+                      </span>
+                      <button
+                        onClick={() => {
+                          if (
+                            paymentStatus === "installment" ||
+                            paymentStatus === "partial" ||
+                            paymentStatus === "debt"
+                          ) {
+                            console.log("📊 Payment Detail Debug:", {
+                              saleId: s.id,
+                              code: s.code,
+                              paymentStatus,
+                              storedPaymentStatus: s.paymentStatus,
+                              isInstallment: s.isInstallment,
+                              paidAmount: s.paidAmount,
+                              total: s.total,
+                              hasInstallmentPlan: !!s.installmentPlan,
+                              hasLinkedPlan: !!linkedPlan,
+                              hasActualPlan: !!actualInstallmentPlan,
+                              installmentPlansCount: installmentPlans.length,
+                              actualPlan: actualInstallmentPlan,
+                            });
+
+                            // Nếu là trả góp nhưng không có plan, tạo một plan giả từ thông tin có sẵn
+                            let finalInstallmentPlan = actualInstallmentPlan;
+                            if (paymentStatus === "installment" && !actualInstallmentPlan) {
+                              console.warn(
+                                "⚠️ Installment detected but no plan found. Creating fallback plan."
+                              );
+                              // Tạo plan giả dựa trên thông tin từ đơn hàng
+                              const downPayment = s.paidAmount || 0;
+                              const baseRemainingAmount = s.total - downPayment;
+                              // Giả định 9 kỳ, lãi suất 2.39% (có thể lấy từ note hoặc default)
+                              const numberOfInstallments = 9;
+                              const interestRate = 2.39;
+                              const totalWithInterest =
+                                baseRemainingAmount *
+                                (1 + (interestRate * numberOfInstallments) / 100);
+                              const monthlyPayment = Math.ceil(
+                                totalWithInterest / numberOfInstallments
+                              );
+
+                              // Tính số kỳ đã trả và số tiền còn lại (bao gồm lãi)
+                              const paidTerms = downPayment > 0 ? 1 : 0;
+                              const totalPaid = paidTerms * monthlyPayment;
+                              const remainingAmountWithInterest = totalWithInterest - totalPaid;
+
+                              finalInstallmentPlan = {
+                                id: `FALLBACK-${s.id}`,
+                                saleId: s.id,
+                                customerId: s.customer?.id || "",
+                                customerName: s.customer?.name || "",
+                                customerPhone: s.customer?.phone || "",
+                                totalAmount: s.total,
+                                downPayment,
+                                remainingAmount: remainingAmountWithInterest,
+                                numberOfInstallments,
+                                monthlyPayment,
+                                interestRate,
+                                startDate: s.date,
+                                endDate: "",
+                                status: "active",
+                                payments: Array.from({ length: numberOfInstallments }, (_, i) => ({
+                                  id: `PAY-${i + 1}`,
+                                  installmentPlanId: `FALLBACK-${s.id}`,
+                                  periodNumber: i + 1,
+                                  dueDate: "",
+                                  amount: monthlyPayment,
+                                  status: (i < paidTerms ? "paid" : "pending") as
+                                    | "paid"
+                                    | "pending"
+                                    | "partial"
+                                    | "overdue",
+                                  paidAmount: i < paidTerms ? monthlyPayment : 0,
+                                  paidDate: i < paidTerms ? s.date : undefined,
+                                })),
+                              };
+                            }
+
+                            setPaymentDetailSale({
+                              ...s,
+                              isInstallment: paymentStatus === "installment",
+                              installmentPlan: finalInstallmentPlan,
+                            });
+                            setShowPaymentDetail(true);
+                          }
+                        }}
+                        className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${statusConfig.color} ${
+                          paymentStatus === "installment" ||
+                          paymentStatus === "partial" ||
+                          paymentStatus === "debt"
+                            ? "cursor-pointer hover:opacity-80"
+                            : ""
+                        }`}
+                        title={
+                          paymentStatus === "installment" ||
+                          paymentStatus === "partial" ||
+                          paymentStatus === "debt"
+                            ? "Click để xem chi tiết"
+                            : ""
+                        }
+                      >
+                        {statusConfig.label}
+                      </button>
+                      {statusConfig.detail && (
+                        <span className="text-[9px] text-slate-500 dark:text-slate-400">
+                          {statusConfig.detail}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-sm font-medium text-slate-800 dark:text-slate-100 mb-1">
+                    {s.customer?.name || "Khách lẻ"}
+                  </div>
+                  <div className="text-xs text-slate-600 dark:text-slate-400 mb-2 line-clamp-2">
+                    {(s.items || [])
+                      .map((it: PinCartItem) => `${it.name} x${it.quantity}`)
+                      .join(", ")}
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <button
+                      onClick={() => {
+                        setInvoiceSaleData(s);
+                        setShowInvoicePreview(true);
+                      }}
+                      className="p-1.5 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30 rounded"
+                      title="Xem/In hóa đơn"
+                    >
+                      <PrinterIcon className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => openEdit(s)}
+                      disabled={!currentUser}
+                      className={`p-1.5 rounded ${currentUser ? "text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-900/30" : "text-slate-400 cursor-not-allowed"}`}
+                    >
+                      <PencilSquareIcon className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!currentUser) {
+                          alert("Vui lòng đăng nhập");
+                          return;
+                        }
+                        if (window.confirm("Xoá hoá đơn này?")) {
+                          await deletePinSale(s.id);
+                        }
+                      }}
+                      disabled={!currentUser}
+                      className={`p-1.5 rounded ${currentUser ? "text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30" : "text-red-300 cursor-not-allowed"}`}
+                    >
+                      <TrashIcon className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
-                <div className="text-sm font-medium text-slate-800 dark:text-slate-100 mb-1">
-                  {s.customer?.name || "Khách lẻ"}
-                </div>
-                <div className="text-xs text-slate-600 dark:text-slate-400 mb-2 line-clamp-2">
-                  {(s.items || [])
-                    .map((it: PinCartItem) => `${it.name} x${it.quantity}`)
-                    .join(", ")}
-                </div>
-                <div className="flex justify-end gap-2">
-                  <button
-                    onClick={() => {
-                      setInvoiceSaleData(s);
-                      setShowInvoicePreview(true);
-                    }}
-                    className="p-1.5 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30 rounded"
-                    title="Xem/In hóa đơn"
-                  >
-                    <PrinterIcon className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => openEdit(s)}
-                    disabled={!currentUser}
-                    className={`p-1.5 rounded ${currentUser ? "text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-900/30" : "text-slate-400 cursor-not-allowed"}`}
-                  >
-                    <PencilSquareIcon className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={async () => {
-                      if (!currentUser) {
-                        alert("Vui lòng đăng nhập");
-                        return;
-                      }
-                      if (window.confirm("Xoá hoá đơn này?")) {
-                        await deletePinSale(s.id);
-                      }
-                    }}
-                    disabled={!currentUser}
-                    className={`p-1.5 rounded ${currentUser ? "text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30" : "text-red-300 cursor-not-allowed"}`}
-                  >
-                    <TrashIcon className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Desktop view - Table */}
@@ -1501,9 +1684,11 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
             <table className="w-full text-left min-w-max">
               <thead className="border-b dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50">
                 <tr>
+                  <th className="p-3">Số phiếu</th>
                   <th className="p-3">Ngày</th>
                   <th className="p-3">Khách hàng</th>
                   <th className="p-3">Sản phẩm</th>
+                  <th className="p-3">Trạng thái</th>
                   <th className="p-3 text-right">Tổng</th>
                   <th className="p-3"></th>
                 </tr>
@@ -1511,73 +1696,252 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
               <tbody>
                 {recentSales.length === 0 && (
                   <tr>
-                    <td className="p-4 text-center text-slate-500" colSpan={5}>
+                    <td className="p-4 text-center text-slate-500" colSpan={7}>
                       Chưa có hoá đơn nào.
                     </td>
                   </tr>
                 )}
-                {recentSales.map((s: PinSale) => (
-                  <tr key={s.id} className="border-t dark:border-slate-700">
-                    <td className="p-3 text-sm">{new Date(s.date).toLocaleString("vi-VN")}</td>
-                    <td className="p-3 text-sm">{s.customer?.name || ""}</td>
-                    <td className="p-3 text-sm max-w-md">
-                      <div className="space-y-0.5">
-                        {(s.items || []).slice(0, 3).map((it: PinCartItem, idx: number) => (
-                          <div key={idx} className="flex items-center gap-1">
-                            <span className="text-slate-800 dark:text-slate-200">{it.name}</span>
-                            <span className="text-slate-500 text-xs">x{it.quantity}</span>
-                          </div>
-                        ))}
-                        {(s.items || []).length > 3 && (
-                          <div className="text-xs text-slate-500">
-                            +{(s.items || []).length - 3} sản phẩm khác
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="p-3 text-right font-semibold">{formatCurrency(s.total)}</td>
-                    <td className="p-3 text-right">
-                      <button
-                        onClick={() => {
-                          setInvoiceSaleData(s);
-                          setShowInvoicePreview(true);
-                        }}
-                        title="Xem/In hóa đơn"
-                        className="mr-2 text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
-                      >
-                        <PrinterIcon className="w-5 h-5" />
-                      </button>
-                      <button
-                        onClick={() => openEdit(s)}
-                        disabled={!currentUser}
-                        title={!currentUser ? "Bạn phải đăng nhập để sửa" : "Sửa hoá đơn"}
-                        className={`mr-2 ${
-                          currentUser ? "text-sky-600" : "text-slate-400 cursor-not-allowed"
-                        }`}
-                      >
-                        <PencilSquareIcon className="w-5 h-5" />
-                      </button>
-                      <button
-                        onClick={async () => {
-                          if (!currentUser) {
-                            alert("Vui lòng đăng nhập");
-                            return;
+                {recentSales.map((s: PinSale) => {
+                  // Tìm installment plan từ database nếu có
+                  const linkedPlan = installmentPlans.find((p) => p.saleId === s.id);
+                  const actualInstallmentPlan = s.installmentPlan || linkedPlan;
+
+                  // Xác định trạng thái thanh toán từ dữ liệu thực tế
+                  let paymentStatus: "paid" | "partial" | "debt" | "installment";
+
+                  // Ưu tiên check installment trước
+                  if (s.isInstallment || actualInstallmentPlan) {
+                    paymentStatus = "installment";
+                  }
+                  // Heuristic: Nếu có paymentStatus là "installment" trong DB hoặc code chứa pattern trả góp
+                  else if (
+                    s.paidAmount !== undefined &&
+                    s.paidAmount > 0 &&
+                    s.paidAmount < s.total &&
+                    (s.paymentStatus === "installment" || (s.code && s.code.includes("INST")))
+                  ) {
+                    paymentStatus = "installment";
+                  } else if (
+                    s.paidAmount !== undefined &&
+                    s.paidAmount > 0 &&
+                    s.paidAmount < s.total
+                  ) {
+                    paymentStatus = "partial";
+                  } else if (s.paidAmount === 0 || s.paymentStatus === "debt") {
+                    paymentStatus = "debt";
+                  } else {
+                    paymentStatus = "paid";
+                  }
+
+                  const statusConfig = {
+                    paid: {
+                      label: "Đã thanh toán",
+                      color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
+                    },
+                    partial: {
+                      label: `Trả ${formatCurrency(s.paidAmount || 0)}`,
+                      color:
+                        "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300",
+                      detail: `Còn nợ: ${formatCurrency(s.total - (s.paidAmount || 0))}`,
+                    },
+                    debt: {
+                      label: "Công nợ",
+                      color: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300",
+                      detail: s.dueDate
+                        ? `Hạn: ${new Date(s.dueDate).toLocaleDateString("vi-VN")}`
+                        : undefined,
+                    },
+                    installment: {
+                      label: "Trả góp",
+                      color:
+                        "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
+                      detail: actualInstallmentPlan
+                        ? `${actualInstallmentPlan.payments?.filter((p) => p.status === "paid").length || 0}/${actualInstallmentPlan.numberOfInstallments} kỳ - Lãi ${actualInstallmentPlan.interestRate}%`
+                        : undefined,
+                    },
+                  }[paymentStatus];
+
+                  return (
+                    <tr key={s.id} className="border-t dark:border-slate-700">
+                      <td className="p-3 text-sm font-mono font-semibold text-blue-600 dark:text-blue-400">
+                        {s.code || s.id.slice(0, 8)}
+                      </td>
+                      <td className="p-3 text-sm text-slate-600 dark:text-slate-400">
+                        {new Date(s.date).toLocaleString("vi-VN")}
+                      </td>
+                      <td className="p-3 text-sm font-medium">{s.customer?.name || "Khách lẻ"}</td>
+                      <td className="p-3 text-sm max-w-md">
+                        <div className="space-y-0.5">
+                          {(s.items || []).slice(0, 3).map((it: PinCartItem, idx: number) => (
+                            <div key={idx} className="flex items-center gap-1">
+                              <span className="text-slate-800 dark:text-slate-200">{it.name}</span>
+                              <span className="text-slate-500 text-xs">x{it.quantity}</span>
+                            </div>
+                          ))}
+                          {(s.items || []).length > 3 && (
+                            <div className="text-xs text-slate-500">
+                              +{(s.items || []).length - 3} sản phẩm khác
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        <button
+                          onClick={() => {
+                            if (
+                              paymentStatus === "installment" ||
+                              paymentStatus === "partial" ||
+                              paymentStatus === "debt"
+                            ) {
+                              console.log("📊 Payment Detail Debug (Desktop):", {
+                                saleId: s.id,
+                                code: s.code,
+                                paymentStatus,
+                                storedPaymentStatus: s.paymentStatus,
+                                isInstallment: s.isInstallment,
+                                paidAmount: s.paidAmount,
+                                total: s.total,
+                                hasInstallmentPlan: !!s.installmentPlan,
+                                hasLinkedPlan: !!linkedPlan,
+                                hasActualPlan: !!actualInstallmentPlan,
+                                installmentPlansCount: installmentPlans.length,
+                                actualPlan: actualInstallmentPlan,
+                              });
+
+                              // Nếu là trả góp nhưng không có plan, tạo một plan giả từ thông tin có sẵn
+                              let finalInstallmentPlan = actualInstallmentPlan;
+                              if (paymentStatus === "installment" && !actualInstallmentPlan) {
+                                console.warn(
+                                  "⚠️ Installment detected but no plan found (Desktop). Creating fallback plan."
+                                );
+                                const downPayment = s.paidAmount || 0;
+                                const baseRemainingAmount = s.total - downPayment;
+                                const numberOfInstallments = 9;
+                                const interestRate = 2.39;
+                                const totalWithInterest =
+                                  baseRemainingAmount *
+                                  (1 + (interestRate * numberOfInstallments) / 100);
+                                const monthlyPayment = Math.ceil(
+                                  totalWithInterest / numberOfInstallments
+                                );
+
+                                // Tính số kỳ đã trả và số tiền còn lại (bao gồm lãi)
+                                const paidTerms = downPayment > 0 ? 1 : 0;
+                                const totalPaid = paidTerms * monthlyPayment;
+                                const remainingAmountWithInterest = totalWithInterest - totalPaid;
+
+                                finalInstallmentPlan = {
+                                  id: `FALLBACK-${s.id}`,
+                                  saleId: s.id,
+                                  customerId: s.customer?.id || "",
+                                  customerName: s.customer?.name || "",
+                                  customerPhone: s.customer?.phone || "",
+                                  totalAmount: s.total,
+                                  downPayment,
+                                  remainingAmount: remainingAmountWithInterest,
+                                  numberOfInstallments,
+                                  monthlyPayment,
+                                  interestRate,
+                                  startDate: s.date,
+                                  endDate: "",
+                                  status: "active",
+                                  payments: Array.from(
+                                    { length: numberOfInstallments },
+                                    (_, i) => ({
+                                      id: `PAY-${i + 1}`,
+                                      installmentPlanId: `FALLBACK-${s.id}`,
+                                      periodNumber: i + 1,
+                                      dueDate: "",
+                                      amount: monthlyPayment,
+                                      status: (i < paidTerms ? "paid" : "pending") as
+                                        | "paid"
+                                        | "pending"
+                                        | "partial"
+                                        | "overdue",
+                                      paidAmount: i < paidTerms ? monthlyPayment : 0,
+                                      paidDate: i < paidTerms ? s.date : undefined,
+                                    })
+                                  ),
+                                };
+                              }
+
+                              setPaymentDetailSale({
+                                ...s,
+                                isInstallment: paymentStatus === "installment",
+                                installmentPlan: finalInstallmentPlan,
+                              });
+                              setShowPaymentDetail(true);
+                            }
+                          }}
+                          className={`inline-flex flex-col items-start text-xs px-3 py-1 rounded-lg font-medium whitespace-nowrap ${statusConfig.color} ${
+                            paymentStatus === "installment" ||
+                            paymentStatus === "partial" ||
+                            paymentStatus === "debt"
+                              ? "cursor-pointer hover:opacity-80"
+                              : ""
+                          }`}
+                          title={
+                            paymentStatus === "installment" ||
+                            paymentStatus === "partial" ||
+                            paymentStatus === "debt"
+                              ? "Click để xem chi tiết"
+                              : ""
                           }
-                          if (window.confirm("Xoá hoá đơn này? Tồn kho sẽ được hoàn lại.")) {
-                            await deletePinSale(s.id);
-                          }
-                        }}
-                        disabled={!currentUser}
-                        title={!currentUser ? "Bạn phải đăng nhập để xoá" : "Xoá hoá đơn"}
-                        className={`${
-                          currentUser ? "text-red-500" : "text-red-300 cursor-not-allowed"
-                        }`}
-                      >
-                        <TrashIcon className="w-5 h-5" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                        >
+                          <span>{statusConfig.label}</span>
+                          {statusConfig.detail && (
+                            <span className="text-[10px] opacity-75 mt-0.5">
+                              {statusConfig.detail}
+                            </span>
+                          )}
+                        </button>
+                      </td>
+                      <td className="p-3 text-right font-semibold text-slate-800 dark:text-slate-100">
+                        {formatCurrency(s.total)}
+                      </td>
+                      <td className="p-3 text-right">
+                        <button
+                          onClick={() => {
+                            setInvoiceSaleData(s);
+                            setShowInvoicePreview(true);
+                          }}
+                          title="Xem/In hóa đơn"
+                          className="mr-2 text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
+                        >
+                          <PrinterIcon className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() => openEdit(s)}
+                          disabled={!currentUser}
+                          title={!currentUser ? "Bạn phải đăng nhập để sửa" : "Sửa hoá đơn"}
+                          className={`mr-2 ${
+                            currentUser ? "text-sky-600" : "text-slate-400 cursor-not-allowed"
+                          }`}
+                        >
+                          <PencilSquareIcon className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (!currentUser) {
+                              alert("Vui lòng đăng nhập");
+                              return;
+                            }
+                            if (window.confirm("Xoá hoá đơn này? Tồn kho sẽ được hoàn lại.")) {
+                              await deletePinSale(s.id);
+                            }
+                          }}
+                          disabled={!currentUser}
+                          title={!currentUser ? "Bạn phải đăng nhập để xoá" : "Xoá hoá đơn"}
+                          className={`${
+                            currentUser ? "text-red-500" : "text-red-300 cursor-not-allowed"
+                          }`}
+                        >
+                          <TrashIcon className="w-5 h-5" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -1695,6 +2059,221 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
             onClose={() => setShowInvoicePreview(false)}
           />
         </InvoicePreviewModal>
+      )}
+
+      {/* Payment Detail Modal */}
+      {showPaymentDetail && paymentDetailSale && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 flex justify-between items-center">
+              <h3 className="text-xl font-bold text-white">Chi tiết thanh toán</h3>
+              <button
+                onClick={() => {
+                  setShowPaymentDetail(false);
+                  setPaymentDetailSale(null);
+                }}
+                className="text-white hover:bg-white/20 rounded-full p-1"
+              >
+                <XMarkIcon className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-xl">
+                <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Số phiếu</div>
+                <div className="font-mono font-bold text-lg text-blue-600 dark:text-blue-400">
+                  {paymentDetailSale.code || paymentDetailSale.id.slice(0, 8)}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Ngày bán</div>
+                  <div className="text-sm font-medium">
+                    {new Date(paymentDetailSale.date).toLocaleDateString("vi-VN")}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Khách hàng</div>
+                  <div className="text-sm font-medium">
+                    {paymentDetailSale.customer?.name || "Khách lẻ"}
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t dark:border-slate-600 pt-4">
+                <div className="text-sm font-semibold mb-3">Thông tin thanh toán</div>
+
+                {(paymentDetailSale.isInstallment || paymentDetailSale.installmentPlan) &&
+                paymentDetailSale.installmentPlan ? (
+                  // Trả góp
+                  <div className="space-y-3 bg-purple-50 dark:bg-purple-900/20 p-4 rounded-xl">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-slate-600 dark:text-slate-400">
+                        Tổng đơn hàng
+                      </span>
+                      <span className="font-bold">{formatCurrency(paymentDetailSale.total)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-slate-600 dark:text-slate-400">Trả trước</span>
+                      <span className="font-semibold text-green-600 dark:text-green-400">
+                        {formatCurrency(paymentDetailSale.installmentPlan.downPayment)}
+                      </span>
+                    </div>
+                    <div className="border-t dark:border-purple-700/30 pt-2 flex justify-between items-center">
+                      <span className="text-sm text-slate-600 dark:text-slate-400">
+                        Còn phải trả (góp)
+                      </span>
+                      <span className="font-bold text-purple-600 dark:text-purple-400">
+                        {formatCurrency(
+                          paymentDetailSale.total - paymentDetailSale.installmentPlan.downPayment
+                        )}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t dark:border-purple-700/30">
+                      <div className="text-center">
+                        <div className="text-xs text-slate-500 dark:text-slate-400">Số kỳ</div>
+                        <div className="text-lg font-bold text-purple-600 dark:text-purple-400">
+                          {paymentDetailSale.installmentPlan.numberOfInstallments}
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-xs text-slate-500 dark:text-slate-400">Lãi suất</div>
+                        <div className="text-lg font-bold text-orange-600 dark:text-orange-400">
+                          {paymentDetailSale.installmentPlan.interestRate}%
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-xs text-slate-500 dark:text-slate-400">Mỗi kỳ</div>
+                        <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                          {formatCurrency(paymentDetailSale.installmentPlan.monthlyPayment)}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-3 pt-3 border-t dark:border-purple-700/30">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm font-medium">Tiến độ thanh toán</span>
+                        <span className="text-sm font-bold text-purple-600 dark:text-purple-400">
+                          {paymentDetailSale.installmentPlan.payments?.filter(
+                            (p) => p.status === "paid"
+                          ).length || 0}
+                          /{paymentDetailSale.installmentPlan.numberOfInstallments} kỳ
+                        </span>
+                      </div>
+                      <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+                        <div
+                          className="bg-gradient-to-r from-purple-500 to-purple-600 h-2 rounded-full transition-all"
+                          style={{
+                            width: `${((paymentDetailSale.installmentPlan.payments?.filter((p) => p.status === "paid").length || 0) / paymentDetailSale.installmentPlan.numberOfInstallments) * 100}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center mt-3 pt-3 border-t dark:border-purple-700/30">
+                      <span className="text-sm text-slate-600 dark:text-slate-400">Còn lại</span>
+                      <span className="font-bold text-lg text-rose-600 dark:text-rose-400">
+                        {formatCurrency(paymentDetailSale.installmentPlan.remainingAmount || 0)}
+                      </span>
+                    </div>
+                  </div>
+                ) : paymentDetailSale.paidAmount !== undefined &&
+                  paymentDetailSale.paidAmount > 0 &&
+                  paymentDetailSale.paidAmount < paymentDetailSale.total ? (
+                  // Trả 1 phần
+                  <div className="space-y-3 bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-xl">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-slate-600 dark:text-slate-400">
+                        Tổng đơn hàng
+                      </span>
+                      <span className="font-bold">{formatCurrency(paymentDetailSale.total)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-slate-600 dark:text-slate-400">
+                        Đã thanh toán
+                      </span>
+                      <span className="font-semibold text-green-600 dark:text-green-400">
+                        {formatCurrency(paymentDetailSale.paidAmount)}
+                      </span>
+                    </div>
+                    <div className="mt-2">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-xs text-slate-500 dark:text-slate-400">Tiến độ</span>
+                        <span className="text-xs font-medium">
+                          {Math.round(
+                            (paymentDetailSale.paidAmount / paymentDetailSale.total) * 100
+                          )}
+                          %
+                        </span>
+                      </div>
+                      <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+                        <div
+                          className="bg-gradient-to-r from-yellow-500 to-yellow-600 h-2 rounded-full transition-all"
+                          style={{
+                            width: `${(paymentDetailSale.paidAmount / paymentDetailSale.total) * 100}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center mt-3 pt-3 border-t dark:border-yellow-700/30">
+                      <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                        Còn nợ
+                      </span>
+                      <span className="font-bold text-lg text-rose-600 dark:text-rose-400">
+                        {formatCurrency(paymentDetailSale.total - paymentDetailSale.paidAmount)}
+                      </span>
+                    </div>
+                    {paymentDetailSale.dueDate && (
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-slate-500 dark:text-slate-400">Hạn thanh toán</span>
+                        <span className="font-medium text-orange-600 dark:text-orange-400">
+                          {new Date(paymentDetailSale.dueDate).toLocaleDateString("vi-VN")}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  // Công nợ (chưa trả gì)
+                  <div className="space-y-3 bg-rose-50 dark:bg-rose-900/20 p-4 rounded-xl">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-slate-600 dark:text-slate-400">
+                        Tổng đơn hàng
+                      </span>
+                      <span className="font-bold">{formatCurrency(paymentDetailSale.total)}</span>
+                    </div>
+                    <div className="flex justify-between items-center pt-2 border-t dark:border-rose-700/30">
+                      <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                        Công nợ
+                      </span>
+                      <span className="font-bold text-lg text-rose-600 dark:text-rose-400">
+                        {formatCurrency(paymentDetailSale.total)}
+                      </span>
+                    </div>
+                    {paymentDetailSale.dueDate && (
+                      <div className="flex justify-between items-center text-sm pt-2 border-t dark:border-rose-700/30">
+                        <span className="text-slate-500 dark:text-slate-400">Hạn thanh toán</span>
+                        <span className="font-medium text-orange-600 dark:text-orange-400">
+                          {new Date(paymentDetailSale.dueDate).toLocaleDateString("vi-VN")}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-slate-50 dark:bg-slate-900/50 px-6 py-4">
+              <button
+                onClick={() => {
+                  setShowPaymentDetail(false);
+                  setPaymentDetailSale(null);
+                }}
+                className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Installment Modal */}

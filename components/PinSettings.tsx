@@ -7,9 +7,11 @@ import {
   TrashIcon,
   BuildingLibraryIcon,
   ArrowDownTrayIcon,
+  TagIcon,
 } from "./common/Icons";
 import type { PinCustomer, Supplier } from "../types";
 import BackupManager from "./BackupManager";
+import { CategoryManager } from "./CategoryManager";
 
 const PinSettings: React.FC = () => {
   const {
@@ -21,7 +23,9 @@ const PinSettings: React.FC = () => {
     upsertPinCustomer,
   } = usePinContext();
 
-  const [activeTab, setActiveTab] = useState<"customers" | "suppliers" | "backup">("customers");
+  const [activeTab, setActiveTab] = useState<"customers" | "suppliers" | "categories" | "backup">(
+    "customers"
+  );
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [showSupplierModal, setShowSupplierModal] = useState(false);
   const [showBackupModal, setShowBackupModal] = useState(false);
@@ -209,6 +213,17 @@ const PinSettings: React.FC = () => {
           >
             <BuildingLibraryIcon className="w-4 h-4 md:w-5 md:h-5" />
             <span className="text-xs md:text-base">NCC</span>
+          </button>
+          <button
+            onClick={() => setActiveTab("categories")}
+            className={`flex-1 md:flex-initial flex items-center justify-center space-x-1 md:space-x-2 px-3 md:px-6 py-3 md:py-4 font-medium transition-colors whitespace-nowrap ${
+              activeTab === "categories"
+                ? "border-b-2 border-blue-600 text-blue-600 dark:text-blue-400"
+                : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+            }`}
+          >
+            <TagIcon className="w-4 h-4 md:w-5 md:h-5" />
+            <span className="text-xs md:text-base">Danh mục</span>
           </button>
           <button
             onClick={() => setActiveTab("backup")}
@@ -465,6 +480,10 @@ const PinSettings: React.FC = () => {
                   <div className="text-center py-8 text-slate-500">Chưa có nhà cung cấp nào</div>
                 )}
               </div>
+            </div>
+          ) : activeTab === "categories" ? (
+            <div className="space-y-4">
+              <CategoryManager />
             </div>
           ) : (
             <div className="space-y-4 md:space-y-6">

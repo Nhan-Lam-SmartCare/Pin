@@ -5,6 +5,18 @@ export type AllowedApp = "motocare" | "pincorp" | "both";
 export type UserRole = "admin" | "manager" | "employee";
 
 /**
+ * Category for products and materials
+ */
+export interface Category {
+  id: string;
+  name: string;
+  description?: string;
+  type: "material" | "product"; // material = vật liệu, product = thành phẩm
+  created_at?: string;
+  updated_at?: string;
+}
+
+/**
  * Toast notification item
  */
 export interface ToastItem {
@@ -472,6 +484,7 @@ export interface PinMaterial {
   unit: string;
   // Danh mục: phân biệt vật tư, thành phẩm, sản phẩm
   category?: "material" | "finished_product" | "product";
+  category_id?: string; // Liên kết với bảng pin_categories
   purchasePrice: number;
   // Optional selling prices for materials
   retailPrice?: number; // Giá bán lẻ
@@ -595,6 +608,7 @@ export interface PinProduct {
   retailPrice: number; // Giá bán lẻ
   wholesalePrice: number; // Giá bán sỉ
   sellingPrice?: number; // @deprecated - Dùng retailPrice thay thế
+  category_id?: string; // Danh mục sản phẩm
   created_at?: string;
 }
 

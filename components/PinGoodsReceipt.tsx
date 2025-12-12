@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import type { PinMaterial, Supplier, CashTransaction, User, PinMaterialHistory } from "../types";
+import type { PinMaterial, Supplier, CashTransaction, User, PinMaterialHistory, Category } from "../types";
 import {
   PlusIcon,
   TrashIcon,
@@ -13,6 +13,7 @@ import { usePinContext } from "../contexts/PinContext";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 import { UnitsService } from "../lib/services/UnitsService";
+import { CategoryService } from "../lib/services/CategoryService";
 import { useIsMobile } from "../lib/hooks/useMediaQuery";
 
 const formatCurrency = (amount: number) => {
@@ -233,9 +234,13 @@ const ProductModal: React.FC<{
     retailPrice: 0,
     wholesalePrice: 0,
     category: "" as "" | "material" | "product" | "finished_goods",
+    category_id: "" as string,
   });
   const [customUnit, setCustomUnit] = useState("");
   const [savedCustomUnits, setSavedCustomUnits] = useState<string[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [showQuickCategoryModal, setShowQuickCategoryModal] = useState(false);
+  const [quickCategoryName, setQuickCategoryName] = useState("");
 
   // Load units from database
   useEffect(() => {
@@ -248,6 +253,19 @@ const ProductModal: React.FC<{
       }
     };
     loadUnits();
+  }, []);
+
+  // Load categories from database
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const allCategories = await CategoryService.getAllCategories();
+        setCategories(allCategories);
+      } catch (error) {
+        console.error("Error loading categories:", error);
+      }
+    };
+    loadCategories();
   }, []);
 
   // Auto-calculate prices when purchase price changes
@@ -304,6 +322,7 @@ const ProductModal: React.FC<{
       wholesalePrice: formData.wholesalePrice || Math.round(formData.purchasePrice * 1.2),
       stock: 0,
       category: formData.category || undefined,
+      category_id: formData.category_id || undefined,
     };
 
     onSave(newProduct);
@@ -315,6 +334,7 @@ const ProductModal: React.FC<{
       retailPrice: 0,
       wholesalePrice: 0,
       category: "",
+      category_id: "",
     });
     setCustomUnit("");
     onClose();
@@ -417,17 +437,29 @@ const ProductModal: React.FC<{
             <label className="block text-xs md:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5 md:mb-2">
               Danh mục
             </label>
-            <select
-              name="category"
-              value={formData.category}
-              onChange={handleChange}
-              className="w-full px-3 md:px-4 py-2 md:py-2.5 border-2 border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm md:text-base"
-            >
-              <option value="">-- Chọn danh mục --</option>
-              <option value="material">📦 Vật tư</option>
-              <option value="product">🏷️ Sản phẩm</option>
-              <option value="finished_goods">✅ Thành phẩm</option>
-            </select>
+            <div className="flex gap-2">
+              <select
+                name="category_id"
+                value={formData.category_id}
+                onChange={handleChange}
+                className="flex-1 px-3 md:px-4 py-2 md:py-2.5 border-2 border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm md:text-base"
+              >
+                <option value="">-- Chọn danh mục --</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.type === 'material' ? '📦' : '🏷️'} {cat.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => setShowQuickCategoryModal(true)}
+                className="px-3 py-2 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 rounded-lg border-2 border-blue-300 dark:border-blue-700 transition-colors"
+                title="Thêm danh mục mới"
+              >
+                <PlusIcon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              </button>
+            </div>
           </div>
 
           <div>
@@ -490,6 +522,88 @@ const ProductModal: React.FC<{
           </button>
         </div>
       </div>
+
+      {/* Quick Add Category Modal */}
+      {showQuickCategoryModal && (
+        <div 
+          className="fixed inset-0 bg-black/70 z-[9999] flex items-center justify-center p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowQuickCategoryModal(false);
+              setQuickCategoryName("");
+            }
+          }}
+        >
+          <div 
+            className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-md"
+            onClick={(e) => e.stopPropagation()}
+          >
+              <div className="p-4 border-b border-slate-200 dark:border-slate-700">
+                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">
+                  ➕ Tạo danh mục mới
+                </h3>
+              </div>
+            <div className="p-4 space-y-3">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                  Tên danh mục <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={quickCategoryName}
+                  onChange={(e) => setQuickCategoryName(e.target.value)}
+                  placeholder="VD: Pin điện thoại, Màn hình..."
+                  className="w-full px-4 py-2.5 border-2 border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                  autoFocus
+                />
+              </div>
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                <p className="text-xs text-blue-700 dark:text-blue-300">
+                  💡 Danh mục sẽ được tạo cho <strong>Nguyên vật liệu</strong>. Bạn có thể quản lý tất cả danh mục tại <strong>Cài đặt → Danh mục</strong>.
+                </p>
+              </div>
+            </div>
+            <div className="p-4 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 flex gap-3">
+              <button
+                onClick={() => {
+                  setShowQuickCategoryModal(false);
+                  setQuickCategoryName("");
+                }}
+                className="flex-1 px-4 py-2.5 border-2 border-slate-300 dark:border-slate-600 rounded-lg font-semibold hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={async () => {
+                  if (!quickCategoryName.trim()) {
+                    alert("Vui lòng nhập tên danh mục");
+                    return;
+                  }
+                  try {
+                    const newCategory = await CategoryService.createCategory({
+                      name: quickCategoryName.trim(),
+                      type: 'material',
+                      description: '',
+                    });
+                    setCategories((prev) => [...prev, newCategory]);
+                    setFormData((prev) => ({ ...prev, category_id: newCategory.id }));
+                    setShowQuickCategoryModal(false);
+                    setQuickCategoryName("");
+                    alert(`✅ Đã tạo danh mục "${newCategory.name}" thành công!`);
+                  } catch (error) {
+                    console.error("Error creating category:", error);
+                    alert("Lỗi khi tạo danh mục: " + (error as any).message);
+                  }
+                }}
+                disabled={!quickCategoryName.trim()}
+                className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold shadow-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                💾 Tạo ngay
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
