@@ -1,5 +1,12 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import type { PinMaterial, Supplier, CashTransaction, User, PinMaterialHistory, Category } from "../types";
+import type {
+  PinMaterial,
+  Supplier,
+  CashTransaction,
+  User,
+  PinMaterialHistory,
+  Category,
+} from "../types";
 import {
   PlusIcon,
   TrashIcon,
@@ -447,7 +454,7 @@ const ProductModal: React.FC<{
                 <option value="">-- Chọn danh mục --</option>
                 {categories.map((cat) => (
                   <option key={cat.id} value={cat.id}>
-                    {cat.type === 'material' ? '📦' : '🏷️'} {cat.name}
+                    {cat.type === "material" ? "📦" : "🏷️"} {cat.name}
                   </option>
                 ))}
               </select>
@@ -525,7 +532,7 @@ const ProductModal: React.FC<{
 
       {/* Quick Add Category Modal */}
       {showQuickCategoryModal && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/70 z-[9999] flex items-center justify-center p-4"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
@@ -534,15 +541,15 @@ const ProductModal: React.FC<{
             }
           }}
         >
-          <div 
+          <div
             className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-md"
             onClick={(e) => e.stopPropagation()}
           >
-              <div className="p-4 border-b border-slate-200 dark:border-slate-700">
-                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">
-                  ➕ Tạo danh mục mới
-                </h3>
-              </div>
+            <div className="p-4 border-b border-slate-200 dark:border-slate-700">
+              <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">
+                ➕ Tạo danh mục mới
+              </h3>
+            </div>
             <div className="p-4 space-y-3">
               <div>
                 <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
@@ -559,7 +566,8 @@ const ProductModal: React.FC<{
               </div>
               <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
                 <p className="text-xs text-blue-700 dark:text-blue-300">
-                  💡 Danh mục sẽ được tạo cho <strong>Nguyên vật liệu</strong>. Bạn có thể quản lý tất cả danh mục tại <strong>Cài đặt → Danh mục</strong>.
+                  💡 Danh mục sẽ được tạo cho <strong>Nguyên vật liệu</strong>. Bạn có thể quản lý
+                  tất cả danh mục tại <strong>Cài đặt → Danh mục</strong>.
                 </p>
               </div>
             </div>
@@ -582,8 +590,8 @@ const ProductModal: React.FC<{
                   try {
                     const newCategory = await CategoryService.createCategory({
                       name: quickCategoryName.trim(),
-                      type: 'material',
-                      description: '',
+                      type: "material",
+                      description: "",
                     });
                     setCategories((prev) => [...prev, newCategory]);
                     setFormData((prev) => ({ ...prev, category_id: newCategory.id }));
