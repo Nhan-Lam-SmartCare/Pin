@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import type { PinSale, InstallmentPlan } from "../../types";
 import type { BusinessSettings } from "../../types/business";
+import { BusinessSettingsService } from "../../lib/services/BusinessSettingsService";
 
 interface SalesInvoiceTemplateProps {
   sale: PinSale;
@@ -26,11 +27,14 @@ export default function SalesInvoiceTemplate({ sale, onClose }: SalesInvoiceTemp
   );
 
   useEffect(() => {
-    // Load business settings
-    const saved = localStorage.getItem("businessSettings");
-    if (saved) {
-      setBusinessSettings(JSON.parse(saved));
-    }
+    // Load business settings from service
+    const loadSettings = async () => {
+      const saved = await BusinessSettingsService.getSettings();
+      if (saved) {
+        setBusinessSettings(saved);
+      }
+    };
+    loadSettings();
 
     // Load installment plan if sale is installment but plan not in props
     if ((sale.isInstallment || sale.paymentStatus === "installment") && !sale.installmentPlan) {
