@@ -610,11 +610,13 @@ const PinFinancialManager: React.FC = () => {
   const getCategoryLabel = (category: string) => {
     const labels: Record<string, string> = {
       // Thu nhập
+      sale_income: "💰 Thu bán hàng",
       sales: "💰 Bán hàng",
       service: "🔧 Dịch vụ sửa chữa",
       services: "🔧 Dịch vụ",
       service_income: "🔧 Thu sửa chữa",
       revenue: "📈 Doanh thu",
+      income: "💵 Thu nhập",
       other_income: "💵 Thu khác",
       deposit: "💳 Tiền đặt cọc",
       refund_received: "↩️ Hoàn tiền nhận",
@@ -636,6 +638,9 @@ const PinFinancialManager: React.FC = () => {
       supplier_payment: "🏭 Thanh toán NCC",
       repair_cost: "🔩 Chi phí sửa chữa",
       refund: "↩️ Hoàn tiền khách",
+
+      // Khác
+      "": "Khác",
     };
     return labels[category] || category || "Khác";
   };
