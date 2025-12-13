@@ -45,7 +45,7 @@ const PinFinancialManager: React.FC = () => {
     currentUser,
     addToast,
     deletePinCapitalInvestment,
-    deleteCashTransaction,
+    deleteCashTransactions,
     upsertPinFixedAsset,
     deletePinFixedAsset,
     upsertPinCapitalInvestment,
@@ -361,10 +361,10 @@ const PinFinancialManager: React.FC = () => {
     }
 
     try {
-      if (deleteCashTransaction) {
-        await deleteCashTransaction(transactionId);
+      if (deleteCashTransactions) {
+        await deleteCashTransactions({ id: transactionId });
       } else {
-        const { error } = await supabase.from("cash_transactions").delete().eq("id", transactionId);
+        const { error } = await supabase.from("cashtransactions").delete().eq("id", transactionId);
         if (error) throw error;
       }
 

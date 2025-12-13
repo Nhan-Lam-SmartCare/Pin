@@ -264,17 +264,15 @@ export function createFinanceService(ctx: PinContextType): FinanceService {
     deleteCashTransactions: async (filter) => {
       try {
         // Update local state first for responsiveness
-        if (filter?.id || filter?.saleId || filter?.workOrderId) {
-          ctx.setCashTransactions?.((prev: CashTransaction[]) =>
-            prev.filter((t) =>
-              (filter.id && t.id !== filter.id) ||
-              (filter.saleId && t.saleId !== filter.saleId) ||
-              (filter.workOrderId && t.workOrderId !== filter.workOrderId)
-                ? true
-                : !(filter.id || filter.saleId || filter.workOrderId)
-            )
-          );
-        }
+        ctx.setCashTransactions?.((prev: CashTransaction[]) =>
+          prev.filter((t) => {
+            // Keep transaction if it doesn't match any of the filter criteria
+            if (filter.id && t.id === filter.id) return false;
+            if (filter.saleId && t.saleId === filter.saleId) return false;
+            if (filter.workOrderId && t.workOrderId === filter.workOrderId) return false;
+            return true;
+          })
+        );
 
         if (IS_OFFLINE_MODE || !ctx.currentUser) {
           return 0; // local-only
