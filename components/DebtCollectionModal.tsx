@@ -4,9 +4,7 @@ import type { CashTransaction, PinSale, PinRepairOrder } from "../types";
 import { XMarkIcon } from "./common/Icons";
 
 const formatCurrency = (amount: number) =>
-  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
-    amount
-  );
+  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
 
 type Props = {
   open: boolean;
@@ -14,11 +12,7 @@ type Props = {
   preSelectedDebtId?: string; // ID của công nợ đã được chọn từ danh sách
 };
 
-export default function DebtCollectionModal({
-  open,
-  onClose,
-  preSelectedDebtId,
-}: Props) {
+export default function DebtCollectionModal({ open, onClose, preSelectedDebtId }: Props) {
   const ctx = usePinContext();
   const currentUser = ctx.currentUser;
   const currentBranchId = (ctx as any).currentBranchId || "main";
@@ -108,9 +102,7 @@ export default function DebtCollectionModal({
       }
     });
 
-    return debts.sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
+    return debts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [pinSales, pinRepairOrders]);
 
   const selectedDebt = pendingDebts.find((d) => d.id === selectedDebtId);
@@ -157,8 +149,7 @@ export default function DebtCollectionModal({
         } - ${formatCurrency(payAmount)}/${formatCurrency(selectedDebt.total)}`,
       paymentSourceId: paymentMethod,
       branchId: currentBranchId,
-      category:
-        selectedDebt.type === "repair" ? "service_income" : "sale_income",
+      category: selectedDebt.type === "repair" ? "service_income" : "sale_income",
       ...(selectedDebt.type === "repair"
         ? { workOrderId: selectedDebtId }
         : { saleId: selectedDebtId }),
@@ -181,22 +172,17 @@ export default function DebtCollectionModal({
           });
         }
       } else if (selectedDebt.type === "repair" && upsertPinRepairOrder) {
-        const repair = pinRepairOrders.find(
-          (r: PinRepairOrder) => r.id === selectedDebtId
-        );
+        const repair = pinRepairOrders.find((r: PinRepairOrder) => r.id === selectedDebtId);
         if (repair) {
           // Đảm bảo có đầy đủ các field required trước khi update
           if (!repair.deviceName) {
-            alert(
-              "Lỗi: Phiếu sửa chữa thiếu thông tin thiết bị. Vui lòng kiểm tra lại."
-            );
+            alert("Lỗi: Phiếu sửa chữa thiếu thông tin thiết bị. Vui lòng kiểm tra lại.");
             return;
           }
           await upsertPinRepairOrder({
             ...repair,
             // Đảm bảo các field required không bị undefined
-            customerName:
-              repair.customerName || selectedDebt.customerName || "Khách lẻ",
+            customerName: repair.customerName || selectedDebt.customerName || "Khách lẻ",
             customerPhone: repair.customerPhone || "",
             deviceName: repair.deviceName,
             issueDescription: repair.issueDescription || "",
@@ -294,9 +280,7 @@ export default function DebtCollectionModal({
                 </span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-slate-600 dark:text-slate-400 print:text-black">
-                  Loại:
-                </span>
+                <span className="text-slate-600 dark:text-slate-400 print:text-black">Loại:</span>
                 <span className="font-medium text-slate-800 dark:text-slate-200 print:text-black">
                   {receiptData.debtInfo.type === "sale" ? "Đơn hàng" : "Sửa chữa"}
                 </span>
@@ -408,8 +392,7 @@ export default function DebtCollectionModal({
               <option value="">-- Chọn đơn nợ --</option>
               {pendingDebts.map((debt) => (
                 <option key={debt.id} value={debt.id}>
-                  {debt.customerName} •{" "}
-                  {debt.type === "sale" ? "Đơn hàng" : "Sửa chữa"} • Nợ:{" "}
+                  {debt.customerName} • {debt.type === "sale" ? "Đơn hàng" : "Sửa chữa"} • Nợ:{" "}
                   {formatCurrency(debt.remaining)}
                 </option>
               ))}
@@ -425,33 +408,25 @@ export default function DebtCollectionModal({
           {selectedDebt && (
             <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-4 space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-slate-600 dark:text-slate-400">
-                  Khách hàng:
-                </span>
+                <span className="text-slate-600 dark:text-slate-400">Khách hàng:</span>
                 <span className="font-medium text-slate-800 dark:text-slate-200">
                   {selectedDebt.customerName}
                 </span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-slate-600 dark:text-slate-400">
-                  Tổng tiền:
-                </span>
+                <span className="text-slate-600 dark:text-slate-400">Tổng tiền:</span>
                 <span className="font-medium text-slate-800 dark:text-slate-200">
                   {formatCurrency(selectedDebt.total)}
                 </span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-slate-600 dark:text-slate-400">
-                  Đã thanh toán:
-                </span>
+                <span className="text-slate-600 dark:text-slate-400">Đã thanh toán:</span>
                 <span className="font-medium text-green-600 dark:text-green-400">
                   {formatCurrency(selectedDebt.paidAmount)}
                 </span>
               </div>
               <div className="flex justify-between text-sm border-t border-slate-200 dark:border-slate-600 pt-2">
-                <span className="font-medium text-slate-700 dark:text-slate-300">
-                  Còn nợ:
-                </span>
+                <span className="font-medium text-slate-700 dark:text-slate-300">Còn nợ:</span>
                 <span className="font-bold text-red-600 dark:text-red-400">
                   {formatCurrency(selectedDebt.remaining)}
                 </span>
@@ -484,14 +459,12 @@ export default function DebtCollectionModal({
               min={0}
               max={selectedDebt?.remaining || undefined}
             />
-            {amount &&
-              selectedDebt &&
-              Number(amount) < selectedDebt.remaining && (
-                <p className="mt-2 text-sm text-amber-600 dark:text-amber-400">
-                  ⚠️ Thanh toán một phần. Còn lại:{" "}
-                  {formatCurrency(selectedDebt.remaining - Number(amount))}
-                </p>
-              )}
+            {amount && selectedDebt && Number(amount) < selectedDebt.remaining && (
+              <p className="mt-2 text-sm text-amber-600 dark:text-amber-400">
+                ⚠️ Thanh toán một phần. Còn lại:{" "}
+                {formatCurrency(selectedDebt.remaining - Number(amount))}
+              </p>
+            )}
           </div>
 
           {/* Phương thức thanh toán */}
@@ -505,28 +478,20 @@ export default function DebtCollectionModal({
                   type="radio"
                   value="cash"
                   checked={paymentMethod === "cash"}
-                  onChange={(e) =>
-                    setPaymentMethod(e.target.value as "cash" | "bank")
-                  }
+                  onChange={(e) => setPaymentMethod(e.target.value as "cash" | "bank")}
                   className="w-4 h-4 text-sky-600"
                 />
-                <span className="text-slate-700 dark:text-slate-300">
-                  💵 Tiền mặt
-                </span>
+                <span className="text-slate-700 dark:text-slate-300">💵 Tiền mặt</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="radio"
                   value="bank"
                   checked={paymentMethod === "bank"}
-                  onChange={(e) =>
-                    setPaymentMethod(e.target.value as "cash" | "bank")
-                  }
+                  onChange={(e) => setPaymentMethod(e.target.value as "cash" | "bank")}
                   className="w-4 h-4 text-sky-600"
                 />
-                <span className="text-slate-700 dark:text-slate-300">
-                  🏦 Chuyển khoản
-                </span>
+                <span className="text-slate-700 dark:text-slate-300">🏦 Chuyển khoản</span>
               </label>
             </div>
           </div>
@@ -554,8 +519,8 @@ export default function DebtCollectionModal({
             {!selectedDebtId
               ? "Chọn đơn nợ để thu"
               : !amount || Number(amount) <= 0
-              ? "Nhập số tiền cần thu"
-              : `💰 Thu ${formatCurrency(Number(amount))}`}
+                ? "Nhập số tiền cần thu"
+                : `💰 Thu ${formatCurrency(Number(amount))}`}
           </button>
         </div>
 

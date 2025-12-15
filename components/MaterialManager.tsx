@@ -1717,7 +1717,7 @@ const MaterialEditModal: React.FC<{
         description: formData.description.trim(),
         category: formData.category || undefined,
       };
-      
+
       // Also update in Supabase to ensure category is saved
       if (formData.category) {
         (updatedMaterial as any).category = formData.category;
