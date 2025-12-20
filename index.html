@@ -1,61 +1,74 @@
 ﻿<!DOCTYPE html>
 <html lang="vi">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PinCorp App - Quản Lý Sản Xuất</title>
-    <link rel="icon" type="image/png" href="/nhan-lam-logo.png" />
 
-    <!-- Preferred web fonts (Vietnamese support + modern UI) -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PinCorp App - Quản Lý Sản Xuất</title>
+  <link rel="icon" type="image/png" href="/nhan-lam-logo.png" />
+  <link rel="manifest" href="/manifest.json" />
 
-    <!-- Initialize theme from localStorage with system-preference fallback -->
-    <script>
-      (function () {
-        const savedTheme = localStorage.getItem("theme");
-        const prefersDark =
-          window.matchMedia &&
-          window.matchMedia("(prefers-color-scheme: dark)").matches;
-        const initial = savedTheme ?? (prefersDark ? "dark" : "light");
-        if (initial === "dark") {
-          document.documentElement.classList.add("dark");
-        } else {
-          document.documentElement.classList.remove("dark");
-        }
-      })();
-    </script>
+  <!-- Preferred web fonts (Vietnamese support + modern UI) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet" />
 
-    <!-- Hide only injected SVGs, not component SVGs -->
-    <style>
-      body > svg:not([class]),
-      html > svg:not([class]),
-      body::before,
-      body::after,
-      html::before,
-      html::after {
-        display: none !important;
-        visibility: hidden !important;
+  <!-- Initialize theme from localStorage with system-preference fallback -->
+  <script>
+    (function () {
+      const savedTheme = localStorage.getItem("theme");
+      const prefersDark =
+        window.matchMedia &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches;
+      const initial = savedTheme ?? (prefersDark ? "dark" : "light");
+      if (initial === "dark") {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
       }
+    })();
+  </script>
 
-      /* Fix font rendering */
-      html,
-      body,
-      #root {
-        font-family: var(--font-sans);
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-      }
-    </style>
-  </head>
-  <body
-    class="bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-200"
-  >
-    <div id="root"></div>
-    <script type="module" src="/main.tsx"></script>
-  </body>
+  <!-- Hide only injected SVGs, not component SVGs -->
+  <style>
+    body>svg:not([class]),
+    html>svg:not([class]),
+    body::before,
+    body::after,
+    html::before,
+    html::after {
+      display: none !important;
+      visibility: hidden !important;
+    }
+
+    /* Fix font rendering */
+    html,
+    body,
+    #root {
+      font-family: var(--font-sans);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+  </style>
+</head>
+
+<body class="bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-200">
+  <div id="root"></div>
+  <script type="module" src="/main.tsx"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then((registration) => {
+            console.log('ServiceWorker registration successful with scope: ', registration.scope);
+          }, (err) => {
+            console.log('ServiceWorker registration failed: ', err);
+          });
+      });
+    }
+  </script>
+</body>
+
 </html>
