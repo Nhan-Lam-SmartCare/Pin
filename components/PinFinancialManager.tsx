@@ -338,9 +338,8 @@ const PinFinancialManager: React.FC = () => {
 
       addToast({
         id: Date.now().toString(),
-        message: `Đã ${editingTransaction ? "cập nhật" : "ghi nhận"} ${
-          newTransaction.type === "income" ? "thu" : "chi"
-        } ${formatCurrency(Math.abs(newTransaction.amount))}`,
+        message: `Đã ${editingTransaction ? "cập nhật" : "ghi nhận"} ${newTransaction.type === "income" ? "thu" : "chi"
+          } ${formatCurrency(Math.abs(newTransaction.amount))}`,
         type: "success",
       });
 
@@ -756,16 +755,14 @@ const PinFinancialManager: React.FC = () => {
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
-                activeTab === tab.key
-                  ? "bg-blue-600 text-white shadow-lg"
-                  : "text-gray-400 hover:text-white hover:bg-slate-700/50"
-              }`}
+              className={`flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${activeTab === tab.key
+                ? "bg-blue-600 text-white shadow-lg"
+                : "text-gray-400 hover:text-white hover:bg-slate-700/50"
+                }`}
             >
               <span
-                className={`w-1.5 h-1.5 rounded-full ${
-                  activeTab === tab.key ? "bg-green-400" : "bg-gray-500"
-                }`}
+                className={`w-1.5 h-1.5 rounded-full ${activeTab === tab.key ? "bg-green-400" : "bg-gray-500"
+                  }`}
               />
               <span className="whitespace-nowrap">{tab.label}</span>
             </button>
@@ -868,11 +865,10 @@ const PinFinancialManager: React.FC = () => {
                   <button
                     key={opt.key}
                     onClick={() => setTransactionFilter(opt.key as TransactionFilterType)}
-                    className={`px-2 md:px-3 py-1 md:py-1.5 rounded-md text-xs md:text-sm transition-colors ${
-                      transactionFilter === opt.key
-                        ? "bg-blue-600 text-white"
-                        : "text-gray-400 hover:text-white hover:bg-slate-700"
-                    }`}
+                    className={`px-2 md:px-3 py-1 md:py-1.5 rounded-md text-xs md:text-sm transition-colors ${transactionFilter === opt.key
+                      ? "bg-blue-600 text-white"
+                      : "text-gray-400 hover:text-white hover:bg-slate-700"
+                      }`}
                   >
                     {opt.label}
                   </button>
@@ -905,11 +901,10 @@ const PinFinancialManager: React.FC = () => {
                   <button
                     key={opt.key}
                     onClick={() => setTimeFilter(opt.key as TimeFilter)}
-                    className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
-                      timeFilter === opt.key
-                        ? "bg-blue-600 text-white"
-                        : "text-gray-400 hover:text-white hover:bg-slate-700"
-                    }`}
+                    className={`px-3 py-1.5 rounded-md text-sm transition-colors ${timeFilter === opt.key
+                      ? "bg-blue-600 text-white"
+                      : "text-gray-400 hover:text-white hover:bg-slate-700"
+                      }`}
                   >
                     {opt.label}
                   </button>
@@ -918,38 +913,31 @@ const PinFinancialManager: React.FC = () => {
             </div>
           </div>
 
-          {/* Transactions Table */}
-          <div className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden">
-            <div className="overflow-x-auto">
+          {/* Transactions Table - Mobile: Transparent/No padding, Desktop: Card style */}
+          <div className="md:bg-slate-800/50 md:rounded-xl md:border md:border-slate-700 md:overflow-hidden">
+
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="min-w-full">
                 <thead>
                   <tr className="border-b border-slate-700">
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">
                       Ngày
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                      Loại
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">
+                      Mô tả
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                      Nguồn GD
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">
+                      Nguồn/Danh mục
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                      Danh mục
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">
+                      Ví
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                      Đối tượng
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                      Nội dung
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                      Nguồn tiền
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase">
                       Số tiền
                     </th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-400 uppercase tracking-wider">
-                      TT
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-400 uppercase">
+                      Thao tác
                     </th>
                   </tr>
                 </thead>
@@ -957,50 +945,40 @@ const PinFinancialManager: React.FC = () => {
                   {filteredCashTransactions.length > 0 ? (
                     filteredCashTransactions.map((tx) => (
                       <tr key={tx.id} className="hover:bg-slate-700/30 transition-colors">
-                        <td className="px-4 py-3 text-sm text-white whitespace-nowrap">
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">
                           {new Date(tx.date).toLocaleDateString("vi-VN")}
                         </td>
-                        <td className="px-4 py-3">
-                          <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                              isExpenseTransaction(tx)
-                                ? "bg-red-500/20 text-red-400"
-                                : "bg-teal-500/20 text-teal-400"
-                            }`}
-                          >
-                            {isExpenseTransaction(tx) ? "↓ Chi" : "↑ Thu"}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-slate-700 text-slate-300">
-                            {getTransactionSource(tx)}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-300 whitespace-nowrap">
-                          {getCategoryLabel(tx.category || "")}
+                        <td className="px-4 py-3 text-sm text-white">
+                          <div className="font-medium">{tx.description}</div>
+                          {tx.contact && typeof tx.contact === "object" && tx.contact.name && (
+                            <div className="text-xs text-gray-400">👤 {tx.contact.name}</div>
+                          )}
+                          {tx.notes && (
+                            <div className="text-xs text-gray-500 italic truncate max-w-[200px]">
+                              {tx.notes.replace(/#app:pincorp/gi, "")}
+                            </div>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-300">
-                          {typeof tx.contact === "object" && tx.contact?.name
-                            ? tx.contact.name
-                            : "--"}
+                          <div className="flex flex-col">
+                            <span className="text-xs font-medium text-blue-400">
+                              {getTransactionSource(tx)}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {getCategoryLabel(tx.category || "")}
+                            </span>
+                          </div>
                         </td>
-                        <td
-                          className="px-4 py-3 text-sm text-white max-w-[200px] truncate"
-                          title={tx.description || tx.notes || ""}
-                        >
-                          {tx.description || tx.notes || "--"}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-300 whitespace-nowrap">
+                        <td className="px-4 py-3 text-sm text-gray-300">
                           <span
-                            className={`inline-flex items-center gap-1 ${
-                              (tx.paymentSourceId?.toLowerCase() || "cash") === "bank" ||
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${(tx.paymentSourceId?.toLowerCase() || "cash") === "bank" ||
                               tx.paymentSourceId?.toLowerCase() === "ngan_hang"
-                                ? "text-blue-400"
-                                : "text-green-400"
-                            }`}
+                              ? "bg-blue-500/10 text-blue-400"
+                              : "bg-yellow-500/10 text-yellow-500"
+                              }`}
                           >
                             {(tx.paymentSourceId?.toLowerCase() || "cash") === "bank" ||
-                            tx.paymentSourceId?.toLowerCase() === "ngan_hang"
+                              tx.paymentSourceId?.toLowerCase() === "ngan_hang"
                               ? "🏦"
                               : "💵"}{" "}
                             {getPaymentSourceLabel(tx.paymentSourceId || "cash")}
@@ -1008,9 +986,8 @@ const PinFinancialManager: React.FC = () => {
                         </td>
                         <td className="px-4 py-3 text-right">
                           <span
-                            className={`text-sm font-semibold ${
-                              isExpenseTransaction(tx) ? "text-red-400" : "text-teal-400"
-                            }`}
+                            className={`text-sm font-semibold ${isExpenseTransaction(tx) ? "text-red-400" : "text-teal-400"
+                              }`}
                           >
                             {isExpenseTransaction(tx) ? "-" : "+"}
                             {formatCurrency(Math.abs(tx.amount))}
@@ -1054,7 +1031,7 @@ const PinFinancialManager: React.FC = () => {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={9} className="px-6 py-12 text-center">
+                      <td colSpan={6} className="px-6 py-12 text-center">
                         <Wallet className="w-12 h-12 text-gray-500 mx-auto mb-3" />
                         <p className="text-gray-400">Chưa có giao dịch nào</p>
                         <button
@@ -1069,9 +1046,121 @@ const PinFinancialManager: React.FC = () => {
                 </tbody>
               </table>
             </div>
+
+            {/* Mobile List View - Flattened */}
+            <div className="md:hidden space-y-3">
+              {filteredCashTransactions.length > 0 ? (
+                filteredCashTransactions.map((tx) => (
+                  <div
+                    key={tx.id}
+                    onClick={() => {
+                      setNewTransaction({
+                        type: tx.type,
+                        amount: Math.abs(tx.amount),
+                        description: tx.description || "",
+                        category: tx.category || "",
+                        date: tx.date ? new Date(tx.date).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+                        notes: tx.notes || "",
+                        contactName: tx.contact?.name || "",
+                        paymentSource: (tx.paymentSourceId as any) || "cash",
+                      });
+                      setEditingTransaction(tx);
+                      setShowAddTransaction(true);
+                    }}
+                    className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-3 active:bg-slate-700/50 transition-colors"
+                  >
+                    {/* Header: Date + Amount */}
+                    <div className="flex justify-between items-start">
+                      <div className="text-xs text-gray-400">
+                        {new Date(tx.date).toLocaleDateString("vi-VN")}
+                      </div>
+                      <span
+                        className={`text-base font-bold ${isExpenseTransaction(tx) ? "text-red-400" : "text-teal-400"
+                          }`}
+                      >
+                        {isExpenseTransaction(tx) ? "-" : "+"}
+                        {formatCurrency(Math.abs(tx.amount))}
+                      </span>
+                    </div>
+
+                    {/* Content: Description + Contact */}
+                    <div>
+                      <div className="text-sm font-medium text-white">{tx.description}</div>
+                      {tx.contact && typeof tx.contact === "object" && tx.contact.name && (
+                        <div className="text-xs text-gray-400 mt-0.5">👤 {tx.contact.name}</div>
+                      )}
+                    </div>
+
+                    {/* Footer: Category + Source + Actions */}
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-700/50">
+                      <div className="flex flex-col gap-0.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] uppercase tracking-wide text-gray-500">
+                            {getTransactionSource(tx)}
+                          </span>
+                          <span className="text-gray-600">•</span>
+                          <span className="text-[10px] text-gray-400">
+                            {getCategoryLabel(tx.category || "")}
+                          </span>
+                        </div>
+                        <span
+                          className={`inline-flex items-center gap-1 text-xs ${(tx.paymentSourceId?.toLowerCase() || "cash") === "bank" ||
+                            tx.paymentSourceId?.toLowerCase() === "ngan_hang"
+                            ? "text-blue-400"
+                            : "text-yellow-500"
+                            }`}
+                        >
+                          {(tx.paymentSourceId?.toLowerCase() || "cash") === "bank" ||
+                            tx.paymentSourceId?.toLowerCase() === "ngan_hang"
+                            ? "🏦 Ngân hàng"
+                            : "💵 Tiền mặt"}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => {
+                            setNewTransaction({
+                              type: isExpenseTransaction(tx) ? "expense" : "income",
+                              amount: Math.abs(tx.amount),
+                              description: tx.description || "",
+                              category: tx.category || "",
+                              date: tx.date,
+                              notes: tx.notes || "",
+                              contactName:
+                                typeof tx.contact === "object" && tx.contact?.name
+                                  ? tx.contact.name
+                                  : "",
+                              paymentSource: tx.paymentSourceId === "bank" ? "bank" : "cash",
+                            });
+                            setEditingTransaction(tx);
+                            setShowAddTransaction(true);
+                          }}
+                          className="p-2 text-blue-400 bg-blue-500/10 rounded-lg active:scale-95 transition-transform"
+                        >
+                          <PencilSquareIcon className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteTransaction(tx.id)}
+                          className="p-2 text-red-400 bg-red-500/10 rounded-lg active:scale-95 transition-transform"
+                        >
+                          <TrashIcon className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <Wallet className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                  <p>Chưa có giao dịch nào</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
+
 
       {/* ====== LOANS TAB ====== */}
       {activeTab === "loans" && (
@@ -1141,7 +1230,8 @@ const PinFinancialManager: React.FC = () => {
 
           {/* Loans Table */}
           <div className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden">
-            <div className="overflow-x-auto">
+            {/* Desktop Loans Table */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="min-w-full">
                 <thead>
                   <tr className="border-b border-slate-700">
@@ -1213,19 +1303,88 @@ const PinFinancialManager: React.FC = () => {
                   {capitalInvestments.filter(
                     (i) => (i as any).type === "loan" || (i as any).source === "Vay ngân hàng"
                   ).length === 0 && (
-                    <tr>
-                      <td colSpan={5} className="px-6 py-12 text-center">
-                        <CreditCardIcon className="w-12 h-12 text-gray-500 mx-auto mb-3" />
-                        <p className="text-gray-400">Chưa có khoản vay nào</p>
-                      </td>
-                    </tr>
-                  )}
+                      <tr>
+                        <td colSpan={5} className="px-6 py-12 text-center">
+                          <CreditCardIcon className="w-12 h-12 text-gray-500 mx-auto mb-3" />
+                          <p className="text-gray-400">Chưa có khoản vay nào</p>
+                        </td>
+                      </tr>
+                    )}
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile List View - Flattened */}
+            <div className="md:hidden space-y-3 mt-4">
+              {capitalInvestments.filter(
+                (i) => (i as any).type === "loan" || (i as any).source === "Vay ngân hàng"
+              ).length > 0 ? (
+                capitalInvestments
+                  .filter(
+                    (i) => (i as any).type === "loan" || (i as any).source === "Vay ngân hàng"
+                  )
+                  .map((loan) => (
+                    <div
+                      key={loan.id}
+                      className="bg-slate-800 rounded-xl p-4 border border-slate-700 shadow-sm space-y-3"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="text-sm font-medium text-white mb-0.5">
+                            {(loan as any).description || (loan as any).notes || "Khoản vay"}
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            {new Date(loan.date).toLocaleDateString("vi-VN")}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-lg font-bold text-orange-400">
+                            {formatCurrency(loan.amount)}
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            LS: {(loan as any).interestRate ? `${(loan as any).interestRate}%/năm` : "--"}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end gap-2 pt-2 border-t border-slate-700/50">
+                        <button
+                          onClick={() => {
+                            setNewCapital({
+                              source: "Vay ngân hàng",
+                              amount: loan.amount,
+                              description:
+                                (loan as any).description || (loan as any).notes || "",
+                              date: loan.date,
+                              interestRate: (loan as any).interestRate,
+                            });
+                            setEditingInvestment(loan);
+                            setShowAddCapital(true);
+                          }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 text-blue-400 rounded-lg text-xs font-medium"
+                        >
+                          <PencilSquareIcon className="w-3.5 h-3.5" /> Sửa
+                        </button>
+                        <button
+                          onClick={() => handleDeleteInvestment(loan.id)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 text-red-400 rounded-lg text-xs font-medium"
+                        >
+                          <TrashIcon className="w-3.5 h-3.5" /> Xóa
+                        </button>
+                      </div>
+                    </div>
+                  ))
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <CreditCardIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                  <p>Chưa có khoản vay nào</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
       )}
+
       {/* ====== ASSETS TAB (TSCĐ) ====== */}
       {activeTab === "assets" && (
         <div className="space-y-4">
@@ -1265,7 +1424,8 @@ const PinFinancialManager: React.FC = () => {
 
           {/* Assets Table */}
           <div className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden">
-            <div className="overflow-x-auto">
+            {/* Desktop Assets Table */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="min-w-full">
                 <thead>
                   <tr className="border-b border-slate-700">
@@ -1340,13 +1500,12 @@ const PinFinancialManager: React.FC = () => {
                         </td>
                         <td className="px-6 py-4 text-center">
                           <span
-                            className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                              asset.status === "active"
-                                ? "bg-green-500/20 text-green-400"
-                                : asset.status === "under_maintenance"
-                                  ? "bg-yellow-500/20 text-yellow-400"
-                                  : "bg-red-500/20 text-red-400"
-                            }`}
+                            className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${asset.status === "active"
+                              ? "bg-green-500/20 text-green-400"
+                              : asset.status === "under_maintenance"
+                                ? "bg-yellow-500/20 text-yellow-400"
+                                : "bg-red-500/20 text-red-400"
+                              }`}
                           >
                             {asset.status === "active"
                               ? "Hoạt động"
@@ -1406,9 +1565,106 @@ const PinFinancialManager: React.FC = () => {
                 </tbody>
               </table>
             </div>
+
+            {/* Mobile Assets List */}
+            <div className="md:hidden space-y-3 p-3">
+              {fixedAssets.length > 0 ? (
+                fixedAssets.map((asset) => {
+                  const currentDate = new Date();
+                  const bookValue = FinancialAnalyticsService.calculateBookValue(
+                    asset,
+                    currentDate
+                  );
+                  return (
+                    <div
+                      key={asset.id}
+                      className="bg-slate-800 rounded-xl p-4 border border-slate-700 shadow-sm space-y-3"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="text-sm font-medium text-white mb-0.5">{asset.name}</div>
+                          <div className="text-xs text-gray-400 capitalize">
+                            {asset.category.replace("_", " ")}
+                          </div>
+                        </div>
+                        <span
+                          className={`inline-flex px-2 py-0.5 text-[10px] font-medium rounded-full h-fit ${asset.status === "active"
+                            ? "bg-green-500/20 text-green-400"
+                            : asset.status === "under_maintenance"
+                              ? "bg-yellow-500/20 text-yellow-400"
+                              : "bg-red-500/20 text-red-400"
+                            }`}
+                        >
+                          {asset.status === "active"
+                            ? "Hoạt động"
+                            : asset.status === "under_maintenance"
+                              ? "Bảo trì"
+                              : "Thanh lý"}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 py-2 border-t border-b border-slate-700/50">
+                        <div>
+                          <div className="text-[10px] text-gray-500 mb-0.5">NGUYÊN GIÁ</div>
+                          <div className="text-sm font-medium text-white">
+                            {formatCurrency(asset.purchasePrice)}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-[10px] text-gray-500 mb-0.5">GIÁ TRỊ HIỆN TẠI</div>
+                          <div className="text-sm font-bold text-blue-400">
+                            {formatCurrency(bookValue)}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-between items-center text-xs text-gray-400">
+                        <span>Mua: {new Date(asset.purchaseDate).toLocaleDateString("vi-VN")}</span>
+                      </div>
+
+                      <div className="flex justify-end gap-2 pt-1 border-t border-slate-700/50">
+                        <button
+                          onClick={() => {
+                            setNewAsset({
+                              name: asset.name,
+                              category: asset.category as any,
+                              purchasePrice: asset.purchasePrice,
+                              purchaseDate: asset.purchaseDate,
+                              usefulLife: asset.usefulLife || 5,
+                              salvageValue: asset.salvageValue || 0,
+                              depreciationMethod: (asset.depreciationMethod ||
+                                "straight_line") as any,
+                              location: asset.location || "",
+                              description: asset.description || "",
+                            });
+                            setEditingAsset(asset);
+                            setShowAddAsset(true);
+                          }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 text-blue-400 rounded-lg text-xs font-medium"
+                        >
+                          <PencilSquareIcon className="w-3.5 h-3.5" /> Sửa
+                        </button>
+                        <button
+                          onClick={() => handleDeleteAsset(asset.id)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 text-red-400 rounded-lg text-xs font-medium"
+                        >
+                          <TrashIcon className="w-3.5 h-3.5" /> Xóa
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <Building className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                  <p>Chưa có tài sản cố định nào</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
+
 
       {/* ====== CAPITAL TAB (VỐN) ====== */}
       {activeTab === "capital" && (
@@ -1457,7 +1713,8 @@ const PinFinancialManager: React.FC = () => {
 
           {/* Capital Table */}
           <div className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden">
-            <div className="overflow-x-auto">
+            {/* Desktop Capital Table */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="min-w-full">
                 <thead>
                   <tr className="border-b border-slate-700">
@@ -1535,19 +1792,93 @@ const PinFinancialManager: React.FC = () => {
                   {capitalInvestments.filter(
                     (i) => (i as any).type !== "loan" && (i as any).source !== "Vay ngân hàng"
                   ).length === 0 && (
-                    <tr>
-                      <td colSpan={5} className="px-6 py-12 text-center">
-                        <DollarSign className="w-12 h-12 text-gray-500 mx-auto mb-3" />
-                        <p className="text-gray-400">Chưa có khoản vốn nào</p>
-                      </td>
-                    </tr>
-                  )}
+                      <tr>
+                        <td colSpan={5} className="px-6 py-12 text-center">
+                          <DollarSign className="w-12 h-12 text-gray-500 mx-auto mb-3" />
+                          <p className="text-gray-400">Chưa có khoản vốn nào</p>
+                        </td>
+                      </tr>
+                    )}
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile Card View - Flattened */}
+            <div className="md:hidden grid grid-cols-1 gap-3 mt-4">
+              {capitalInvestments.filter(
+                (i) => (i as any).type !== "loan" && (i as any).source !== "Vay ngân hàng"
+              ).length > 0 ? (
+                capitalInvestments
+                  .filter(
+                    (i) => (i as any).type !== "loan" && (i as any).source !== "Vay ngân hàng"
+                  )
+                  .map((investment) => (
+                    <div
+                      key={investment.id}
+                      className="bg-slate-800 rounded-xl p-4 border border-slate-700 shadow-sm space-y-3"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="text-sm font-medium text-white mb-0.5">
+                            {(investment as any).description ||
+                              (investment as any).notes ||
+                              "Vốn đầu tư"}
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            {new Date(investment.date).toLocaleDateString("vi-VN")}
+                          </div>
+                        </div>
+                        <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/20 text-emerald-400 h-fit">
+                          Vốn chủ sở hữu
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between items-end pt-1">
+                        <div className="text-lg font-bold text-emerald-400">
+                          {formatCurrency(investment.amount)}
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end gap-2 pt-2 border-t border-slate-700/50">
+                        <button
+                          onClick={() => {
+                            setNewCapital({
+                              source: "Vốn chủ sở hữu",
+                              amount: investment.amount,
+                              description:
+                                (investment as any).description ||
+                                (investment as any).notes ||
+                                "",
+                              date: investment.date,
+                              interestRate: undefined,
+                            });
+                            setEditingInvestment(investment);
+                            setShowAddCapital(true);
+                          }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 text-blue-400 rounded-lg text-xs font-medium"
+                        >
+                          <PencilSquareIcon className="w-3.5 h-3.5" /> Sửa
+                        </button>
+                        <button
+                          onClick={() => handleDeleteInvestment(investment.id)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 text-red-400 rounded-lg text-xs font-medium"
+                        >
+                          <TrashIcon className="w-3.5 h-3.5" /> Xóa
+                        </button>
+                      </div>
+                    </div>
+                  ))
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <DollarSign className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                  <p>Chưa có khoản vốn nào</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
       )}
+
 
       {/* ====== ADD TRANSACTION MODAL ====== */}
       {showAddTransaction && (
@@ -1568,22 +1899,20 @@ const PinFinancialManager: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setNewTransaction((prev) => ({ ...prev, type: "income" }))}
-                    className={`p-2.5 sm:p-3 rounded-lg border text-center font-medium transition-colors text-sm sm:text-base ${
-                      newTransaction.type === "income"
-                        ? "bg-teal-500/20 border-teal-500 text-teal-400"
-                        : "border-slate-600 text-gray-400 hover:bg-slate-700"
-                    }`}
+                    className={`p-2.5 sm:p-3 rounded-lg border text-center font-medium transition-colors text-sm sm:text-base ${newTransaction.type === "income"
+                      ? "bg-teal-500/20 border-teal-500 text-teal-400"
+                      : "border-slate-600 text-gray-400 hover:bg-slate-700"
+                      }`}
                   >
                     ↑ Thu nhập
                   </button>
                   <button
                     type="button"
                     onClick={() => setNewTransaction((prev) => ({ ...prev, type: "expense" }))}
-                    className={`p-2.5 sm:p-3 rounded-lg border text-center font-medium transition-colors text-sm sm:text-base ${
-                      newTransaction.type === "expense"
-                        ? "bg-red-500/20 border-red-500 text-red-400"
-                        : "border-slate-600 text-gray-400 hover:bg-slate-700"
-                    }`}
+                    className={`p-2.5 sm:p-3 rounded-lg border text-center font-medium transition-colors text-sm sm:text-base ${newTransaction.type === "expense"
+                      ? "bg-red-500/20 border-red-500 text-red-400"
+                      : "border-slate-600 text-gray-400 hover:bg-slate-700"
+                      }`}
                   >
                     ↓ Chi phí
                   </button>
@@ -1674,11 +2003,10 @@ const PinFinancialManager: React.FC = () => {
                     onClick={() =>
                       setNewTransaction((prev) => ({ ...prev, paymentSource: "cash" }))
                     }
-                    className={`p-2.5 sm:p-3 rounded-lg border text-center font-medium transition-colors text-sm sm:text-base ${
-                      newTransaction.paymentSource === "cash"
-                        ? "bg-yellow-500/20 border-yellow-500 text-yellow-400"
-                        : "border-slate-600 text-gray-400 hover:bg-slate-700"
-                    }`}
+                    className={`p-2.5 sm:p-3 rounded-lg border text-center font-medium transition-colors text-sm sm:text-base ${newTransaction.paymentSource === "cash"
+                      ? "bg-yellow-500/20 border-yellow-500 text-yellow-400"
+                      : "border-slate-600 text-gray-400 hover:bg-slate-700"
+                      }`}
                   >
                     💵 Tiền mặt
                   </button>
@@ -1687,11 +2015,10 @@ const PinFinancialManager: React.FC = () => {
                     onClick={() =>
                       setNewTransaction((prev) => ({ ...prev, paymentSource: "bank" }))
                     }
-                    className={`p-2.5 sm:p-3 rounded-lg border text-center font-medium transition-colors text-sm sm:text-base ${
-                      newTransaction.paymentSource === "bank"
-                        ? "bg-blue-500/20 border-blue-500 text-blue-400"
-                        : "border-slate-600 text-gray-400 hover:bg-slate-700"
-                    }`}
+                    className={`p-2.5 sm:p-3 rounded-lg border text-center font-medium transition-colors text-sm sm:text-base ${newTransaction.paymentSource === "bank"
+                      ? "bg-blue-500/20 border-blue-500 text-blue-400"
+                      : "border-slate-600 text-gray-400 hover:bg-slate-700"
+                      }`}
                   >
                     🏦 Ngân hàng
                   </button>

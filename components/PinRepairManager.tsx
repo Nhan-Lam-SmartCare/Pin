@@ -286,14 +286,13 @@ const PinRepairManagerNew: React.FC = () => {
             <div class="info-label">Mô tả sự cố:</div>
             <div>${order.issueDescription}</div>
           </div>
-          ${
-            order.notes
-              ? `<div class="info-row">
+          ${order.notes
+        ? `<div class="info-row">
             <div class="info-label">Ghi chú:</div>
             <div>${order.notes}</div>
           </div>`
-              : ""
-          }
+        : ""
+      }
         </div>
 
         <h3>Vật liệu sử dụng</h3>
@@ -307,10 +306,9 @@ const PinRepairManagerNew: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            ${
-              materialsHtml ||
-              '<tr><td colspan="4" style="text-align: center">Không có vật liệu</td></tr>'
-            }
+            ${materialsHtml ||
+      '<tr><td colspan="4" style="text-align: center">Không có vật liệu</td></tr>'
+      }
           </tbody>
         </table>
 
@@ -321,31 +319,29 @@ const PinRepairManagerNew: React.FC = () => {
           <div class="total-row">
             Tiền công: <strong>${formatCurrency(order.laborCost || 0)}</strong>
           </div>
-          ${
-            order.depositAmount
-              ? `<div class="total-row">
+          ${order.depositAmount
+        ? `<div class="total-row">
             Đã đặt cọc: <strong>${formatCurrency(order.depositAmount)}</strong>
           </div>`
-              : ""
-          }
+        : ""
+      }
           <div class="grand-total">
             Tổng cộng: ${formatCurrency(order.total)}
           </div>
-          ${
-            order.paymentStatus === "unpaid"
-              ? order.depositAmount && order.depositAmount > 0
-                ? `<div style="color: #f97316; margin-top: 10px;">💰 Đã cọc: ${formatCurrency(
-                    order.depositAmount
-                  )} | Còn nợ: ${formatCurrency(order.total - order.depositAmount)}</div>`
-                : '<div style="color: #ef4444; margin-top: 10px;">Chưa thanh toán</div>'
-              : order.paymentStatus === "partial"
-                ? `<div style="color: #f97316; margin-top: 10px;">Đã trả: ${formatCurrency(
-                    (order.depositAmount || 0) + (order.partialPaymentAmount || 0)
-                  )} | Còn nợ: ${formatCurrency(
-                    order.total - (order.depositAmount || 0) - (order.partialPaymentAmount || 0)
-                  )}</div>`
-                : '<div style="color: #10b981; margin-top: 10px;">✓ Đã thanh toán</div>'
-          }
+          ${order.paymentStatus === "unpaid"
+        ? order.depositAmount && order.depositAmount > 0
+          ? `<div style="color: #f97316; margin-top: 10px;">💰 Đã cọc: ${formatCurrency(
+            order.depositAmount
+          )} | Còn nợ: ${formatCurrency(order.total - order.depositAmount)}</div>`
+          : '<div style="color: #ef4444; margin-top: 10px;">Chưa thanh toán</div>'
+        : order.paymentStatus === "partial"
+          ? `<div style="color: #f97316; margin-top: 10px;">Đã trả: ${formatCurrency(
+            (order.depositAmount || 0) + (order.partialPaymentAmount || 0)
+          )} | Còn nợ: ${formatCurrency(
+            order.total - (order.depositAmount || 0) - (order.partialPaymentAmount || 0)
+          )}</div>`
+          : '<div style="color: #10b981; margin-top: 10px;">✓ Đã thanh toán</div>'
+      }
         </div>
 
         <div class="footer">
@@ -547,11 +543,10 @@ const PinRepairManagerNew: React.FC = () => {
       <div className="grid grid-cols-3 md:grid-cols-5 gap-1.5 md:gap-3">
         <button
           onClick={() => setStatusFilter("all")}
-          className={`p-2 md:p-3 rounded-lg md:rounded-xl border-2 transition-all ${
-            statusFilter === "all"
+          className={`p-2 md:p-3 rounded-lg md:rounded-xl border-2 transition-all ${statusFilter === "all"
               ? "border-pin-blue-500 bg-pin-blue-50 dark:bg-pin-blue-900/20"
               : "border-pin-gray-200 dark:border-pin-dark-400 hover:border-pin-blue-300"
-          }`}
+            }`}
         >
           <div className="text-xl md:text-3xl font-bold text-pin-blue-600 dark:text-pin-blue-400">
             {stats.total}
@@ -561,11 +556,10 @@ const PinRepairManagerNew: React.FC = () => {
 
         <button
           onClick={() => setStatusFilter("pending")}
-          className={`p-2 md:p-3 rounded-lg md:rounded-xl border-2 transition-all ${
-            statusFilter === "pending"
+          className={`p-2 md:p-3 rounded-lg md:rounded-xl border-2 transition-all ${statusFilter === "pending"
               ? "border-pin-amber-500 bg-pin-amber-50 dark:bg-pin-amber-900/20"
               : "border-pin-gray-200 dark:border-pin-dark-400 hover:border-pin-amber-300"
-          }`}
+            }`}
         >
           <div className="text-xl md:text-3xl font-bold text-pin-amber-600 dark:text-pin-amber-400">
             {stats.pending}
@@ -575,11 +569,10 @@ const PinRepairManagerNew: React.FC = () => {
 
         <button
           onClick={() => setStatusFilter("inProgress")}
-          className={`p-2 md:p-3 rounded-lg md:rounded-xl border-2 transition-all ${
-            statusFilter === "inProgress"
+          className={`p-2 md:p-3 rounded-lg md:rounded-xl border-2 transition-all ${statusFilter === "inProgress"
               ? "border-pin-cyan-500 bg-pin-cyan-50 dark:bg-pin-cyan-900/20"
               : "border-pin-gray-200 dark:border-pin-dark-400 hover:border-pin-cyan-300"
-          }`}
+            }`}
         >
           <div className="text-xl md:text-3xl font-bold text-pin-cyan-600 dark:text-pin-cyan-400">
             {stats.inProgress}
@@ -591,11 +584,10 @@ const PinRepairManagerNew: React.FC = () => {
 
         <button
           onClick={() => setStatusFilter("completed")}
-          className={`p-2 md:p-3 rounded-lg md:rounded-xl border-2 transition-all col-span-1 ${
-            statusFilter === "completed"
+          className={`p-2 md:p-3 rounded-lg md:rounded-xl border-2 transition-all col-span-1 ${statusFilter === "completed"
               ? "border-pin-green-500 bg-pin-green-50 dark:bg-pin-green-900/20"
               : "border-pin-gray-200 dark:border-pin-dark-400 hover:border-pin-green-300"
-          }`}
+            }`}
         >
           <div className="text-xl md:text-3xl font-bold text-pin-green-600 dark:text-pin-green-400">
             {stats.completed}
@@ -648,11 +640,10 @@ const PinRepairManagerNew: React.FC = () => {
             <button
               key={opt.value}
               onClick={() => setDateFilter(opt.value as DateFilter)}
-              className={`px-3 py-2 text-xs font-medium rounded-lg transition-all ${
-                dateFilter === opt.value
+              className={`px-3 py-2 text-xs font-medium rounded-lg transition-all ${dateFilter === opt.value
                   ? "bg-white dark:bg-pin-dark-100 text-pin-blue-600 shadow-sm"
                   : "text-pin-gray-600 dark:text-pin-dark-600 hover:text-pin-blue-600"
-              }`}
+                }`}
             >
               {opt.label}
             </button>
@@ -713,16 +704,118 @@ const PinRepairManagerNew: React.FC = () => {
       </div>
 
       {/* Orders Table */}
-      <Card padding="none">
-        <div className="p-2 md:p-4 overflow-x-auto">
-          <DataTable
-            columns={columns}
-            data={filteredOrders}
-            keyExtractor={(order) => order.id}
-            emptyMessage="Chưa có phiếu sửa chữa nào"
-          />
-        </div>
-      </Card>
+      {/* Desktop Table View */}
+      <div className="hidden md:block">
+        <Card padding="none">
+          <div className="p-4 overflow-x-auto">
+            <DataTable
+              columns={columns}
+              data={filteredOrders}
+              keyExtractor={(order) => order.id}
+              emptyMessage="Chưa có phiếu sửa chữa nào"
+            />
+          </div>
+        </Card>
+      </div>
+
+      {/* Mobile Card View */}
+      <div className="md:hidden space-y-3">
+        {filteredOrders.length === 0 ? (
+          <div className="text-center py-8 text-pin-gray-500 dark:text-pin-dark-500">
+            Chưa có phiếu sửa chữa nào
+          </div>
+        ) : (
+          filteredOrders.map((order) => (
+            <div
+              key={order.id}
+              className="bg-white dark:bg-pin-dark-100 rounded-xl p-3 shadow-sm border border-pin-gray-200 dark:border-pin-dark-400 space-y-3"
+            >
+              {/* Header: ID + Status */}
+              <div className="flex justify-between items-start">
+                <div>
+                  <div className="font-mono text-sm font-bold text-pin-blue-600 dark:text-pin-blue-400">
+                    {order.id}
+                  </div>
+                  <div className="text-[10px] text-pin-gray-500 dark:text-pin-dark-500">
+                    {new Date(order.creationDate).toLocaleString("vi-VN", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </div>
+                </div>
+                <StatusBadge status={order.status} />
+              </div>
+
+              {/* Body: Info */}
+              <div className="space-y-1.5 py-2 border-t border-b border-pin-gray-100 dark:border-pin-dark-300 border-dashed">
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-pin-gray-500 dark:text-pin-dark-500 w-4">👤</span>
+                  <span className="font-medium text-pin-gray-900 dark:text-pin-dark-900">
+                    {order.customerName}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-pin-gray-500 dark:text-pin-dark-500 w-4">📱</span>
+                  <span className="text-pin-gray-600 dark:text-pin-dark-600">
+                    {order.customerPhone}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-pin-gray-500 dark:text-pin-dark-500 w-4">🔧</span>
+                  <span className="text-pin-blue-600 dark:text-pin-blue-400 font-medium">
+                    {order.deviceName}
+                  </span>
+                </div>
+              </div>
+
+              {/* Footer: Price + Acts */}
+              <div className="flex items-center justify-between pt-1">
+                <div className="flex flex-col">
+                  <span className="text-lg font-bold text-pin-blue-600 dark:text-pin-blue-400">
+                    {formatCurrency(order.total)}
+                  </span>
+                  <div className="scale-90 origin-left">
+                    <PaymentBadge
+                      status={order.paymentStatus as "paid" | "unpaid" | "partial"}
+                      amount={
+                        order.total -
+                        (order.depositAmount || 0) -
+                        (order.partialPaymentAmount || 0)
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => {
+                      setInvoiceRepairOrder(order);
+                      setShowInvoicePreview(true);
+                      // On mobile we might want to auto-open print dialog or just show preview
+                    }}
+                    className="p-2 bg-pin-green-50 text-pin-green-600 rounded-lg"
+                  >
+                    <PrinterIcon className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleOpenModal(order)}
+                    className="p-2 bg-pin-blue-50 text-pin-blue-600 rounded-lg"
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    onClick={() => handleDeleteClick(order.id)}
+                    className="p-2 bg-pin-red-50 text-pin-red-600 rounded-lg"
+                  >
+                    <TrashIcon className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
 
       {/* Repair Modal */}
       <PinRepairModalNew

@@ -59,7 +59,7 @@ interface InstallmentRow {
 
 const fmt = (val: number) => val.toLocaleString("vi-VN", { maximumFractionDigits: 0 });
 
-export default function ReceivablesNew() {
+export default function Receivables() {
   const { pinSales, cashTransactions, suppliers, currentUser, addCashTransaction } =
     usePinContext();
 
@@ -307,7 +307,7 @@ export default function ReceivablesNew() {
   const installmentRows = useMemo(() => {
     const customers = (ctx as any).pinCustomers || [];
     return installmentPlans
-      .filter((plan) => plan.status !== "completed" && plan.status !== "cancelled")
+      .filter((plan) => plan.status !== "completed")
       .map((plan) => {
         const customer = customers.find((c: any) => c.id === plan.customerId);
         const paidTerms = plan.payments?.filter((p) => p.status === "paid").length || 0;
@@ -321,7 +321,7 @@ export default function ReceivablesNew() {
           for (const payment of plan.payments) {
             if (payment.status === "pending" || payment.status === "overdue") {
               const dueDate = new Date(payment.dueDate);
-              if (dueDate < today && payment.status !== "paid") {
+              if (dueDate < today) {
                 overdueAmount += payment.amount - (payment.paidAmount || 0);
               }
               if (!nextDueDate && dueDate >= today) {
@@ -516,9 +516,8 @@ export default function ReceivablesNew() {
             id: row.customerPhone || row.customerName,
             name: row.customerName,
           },
-          notes: `Thu nợ cho ${
-            row.kind === "workorder" ? "phiếu sửa chữa" : "đơn hàng"
-          } #${row.id} #app:pincorp`,
+          notes: `Thu nợ cho ${row.kind === "workorder" ? "phiếu sửa chữa" : "đơn hàng"
+            } #${row.id} #app:pincorp`,
           paymentSourceId: "cash",
           branchId: currentBranchId,
           category: row.kind === "workorder" ? "service_income" : "sale_income",
@@ -714,7 +713,7 @@ export default function ReceivablesNew() {
           )}
           {row.technician && (
             <div className="text-xs text-slate-500 mt-1 italic">
-              <Icon name="user" className="w-3 h-3 inline mr-1" />
+              <Icon name="technician" className="w-3 h-3 inline mr-1" />
               {row.technician}
             </div>
           )}
@@ -890,7 +889,7 @@ export default function ReceivablesNew() {
                   ? "success"
                   : row.status === "completed"
                     ? "primary"
-                    : "secondary"
+                    : "neutral"
             }
           >
             {row.overdueAmount > 0
@@ -1014,8 +1013,8 @@ export default function ReceivablesNew() {
         </div>
       </div>
 
-      {/* Main Card */}
-      <Card padding="sm">
+      {/* Main Card - Mobile: Transparent/No padding, Desktop: Card style */}
+      <div className="md:bg-white md:dark:bg-slate-800 md:rounded-xl md:shadow-sm md:border md:border-slate-200 md:dark:border-slate-700 md:p-4">
         {/* Tab, Search and Actions - Compact single row */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-2">
           {/* Tab buttons */}
@@ -1025,11 +1024,10 @@ export default function ReceivablesNew() {
                 setActiveTab("customers");
                 setSelected({});
               }}
-              className={`flex-shrink-0 flex items-center px-2 py-1 text-xs font-medium rounded transition-colors whitespace-nowrap ${
-                activeTab === "customers"
-                  ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                  : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
-              }`}
+              className={`flex-shrink-0 flex items-center px-2 py-1 text-xs font-medium rounded transition-colors whitespace-nowrap ${activeTab === "customers"
+                ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+                }`}
             >
               <Icon
                 name="customers"
@@ -1044,11 +1042,10 @@ export default function ReceivablesNew() {
                 setActiveTab("suppliers");
                 setSelected({});
               }}
-              className={`flex-shrink-0 flex items-center px-2 py-1 text-xs font-medium rounded transition-colors whitespace-nowrap ${
-                activeTab === "suppliers"
-                  ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                  : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
-              }`}
+              className={`flex-shrink-0 flex items-center px-2 py-1 text-xs font-medium rounded transition-colors whitespace-nowrap ${activeTab === "suppliers"
+                ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+                }`}
             >
               <Icon
                 name="stock"
@@ -1063,11 +1060,10 @@ export default function ReceivablesNew() {
                 setActiveTab("installments");
                 setSelected({});
               }}
-              className={`flex-shrink-0 flex items-center px-2 py-1 text-xs font-medium rounded transition-colors whitespace-nowrap ${
-                activeTab === "installments"
-                  ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
-                  : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
-              }`}
+              className={`flex-shrink-0 flex items-center px-2 py-1 text-xs font-medium rounded transition-colors whitespace-nowrap ${activeTab === "installments"
+                ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
+                : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+                }`}
             >
               <Icon
                 name="calendar"
@@ -1159,22 +1155,218 @@ export default function ReceivablesNew() {
 
         {/* DataTable */}
         <div className="mt-2">
-          <DataTable
-            data={activeList}
-            columns={
-              activeTab === "customers"
-                ? (customerColumns as any)
-                : activeTab === "suppliers"
-                  ? (supplierColumns as any)
-                  : (installmentColumns as any)
-            }
-            keyExtractor={(row: any) => row.id}
-            emptyMessage={
-              activeTab === "installments" ? "Không có khoản trả góp" : "Không có công nợ"
-            }
-          />
+          <div className="hidden md:block">
+            <DataTable
+              data={activeList}
+              columns={
+                activeTab === "customers"
+                  ? (customerColumns as any)
+                  : activeTab === "suppliers"
+                    ? (supplierColumns as any)
+                    : (installmentColumns as any)
+              }
+              keyExtractor={(row: any) => row.id}
+              emptyMessage={
+                activeTab === "installments" ? "Không có khoản trả góp" : "Không có công nợ"
+              }
+            />
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-3">
+            {activeList.length === 0 && (
+              <div className="text-center py-8 text-slate-500">
+                <Icon name={activeTab === "installments" ? "calendar" : "money"} className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p>{activeTab === "installments" ? "Không có khoản trả góp" : "Không có công nợ"}</p>
+              </div>
+            )}
+
+            {activeList.map((row: any) => (
+              <div key={row.id} className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
+                {/* === CUSTOMERS MOBILE ROW === */}
+                {activeTab === "customers" && (
+                  <div
+                    onClick={() => {
+                      setPreSelectedDebtId(row.id);
+                      setShowCollectModal(true);
+                    }}
+                    className="active:bg-slate-50 dark:active:bg-slate-700 transition-colors cursor-pointer"
+                  >
+                    <div className="flex justify-between items-start gap-3">
+                      <div className="flex gap-3 items-start">
+                        {/* Checkbox removed for mobile click-to-collect UX */}
+                        <div>
+                          <div className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                            {row.customerName}
+                            <Icon name="money" size="sm" className="text-blue-500" />
+                          </div>
+                          {row.customerPhone && <div className="text-sm text-slate-500">{row.customerPhone}</div>}
+                          <div className="text-xs text-blue-600 mt-0.5">{row.title}</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-bold text-rose-600 text-lg">{fmt(row.debt)}</div>
+                        <div className="text-xs text-slate-400">
+                          {new Date(row.date).toLocaleDateString("vi-VN")}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-sm bg-slate-50 dark:bg-slate-700/50 p-2 rounded-lg space-y-1 mt-2">
+                      <div className="flex justify-between text-xs text-slate-500">
+                        <span>Tổng cộng:</span>
+                        <span>{fmt(row.amount)}</span>
+                      </div>
+                      <div className="flex justify-between text-xs text-slate-500">
+                        <span>Đã trả:</span>
+                        <span>{fmt(row.paid)}</span>
+                      </div>
+                      {(row.summary || (row.details && row.details.length > 0)) && (
+                        <div className="pt-1 mt-1 border-t border-slate-200 dark:border-slate-600">
+                          {row.summary && <div className="font-medium text-slate-700 dark:text-slate-300">{row.summary}</div>}
+                          {row.details && row.details.length > 0 && (
+                            <div className="text-xs text-slate-600 dark:text-slate-400 mt-0.5 line-clamp-2">
+                              {row.details.join(", ")}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* === SUPPLIERS MOBILE ROW === */}
+                {activeTab === "suppliers" && (
+                  <>
+                    <div className="flex justify-between items-start gap-3">
+                      <div className="flex gap-3 items-start">
+                        <input
+                          type="checkbox"
+                          checked={!!selected[row.id]}
+                          onChange={(e) => toggleOne(row.id, e.target.checked)}
+                          className="mt-1 w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                        />
+                        <div>
+                          <div className="font-bold text-slate-800 dark:text-slate-100">{row.customerName}</div>
+                          <div className="text-xs text-blue-600 mt-0.5">{row.title}</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-bold text-rose-600 text-lg">{fmt(row.debt)}</div>
+                        <div className="text-xs text-slate-400">
+                          {new Date(row.date).toLocaleDateString("vi-VN")}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-sm bg-slate-50 dark:bg-slate-700/50 p-2 rounded-lg space-y-1">
+                      <div className="flex justify-between text-xs text-slate-500">
+                        <span>Tổng tiền:</span>
+                        <span>{fmt(row.amount)}</span>
+                      </div>
+                      <div className="flex justify-between text-xs text-slate-500">
+                        <span>Đã trả:</span>
+                        <span>{fmt(row.paid)}</span>
+                      </div>
+                      {row.details && row.details.length > 0 && (
+                        <div className="pt-1 mt-1 border-t border-slate-200 dark:border-slate-600 text-xs text-slate-600 dark:text-slate-400">
+                          {row.details.map((d: string, i: number) => (
+                            <div key={i}>• {d}</div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {/* === INSTALLMENTS MOBILE ROW === */}
+                {activeTab === "installments" && (
+                  <>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="font-bold text-slate-800 dark:text-slate-100">{row.customerName}</div>
+                        <div className="text-xs text-sky-500 mt-0.5">Đơn: {row.saleId}</div>
+                      </div>
+                      <Badge
+                        variant={
+                          row.overdueAmount > 0
+                            ? "danger"
+                            : row.status === "active"
+                              ? "success"
+                              : row.status === "completed"
+                                ? "primary"
+                                : "neutral"
+                        }
+                      >
+                        {row.overdueAmount > 0
+                          ? "Quá hạn"
+                          : row.status === "active"
+                            ? "Đang trả"
+                            : row.status === "completed"
+                              ? "Hoàn tất"
+                              : row.status}
+                      </Badge>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 py-2 border-t border-b border-slate-100 dark:border-slate-700/50">
+                      <div>
+                        <div className="text-xs text-slate-500">Đã trả</div>
+                        <div className="font-medium text-emerald-600">
+                          {row.paidTerms}/{row.terms} kỳ
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs text-slate-500">Còn lại</div>
+                        <div className="font-bold text-orange-500">{fmt(row.remainingBalance)}</div>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between items-center text-xs text-slate-500">
+                      <div>Mỗi kỳ: <span className="font-medium text-slate-700 dark:text-slate-300">{fmt(row.monthlyAmount)}</span></div>
+                      {row.nextDueDate && (
+                        <div>Hạn: {new Date(row.nextDueDate).toLocaleDateString("vi-VN")}</div>
+                      )}
+                    </div>
+
+                    {row.overdueAmount > 0 && (
+                      <div className="text-xs text-rose-600 font-semibold bg-rose-50 dark:bg-rose-900/20 px-2 py-1 rounded">
+                        ⚠ Quá hạn: {fmt(row.overdueAmount)}
+                      </div>
+                    )}
+
+                    <div className="flex gap-2 pt-1 border-t border-slate-100 dark:border-slate-700/50">
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        className="flex-1 text-xs py-2"
+                        onClick={() => {
+                          setSelectedInstallment(row);
+                          setPaymentAmount(row.monthlyAmount);
+                          setShowInstallmentPayModal(true);
+                        }}
+                      >
+                        <Icon name="money" size="sm" tone="contrast" className="mr-1" /> Thu tiền
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedInstallment(row);
+                          setShowEarlySettleModal(true);
+                        }}
+                        className="px-3 py-2 text-xs"
+                        title="Tất toán sớm"
+                      >
+                        <Icon name="success" size="sm" tone="muted" />
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
-      </Card>
+      </div>
 
       {/* Modals */}
       <DebtCollectionModal
@@ -1291,11 +1483,10 @@ export default function ReceivablesNew() {
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={() => setPaymentMethod("cash")}
-                    className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 transition-all ${
-                      paymentMethod === "cash"
-                        ? "border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300"
-                        : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:border-green-400"
-                    }`}
+                    className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 transition-all ${paymentMethod === "cash"
+                      ? "border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300"
+                      : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:border-green-400"
+                      }`}
                   >
                     <span className="text-2xl">💵</span>
                     <div className="text-left">
@@ -1305,11 +1496,10 @@ export default function ReceivablesNew() {
                   </button>
                   <button
                     onClick={() => setPaymentMethod("bank")}
-                    className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 transition-all ${
-                      paymentMethod === "bank"
-                        ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
-                        : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:border-blue-400"
-                    }`}
+                    className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 transition-all ${paymentMethod === "bank"
+                      ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
+                      : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:border-blue-400"
+                      }`}
                   >
                     <span className="text-2xl">🏦</span>
                     <div className="text-left">
@@ -1506,11 +1696,10 @@ export default function ReceivablesNew() {
                     Còn lại:
                   </span>
                   <span
-                    className={`font-medium ${
-                      installmentReceiptData.remainingBalance > 0
-                        ? "text-red-600 dark:text-red-400"
-                        : "text-green-600 dark:text-green-400"
-                    } print:text-black`}
+                    className={`font-medium ${installmentReceiptData.remainingBalance > 0
+                      ? "text-red-600 dark:text-red-400"
+                      : "text-green-600 dark:text-green-400"
+                      } print:text-black`}
                   >
                     {fmt(installmentReceiptData.remainingBalance)}đ
                   </span>
@@ -1555,22 +1744,4 @@ export default function ReceivablesNew() {
   );
 }
 
-export default Receivables;
-                </Button>
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    setShowEarlySettleModal(false);
-                    setSelectedInstallment(null);
-                  }}
-                >
-                  Hủy
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+
