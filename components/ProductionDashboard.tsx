@@ -33,6 +33,7 @@ interface ProductionOrderCardProps {
   currentUser?: User | null;
   isDragging?: boolean;
   isCompleting?: boolean;
+  productSku?: string;
 }
 
 const ProductionOrderCard: React.FC<ProductionOrderCardProps> = ({
@@ -42,6 +43,7 @@ const ProductionOrderCard: React.FC<ProductionOrderCardProps> = ({
   currentUser,
   isDragging = false,
   isCompleting = false,
+  productSku,
 }) => {
   const getStatusInfo = (status: ProductionOrder["status"]) => {
     switch (status) {
@@ -105,10 +107,18 @@ const ProductionOrderCard: React.FC<ProductionOrderCardProps> = ({
             {statusInfo.icon}
           </div>
           <div>
-            <h3 className="font-semibold text-slate-800 dark:text-slate-100 text-sm">
-              #{order.id}
+            <h3 className="font-bold text-slate-800 dark:text-slate-100 text-sm">
+              {productSku ? (
+                <span className="text-blue-600 dark:text-blue-400 font-mono tracking-tight">
+                  {productSku}
+                </span>
+              ) : (
+                <span className="text-slate-500 font-mono text-xs">#{order.id.slice(0, 8)}</span>
+              )}
             </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400">{order.status}</p>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+              {productSku ? `ID: #${order.id.slice(0, 8)}` : order.status}
+            </p>
           </div>
         </div>
         <div className="text-right">
@@ -185,6 +195,7 @@ interface KanbanColumnProps {
   bgColor: string;
   textColor: string;
   completingOrderId: string | null;
+  boms?: PinBOM[];
 }
 
 const KanbanColumn: React.FC<KanbanColumnProps> = ({
@@ -198,6 +209,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
   bgColor,
   textColor,
   completingOrderId,
+  boms = [],
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
 
@@ -231,10 +243,9 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
       <div
         className={`
           min-h-96 space-y-3 p-2 rounded-b-lg border-2 border-dashed transition-colors
-          ${
-            isDragOver
-              ? "border-blue-400 bg-blue-50 dark:bg-blue-900/20"
-              : "border-slate-200 dark:border-slate-700"
+          ${isDragOver
+            ? "border-blue-400 bg-blue-50 dark:bg-blue-900/20"
+            : "border-slate-200 dark:border-slate-700"
           }
         `}
         onDragOver={handleDragOver}
@@ -246,23 +257,27 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
             <p className="text-sm">Không có đơn hàng</p>
           </div>
         ) : (
-          orders.map((order) => (
-            <div
-              key={order.id}
-              draggable
-              onDragStart={(e) => {
-                e.dataTransfer.setData("orderId", order.id);
-              }}
-            >
-              <ProductionOrderCard
-                order={order}
-                onMove={onMove}
-                onViewDetails={onViewDetails}
-                currentUser={currentUser}
-                isCompleting={completingOrderId === order.id}
-              />
-            </div>
-          ))
+          orders.map((order) => {
+            const bom = boms.find((b) => b.id === order.bomId);
+            return (
+              <div
+                key={order.id}
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.setData("orderId", order.id);
+                }}
+              >
+                <ProductionOrderCard
+                  order={order}
+                  onMove={onMove}
+                  onViewDetails={onViewDetails}
+                  currentUser={currentUser}
+                  isCompleting={completingOrderId === order.id}
+                  productSku={bom?.productSku}
+                />
+              </div>
+            );
+          })
         )}
       </div>
     </div>
@@ -558,11 +573,10 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
                 <button
                   onClick={onManageBOMs}
                   disabled={!currentUser}
-                  className={`w-full mt-3 flex items-center justify-center gap-2 px-4 py-2.5 font-medium rounded-lg shadow-sm transition-all ${
-                    currentUser
-                      ? "bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white shadow-purple-500/30"
-                      : "bg-purple-300 text-white/80 cursor-not-allowed opacity-50"
-                  }`}
+                  className={`w-full mt-3 flex items-center justify-center gap-2 px-4 py-2.5 font-medium rounded-lg shadow-sm transition-all ${currentUser
+                    ? "bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white shadow-purple-500/30"
+                    : "bg-purple-300 text-white/80 cursor-not-allowed opacity-50"
+                    }`}
                 >
                   <PlusIcon className="w-5 h-5" />
                   <span>Tạo BOM</span>
@@ -585,6 +599,7 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
                 bgColor="bg-blue-500"
                 textColor="text-white"
                 completingOrderId={completingOrderId}
+                boms={boms}
               />
 
               <KanbanColumn
@@ -598,6 +613,7 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
                 bgColor="bg-green-500"
                 textColor="text-white"
                 completingOrderId={completingOrderId}
+                boms={boms}
               />
             </div>
           </div>
@@ -655,13 +671,12 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
                     Trạng thái
                   </label>
                   <span
-                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      selectedOrder.status === "Hoàn thành"
-                        ? "bg-green-100 text-green-800"
-                        : selectedOrder.status === "Đang sản xuất"
-                          ? "bg-blue-100 text-blue-800"
-                          : "bg-amber-100 text-amber-800"
-                    }`}
+                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${selectedOrder.status === "Hoàn thành"
+                      ? "bg-green-100 text-green-800"
+                      : selectedOrder.status === "Đang sản xuất"
+                        ? "bg-blue-100 text-blue-800"
+                        : "bg-amber-100 text-amber-800"
+                      }`}
                   >
                     {selectedOrder.status}
                   </span>
