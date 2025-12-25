@@ -136,6 +136,8 @@ const ProductionManager: React.FC<ProductionManagerProps> = ({
     switch (status) {
       case "Hoàn thành":
         return "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300";
+      case "Đã nhập kho":
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300";
       case "Đang sản xuất":
         return "bg-sky-100 text-sky-800 dark:bg-sky-900/50 dark:text-sky-300";
       case "Đang chờ":
@@ -259,50 +261,44 @@ const ProductionManager: React.FC<ProductionManagerProps> = ({
               {paginatedOrders.map((order) => (
                 <tr
                   key={order.id}
-                  className={`border-t dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 ${
-                    order.status === "Đã hủy"
-                      ? "bg-slate-100 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400"
-                      : ""
-                  }`}
+                  className={`border-t dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 ${order.status === "Đã hủy"
+                    ? "bg-slate-100 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400"
+                    : ""
+                    }`}
                 >
                   <td
-                    className={`p-3 font-medium ${
-                      order.status === "Đã hủy"
-                        ? "text-slate-500"
-                        : "text-sky-600 dark:text-sky-400"
-                    }`}
+                    className={`p-3 font-medium ${order.status === "Đã hủy"
+                      ? "text-slate-500"
+                      : "text-sky-600 dark:text-sky-400"
+                      }`}
                   >
                     {order.id}
                   </td>
                   <td
-                    className={`p-3 text-slate-600 dark:text-slate-300 ${
-                      order.status === "Đã hủy" && "line-through"
-                    }`}
+                    className={`p-3 text-slate-600 dark:text-slate-300 ${order.status === "Đã hủy" && "line-through"
+                      }`}
                   >
                     {order.creationDate}
                   </td>
                   <td
-                    className={`p-3 font-medium ${
-                      order.status === "Đã hủy"
-                        ? "text-slate-500 line-through"
-                        : "text-slate-800 dark:text-slate-200"
-                    }`}
+                    className={`p-3 font-medium ${order.status === "Đã hủy"
+                      ? "text-slate-500 line-through"
+                      : "text-slate-800 dark:text-slate-200"
+                      }`}
                   >
                     {order.productName}
                   </td>
                   <td
-                    className={`p-3 text-slate-600 dark:text-slate-300 ${
-                      order.status === "Đã hủy" && "line-through"
-                    }`}
+                    className={`p-3 text-slate-600 dark:text-slate-300 ${order.status === "Đã hủy" && "line-through"
+                      }`}
                   >
                     <OwnerDisplay owner={order.userName ?? null} />
                   </td>
                   <td
-                    className={`p-3 text-center ${
-                      order.status === "Đã hủy"
-                        ? "text-slate-500 line-through"
-                        : "text-slate-800 dark:text-slate-200"
-                    }`}
+                    className={`p-3 text-center ${order.status === "Đã hủy"
+                      ? "text-slate-500 line-through"
+                      : "text-slate-800 dark:text-slate-200"
+                      }`}
                   >
                     {order.quantityProduced}
                   </td>
@@ -317,7 +313,7 @@ const ProductionManager: React.FC<ProductionManagerProps> = ({
                         updateOrder(order.id, e.target.value as ProductionOrder["status"]);
                       }}
                       disabled={
-                        order.status === "Đã hủy" || order.status === "Hoàn thành" || !currentUser
+                        order.status === "Đã hủy" || order.status === "Hoàn thành" || order.status === "Đã nhập kho" || !currentUser
                       }
                       title={!currentUser ? "Bạn phải đăng nhập để thay đổi trạng thái" : undefined}
                       className={`px-2 py-1 text-xs font-semibold rounded-full border-0 focus:ring-0 focus:outline-none appearance-none ${getStatusChipClass(
@@ -327,17 +323,19 @@ const ProductionManager: React.FC<ProductionManagerProps> = ({
                       <option value="Đang chờ">Đang chờ</option>
                       <option value="Đang sản xuất">Đang sản xuất</option>
                       <option value="Hoàn thành">Hoàn thành</option>
+                      <option value="Đã nhập kho" disabled>
+                        Đã nhập kho
+                      </option>
                       <option value="Đã hủy" disabled>
                         Đã hủy
                       </option>
                     </select>
                   </td>
                   <td
-                    className={`p-3 text-right font-semibold ${
-                      order.status === "Đã hủy"
-                        ? "text-slate-500 line-through"
-                        : "text-slate-900 dark:text-slate-100"
-                    }`}
+                    className={`p-3 text-right font-semibold ${order.status === "Đã hủy"
+                      ? "text-slate-500 line-through"
+                      : "text-slate-900 dark:text-slate-100"
+                      }`}
                   >
                     {formatCurrency(order.totalCost)}
                   </td>
@@ -349,15 +347,14 @@ const ProductionManager: React.FC<ProductionManagerProps> = ({
                       >
                         Chi tiết
                       </button>
-                      {order.status !== "Hoàn thành" && order.status !== "Đã hủy" && (
+                      {order.status !== "Hoàn thành" && order.status !== "Đã nhập kho" && order.status !== "Đã hủy" && (
                         <button
                           onClick={() => handleCompleteOrder(order)}
                           disabled={!currentUser || completingOrderId === order.id}
-                          className={`px-2 py-1 text-xs rounded ${
-                            !currentUser || completingOrderId === order.id
-                              ? "bg-green-200 text-green-600 cursor-not-allowed"
-                              : "bg-green-600 text-white hover:bg-green-700"
-                          }`}
+                          className={`px-2 py-1 text-xs rounded ${!currentUser || completingOrderId === order.id
+                            ? "bg-green-200 text-green-600 cursor-not-allowed"
+                            : "bg-green-600 text-white hover:bg-green-700"
+                            }`}
                           title={
                             !currentUser
                               ? "Bạn phải đăng nhập để hoàn thành lệnh"
@@ -372,9 +369,8 @@ const ProductionManager: React.FC<ProductionManagerProps> = ({
                       <button
                         onClick={() => handleCancelOrder(order)}
                         disabled={order.status === "Đã hủy" || !currentUser}
-                        className={`p-1 ${
-                          !currentUser ? "text-red-300 cursor-not-allowed" : "text-red-500"
-                        } disabled:text-red-500/30 disabled:cursor-not-allowed`}
+                        className={`p-1 ${!currentUser ? "text-red-300 cursor-not-allowed" : "text-red-500"
+                          } disabled:text-red-500/30 disabled:cursor-not-allowed`}
                         title={
                           !currentUser
                             ? "Bạn phải đăng nhập để hủy lệnh"
@@ -410,19 +406,17 @@ const ProductionManager: React.FC<ProductionManagerProps> = ({
             paginatedOrders.map((order) => (
               <div
                 key={order.id}
-                className={`bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200/60 dark:border-slate-700 p-3 ${
-                  order.status === "Đã hủy" ? "opacity-60" : ""
-                }`}
+                className={`bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200/60 dark:border-slate-700 p-3 ${order.status === "Đã hủy" ? "opacity-60" : ""
+                  }`}
               >
                 {/* Header */}
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div>
                     <div
-                      className={`font-medium text-sm ${
-                        order.status === "Đã hủy"
-                          ? "text-slate-500 line-through"
-                          : "text-sky-600 dark:text-sky-400"
-                      }`}
+                      className={`font-medium text-sm ${order.status === "Đã hủy"
+                        ? "text-slate-500 line-through"
+                        : "text-sky-600 dark:text-sky-400"
+                        }`}
                     >
                       {order.id}
                     </div>
@@ -439,11 +433,10 @@ const ProductionManager: React.FC<ProductionManagerProps> = ({
 
                 {/* Product Name */}
                 <div
-                  className={`font-medium text-sm mb-2 ${
-                    order.status === "Đã hủy"
-                      ? "text-slate-500 line-through"
-                      : "text-slate-800 dark:text-slate-200"
-                  }`}
+                  className={`font-medium text-sm mb-2 ${order.status === "Đã hủy"
+                    ? "text-slate-500 line-through"
+                    : "text-slate-800 dark:text-slate-200"
+                    }`}
                 >
                   {order.productName}
                 </div>
@@ -477,11 +470,10 @@ const ProductionManager: React.FC<ProductionManagerProps> = ({
                       <button
                         onClick={() => handleCompleteOrder(order)}
                         disabled={!currentUser || completingOrderId === order.id}
-                        className={`px-2 py-1 text-xs rounded ${
-                          !currentUser || completingOrderId === order.id
-                            ? "bg-green-200 text-green-600 cursor-not-allowed"
-                            : "bg-green-600 text-white"
-                        }`}
+                        className={`px-2 py-1 text-xs rounded ${!currentUser || completingOrderId === order.id
+                          ? "bg-green-200 text-green-600 cursor-not-allowed"
+                          : "bg-green-600 text-white"
+                          }`}
                       >
                         {completingOrderId === order.id ? "..." : "Hoàn thành"}
                       </button>
