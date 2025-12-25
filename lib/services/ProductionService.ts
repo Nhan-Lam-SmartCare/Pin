@@ -73,7 +73,11 @@ function isValidUUID(v: string | undefined): boolean {
 export function createProductionService(ctx: PinContextType): ProductionService {
   // Helper: upsert product to DB or state
   const persistProduct = async (product: PinProduct): Promise<boolean> => {
+    console.log(`🔧 [persistProduct] Saving "${product.name}" stock=${product.stock}`);
+    console.log(`   - IS_OFFLINE_MODE=${IS_OFFLINE_MODE}, currentUser=${!!ctx.currentUser}`);
+
     if (IS_OFFLINE_MODE || !ctx.currentUser) {
+      console.log(`   - Using OFFLINE mode (no DB save)`);
       ctx.setPinProducts((prev: PinProduct[]) => {
         const idx = prev.findIndex((p) => p.id === product.id);
         if (idx >= 0) {
@@ -95,6 +99,7 @@ export function createProductionService(ctx: PinContextType): ProductionService 
       retail_price: product.retailPrice ?? product.sellingPrice ?? null,
       wholesale_price: product.wholesalePrice ?? null,
     };
+    console.log(`   - Upserting to DB:`, payload);
     const { error } = await supabase.from("pin_products").upsert(payload);
     if (error) {
       ctx.addToast?.({
@@ -534,9 +539,18 @@ export function createProductionService(ctx: PinContextType): ProductionService 
         const producedQty = Number(order.quantityProduced || 0);
         const totalCost = Number(order.totalCost || 0);
 
-        // Prefer current BOM SKU, fallback by product name for legacy
+        // Prefer current BOM SKU, fallback by product name in productMap or original state
+        // This ensures we find products added in previous iterations of this sync loop
+        const findByName = (name: string): PinProduct | undefined => {
+          // First check productMap (which includes products added in this sync session)
+          for (const [, prod] of productMap) {
+            if (prod.name === name) return prod;
+          }
+          // Fallback to original state
+          return ctx.pinProducts.find((p) => p.name === name);
+        };
         let existingProduct: PinProduct | undefined =
-          productMap.get(bom.productSku) || ctx.pinProducts.find((p) => p.name === bom.productName);
+          productMap.get(bom.productSku) || findByName(bom.productName);
 
         // Ensure SKU format TP-ddmmyyyy-xxx; migrate if needed
         const tpPattern = /^TP-\d{8}-\d{3}$/;
@@ -568,6 +582,12 @@ export function createProductionService(ctx: PinContextType): ProductionService 
         const oldCost = existingProduct?.costPrice || 0;
         const newStock = oldStock + producedQty;
         const newCost = newStock > 0 ? (oldCost * oldStock + totalCost) / newStock : oldCost;
+
+        // Debug logs
+        console.log(`🔧 [SYNC] Processing order ${order.id} for "${bom.productName}"`);
+        console.log(`   - BOM SKU: ${bom.productSku}, Effective SKU: ${effectiveSku}`);
+        console.log(`   - Found existing: ${!!existingProduct} (id=${existingProduct?.id})`);
+        console.log(`   - Old stock: ${oldStock}, Produced: ${producedQty}, New stock: ${newStock}`);
 
         const product: PinProduct = {
           id: existingProduct?.id || bom.id || `PINP-${Date.now()}`,
@@ -685,9 +705,9 @@ export function createProductionService(ctx: PinContextType): ProductionService 
           prev.map((mat) =>
             returnMap.has(mat.id)
               ? {
-                  ...mat,
-                  stock: (mat.stock || 0) + (returnMap.get(mat.id) || 0),
-                }
+                ...mat,
+                stock: (mat.stock || 0) + (returnMap.get(mat.id) || 0),
+              }
               : mat
           )
         );
