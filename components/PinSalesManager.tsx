@@ -217,6 +217,8 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
   const [deliveryPhone, setDeliveryPhone] = useState('');
   const [deliveryNote, setDeliveryNote] = useState('');
   const [shippingFee, setShippingFee] = useState(0);
+  const [shippingCarrier, setShippingCarrier] = useState('');
+  const [trackingNumber, setTrackingNumber] = useState('');
 
   // Customer state
   const [customerSearch, setCustomerSearch] = useState("");
@@ -485,6 +487,8 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
       delivery_note: deliveryMethod === 'delivery' ? deliveryNote : undefined,
       cod_amount: deliveryMethod === 'delivery' ? (total + shippingFee - finalPaidAmount) : undefined,
       shipping_fee: deliveryMethod === 'delivery' ? shippingFee : undefined,
+      shipping_carrier: deliveryMethod === 'delivery' ? shippingCarrier : undefined,
+      tracking_number: deliveryMethod === 'delivery' ? trackingNumber : undefined,
     };
     handleSale(saleData);
 
@@ -532,6 +536,8 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
     setDeliveryPhone('');
     setDeliveryNote('');
     setShippingFee(0);
+    setShippingCarrier('');
+    setTrackingNumber('');
     setMobileView("products");
   };
 
@@ -1449,6 +1455,39 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
                         value={deliveryPhone}
                         onChange={(e) => setDeliveryPhone(e.target.value)}
                         placeholder={selectedCustomer?.phone || "Số điện thoại"}
+                        className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-md text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                        Đơn vị vận chuyển
+                      </label>
+                      <select
+                        value={shippingCarrier}
+                        onChange={(e) => setShippingCarrier(e.target.value)}
+                        className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-md text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                      >
+                        <option value="">-- Chọn đơn vị --</option>
+                        <option value="GHN">Giao Hàng Nhanh (GHN)</option>
+                        <option value="GHTK">Giao Hàng Tiết Kiệm (GHTK)</option>
+                        <option value="VNPost">VNPost</option>
+                        <option value="J&T">J&T Express</option>
+                        <option value="ViettelPost">Viettel Post</option>
+                        <option value="BestExpress">Best Express</option>
+                        <option value="NinjaVan">Ninja Van</option>
+                        <option value="ShopeeExpress">Shopee Express</option>
+                        <option value="Other">Khác</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                        Mã vận đơn
+                      </label>
+                      <input
+                        type="text"
+                        value={trackingNumber}
+                        onChange={(e) => setTrackingNumber(e.target.value)}
+                        placeholder="Nhập mã vận đơn (nếu có)"
                         className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-md text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
                       />
                     </div>

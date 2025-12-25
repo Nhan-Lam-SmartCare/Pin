@@ -676,6 +676,8 @@ export interface PinSale {
   shipper_name?: string; // Tên shipper (joined từ employees)
   cod_amount?: number; // Số tiền thu hộ COD
   shipping_fee?: number; // Phí ship
+  shipping_carrier?: string; // Đơn vị vận chuyển (GHN, GHTK, VNPost, etc.)
+  tracking_number?: string; // Mã vận đơn
   estimated_delivery_date?: string; // Ngày giao dự kiến
   actual_delivery_date?: string; // Ngày giao thực tế
 }
