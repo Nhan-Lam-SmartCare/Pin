@@ -23,14 +23,83 @@ import {
   ChevronRightIcon,
   UsersIcon,
   PrinterIcon,
+  CalendarIcon,
+  ClockIcon,
 } from "./common/Icons";
 import { InvoicePreviewModal } from "./invoices/InvoicePreviewModal";
 import SalesInvoiceTemplate from "./invoices/SalesInvoiceTemplate";
 import InstallmentModal from "./InstallmentModal";
 import { InstallmentService } from "../lib/services/InstallmentService";
 
+
+
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
+
+// --- Component: Smart Price Input ---
+const SmartPriceInput: React.FC<{
+  value: number;
+  onUpdate: (val: number) => void;
+  priceType: "retail" | "wholesale";
+}> = ({ value, onUpdate }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [localValue, setLocalValue] = useState(value.toString());
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setLocalValue(value.toString());
+  }, [value]);
+
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isEditing]);
+
+  const handleBlur = () => {
+    setIsEditing(false);
+    const num = parseFloat(localValue);
+    if (!isNaN(num)) {
+      onUpdate(num);
+    } else {
+      setLocalValue(value.toString()); // Revert if invalid
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleBlur();
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <input
+        ref={inputRef}
+        type="number"
+        value={localValue}
+        onChange={(e) => setLocalValue(e.target.value)}
+        onBlur={handleBlur}
+        onKeyDown={handleKeyDown}
+        className="w-24 p-0 text-sm bg-transparent border-0 border-b-2 border-sky-500 focus:ring-0 text-slate-900 dark:text-slate-100 font-bold text-right outline-none"
+      />
+    );
+  }
+
+  return (
+    <div
+      onClick={() => setIsEditing(true)}
+      className="cursor-pointer group flex items-center justify-end gap-1 px-1 py-0.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors"
+      title="Bấm để sửa giá"
+    >
+      <span className="font-bold text-slate-900 dark:text-slate-100 text-sm">
+        {formatCurrency(value)}
+      </span>
+      <PencilSquareIcon className="w-3 h-3 text-slate-400 group-hover:text-sky-500 opacity-0 group-hover:opacity-100 transition-all" />
+    </div>
+  );
+};
 
 // --- New Customer Modal ---
 const NewPinCustomerModal: React.FC<{
@@ -921,13 +990,13 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
             </div>
           </div>
 
-          {/* Cart & Checkout - Chỉ hiện khi có sản phẩm trong giỏ */}
+          {/* Cart & Checkout - Premium Glassmorphism Look */}
           {(cartItems.length > 0 || mobileView === "cart") && (
             <div
               className={`${mobileView === "cart" ? "flex" : "hidden lg:flex"
-                } w-full lg:w-auto flex-col bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border dark:border-slate-700 mt-6 lg:mt-0 lg:col-span-1 animate-in slide-in-from-right-5 duration-300 h-fit`}
+                } w-full lg:w-auto flex-col bg-white/90 dark:bg-slate-800/90 backdrop-blur-md p-6 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700/50 mt-6 lg:mt-0 lg:col-span-1 animate-in slide-in-from-right-5 duration-300 h-fit sticky top-4`}
             >
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center">
                   <button
                     onClick={() => setMobileView("products")}
@@ -936,46 +1005,65 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
                     <ArrowUturnLeftIcon className="w-5 h-5" />
                   </button>
                   <h2 className="text-xl font-bold flex items-center text-slate-800 dark:text-slate-100">
-                    <ShoppingCartIcon className="w-6 h-6 mr-3 text-orange-500" />
+                    <span className="bg-orange-100 dark:bg-orange-500/20 p-2 rounded-lg mr-3">
+                      <ShoppingCartIcon className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+                    </span>
                     Hóa đơn
                   </h2>
                 </div>
                 {cartItems.length > 0 && (
-                  <span className="bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300 px-2 py-1 rounded-full text-xs font-medium">
+                  <span className="bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300 px-3 py-1 rounded-full text-xs font-bold shadow-sm">
                     {cartItems.length} SP
                   </span>
                 )}
               </div>
 
               {/* 1. Khách hàng - Đặt trên cùng */}
-              <div className="mb-4 pb-4 border-b border-slate-200 dark:border-slate-700">
-                {/* 0. Sale Date/Time */}
-                <div className="mb-4 flex gap-2">
-                  <div className="flex-1">
-                    <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                      Ngày bán
-                    </label>
-                    <input
-                      type="date"
-                      value={saleDate}
-                      onChange={(e) => setSaleDate(e.target.value)}
-                      className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
-                    />
-                  </div>
-                  <div className="w-1/3">
-                    <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                      Giờ
-                    </label>
-                    <input
-                      type="time"
-                      value={saleTime}
-                      onChange={(e) => setSaleTime(e.target.value)}
-                      className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
-                    />
+
+              {/* 1. Customer Section */}
+              <div className="mb-6">
+                {/* 0. Sale Date/Time - Styled */}
+                <div className="mb-4 p-4 bg-slate-50 dark:bg-slate-700/30 rounded-xl border border-slate-200 dark:border-slate-700/50">
+                  <div className="flex gap-4">
+                    {/* Date Picker */}
+                    <div className="flex-1 group">
+                      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">
+                        Ngày bán
+                      </label>
+                      <div className="relative flex items-center">
+                        <div className="absolute left-3 text-slate-400 group-focus-within:text-sky-500 transition-colors pointer-events-none">
+                          <CalendarIcon className="w-5 h-5" />
+                        </div>
+                        <input
+                          type="date"
+                          value={saleDate}
+                          onChange={(e) => setSaleDate(e.target.value)}
+                          className="w-full pl-10 pr-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all shadow-sm group-hover:border-slate-300 dark:group-hover:border-slate-500"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Time Picker */}
+                    <div className="w-1/3 group">
+                      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">
+                        Giờ
+                      </label>
+                      <div className="relative flex items-center">
+                        <div className="absolute left-3 text-slate-400 group-focus-within:text-sky-500 transition-colors pointer-events-none">
+                          <ClockIcon className="w-5 h-5" />
+                        </div>
+                        <input
+                          type="time"
+                          value={saleTime}
+                          onChange={(e) => setSaleTime(e.target.value)}
+                          className="w-full pl-10 pr-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all shadow-sm group-hover:border-slate-300 dark:group-hover:border-slate-500"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div ref={customerInputRef}>
+                <div ref={customerInputRef} className="pb-4 border-b border-slate-200 dark:border-slate-700">
                   <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
                     👤 Khách hàng
                   </label>
@@ -1032,7 +1120,10 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
                           onFocus={() => setIsCustomerListOpen(true)}
                           className="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-l-md bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                         />
-                        <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                          <MagnifyingGlassIcon className="w-5 h-5 text-slate-400" />
+                        </div>
                       </div>
                       <button
                         type="button"
@@ -1177,28 +1268,26 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
                           </span>
                         </div>
                         {/* Row 2: Price calculation + Quantity controls */}
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="number"
-                              min="0"
-                              value={item.sellingPrice}
-                              onChange={(e) => updatePrice(item.productId, Number(e.target.value), item.priceType)}
-                              className="w-24 p-1 text-sm border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 font-semibold text-right"
-                            />
-                            <span className="text-xs text-slate-500 dark:text-slate-400">
-                              × {item.quantity} ={" "}
-                              <span className="font-semibold text-orange-600 dark:text-orange-400">
-                                {formatCurrency(item.sellingPrice * item.quantity)}
-                              </span>
+                        <div className="flex items-center justify-between mt-2 pl-2 border-l-2 border-slate-200 dark:border-slate-600">
+                          <div className="flex flex-col items-start gap-1">
+                            <div className="flex items-baseline gap-1">
+                              <span className="text-xs text-slate-400">Giá:</span>
+                              <SmartPriceInput
+                                value={item.sellingPrice}
+                                onUpdate={(val) => updatePrice(item.productId, val, item.priceType)}
+                                priceType={item.priceType || 'retail'}
+                              />
+                            </div>
+                            <span className="text-[10px] text-slate-400">
+                              Thành tiền: <span className="font-semibold text-orange-600 dark:text-orange-400">{formatCurrency(item.sellingPrice * item.quantity)}</span>
                             </span>
                           </div>
-                          <div className="flex items-center gap-0.5">
+                          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
                             <button
                               onClick={() =>
                                 updateQuantity(item.productId, item.quantity - 1, item.priceType)
                               }
-                              className="w-7 h-7 flex items-center justify-center bg-slate-200 dark:bg-slate-600 rounded text-slate-600 dark:text-slate-300 active:bg-slate-300 dark:active:bg-slate-500"
+                              className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-700 rounded-md shadow-sm text-slate-600 dark:text-slate-300 hover:text-red-500 active:scale-95 transition-all"
                             >
                               <MinusIcon className="w-4 h-4" />
                             </button>
@@ -1210,13 +1299,13 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
                                 const newQty = parseInt(e.target.value) || 1;
                                 updateQuantity(item.productId, newQty, item.priceType);
                               }}
-                              className="w-12 text-center text-sm font-bold bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded px-1 py-0.5"
+                              className="w-10 text-center text-sm font-bold bg-transparent border-none p-0 focus:ring-0 text-slate-800 dark:text-slate-200"
                             />
                             <button
                               onClick={() =>
                                 updateQuantity(item.productId, item.quantity + 1, item.priceType)
                               }
-                              className="w-7 h-7 flex items-center justify-center bg-slate-200 dark:bg-slate-600 rounded text-slate-600 dark:text-slate-300 active:bg-slate-300 dark:active:bg-slate-500"
+                              className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-700 rounded-md shadow-sm text-slate-600 dark:text-slate-300 hover:text-green-500 active:scale-95 transition-all"
                             >
                               <PlusIcon className="w-4 h-4" />
                             </button>
@@ -1292,29 +1381,33 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
 
               {/* Payment Method */}
               <div className="space-y-3 pb-4 md:pb-0">
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                  💳 Phương thức thanh toán
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
+                  Phương thức thanh toán
                 </label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-3 p-1 bg-slate-100 dark:bg-slate-700/50 rounded-xl">
                   <button
                     onClick={() => setPaymentMethod("cash")}
-                    className={`flex items-center justify-center gap-2 p-2.5 border-2 rounded-lg transition-all text-sm ${paymentMethod === "cash"
-                      ? "border-green-500 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 shadow-md"
-                      : "border-slate-300 dark:border-slate-600 hover:border-green-300 dark:hover:border-green-600"
+                    className={`flex items-center justify-center gap-2 py-3 rounded-lg transition-all text-sm font-semibold relative overflow-hidden ${paymentMethod === "cash"
+                      ? "bg-white dark:bg-slate-600 text-green-600 dark:text-green-400 shadow-sm ring-1 ring-black/5 dark:ring-white/10"
+                      : "text-slate-500 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700"
                       }`}
                   >
-                    <BanknotesIcon className="w-5 h-5" />
-                    <span className="font-medium">Tiền mặt</span>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-1 ${paymentMethod === "cash" ? "bg-green-100 dark:bg-green-900/30" : "bg-slate-200 dark:bg-slate-700"}`}>
+                      <BanknotesIcon className="w-4 h-4" />
+                    </div>
+                    Tiền mặt
                   </button>
                   <button
                     onClick={() => setPaymentMethod("bank")}
-                    className={`flex items-center justify-center gap-2 p-2.5 border-2 rounded-lg transition-all text-sm ${paymentMethod === "bank"
-                      ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 shadow-md"
-                      : "border-slate-300 dark:border-slate-600 hover:border-blue-300 dark:hover:border-blue-600"
+                    className={`flex items-center justify-center gap-2 py-3 rounded-lg transition-all text-sm font-semibold relative overflow-hidden ${paymentMethod === "bank"
+                      ? "bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-400 shadow-sm ring-1 ring-black/5 dark:ring-white/10"
+                      : "text-slate-500 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700"
                       }`}
                   >
-                    <span className="text-base">🏦</span>
-                    <span className="font-medium">Chuyển khoản</span>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-1 ${paymentMethod === "bank" ? "bg-blue-100 dark:bg-blue-900/30" : "bg-slate-200 dark:bg-slate-700"}`}>
+                      <span className="text-xs font-bold">🏦</span>
+                    </div>
+                    Chuyển khoản
                   </button>
                 </div>
 
