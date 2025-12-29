@@ -220,6 +220,13 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
   const [shippingCarrier, setShippingCarrier] = useState('');
   const [trackingNumber, setTrackingNumber] = useState('');
 
+  // Custom Date/Time State
+  const [saleDate, setSaleDate] = useState<string>(() => new Date().toISOString().split("T")[0]);
+  const [saleTime, setSaleTime] = useState<string>(() => {
+    const now = new Date();
+    return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  });
+
   // Customer state
   const [customerSearch, setCustomerSearch] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<PinCustomer | null>(null);
@@ -342,6 +349,21 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
           return shouldUpdate ? { ...item, quantity: Math.max(0, quantity) } : item;
         })
         .filter((item) => item.quantity > 0)
+    );
+  };
+
+  const updatePrice = (
+    productId: string,
+    newPrice: number,
+    priceType?: "retail" | "wholesale"
+  ) => {
+    setCartItems((prev) =>
+      prev.map((item) => {
+        const shouldUpdate = priceType
+          ? item.productId === productId && (item.priceType || "retail") === priceType
+          : item.productId === productId;
+        return shouldUpdate ? { ...item, sellingPrice: newPrice } : item;
+      })
     );
   };
 
@@ -495,7 +517,8 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
     const completedSale: PinSale = {
       ...saleData,
       id: `SALE-${Date.now()}`,
-      date: new Date().toISOString(),
+      // Combine date and time
+      date: new Date(`${saleDate}T${saleTime}:00`).toISOString(),
       userId: currentUser?.id || "",
       userName: currentUser?.name || "",
       code: `HD${Date.now().toString().slice(-8)}`,
@@ -539,6 +562,13 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
     setShippingCarrier('');
     setTrackingNumber('');
     setMobileView("products");
+
+    // Reset date/time to now
+    const now = new Date();
+    setSaleDate(now.toISOString().split("T")[0]);
+    setSaleTime(
+      `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`
+    );
   };
 
   // Sales history list (recent 50)
@@ -919,6 +949,32 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
 
               {/* 1. Khách hàng - Đặt trên cùng */}
               <div className="mb-4 pb-4 border-b border-slate-200 dark:border-slate-700">
+                {/* 0. Sale Date/Time */}
+                <div className="mb-4 flex gap-2">
+                  <div className="flex-1">
+                    <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                      Ngày bán
+                    </label>
+                    <input
+                      type="date"
+                      value={saleDate}
+                      onChange={(e) => setSaleDate(e.target.value)}
+                      className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                    />
+                  </div>
+                  <div className="w-1/3">
+                    <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                      Giờ
+                    </label>
+                    <input
+                      type="time"
+                      value={saleTime}
+                      onChange={(e) => setSaleTime(e.target.value)}
+                      className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                    />
+                  </div>
+                </div>
+
                 <div ref={customerInputRef}>
                   <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
                     👤 Khách hàng
@@ -1122,12 +1178,21 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
                         </div>
                         {/* Row 2: Price calculation + Quantity controls */}
                         <div className="flex items-center justify-between">
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
-                            {formatCurrency(item.sellingPrice)} × {item.quantity} ={" "}
-                            <span className="font-semibold text-orange-600 dark:text-orange-400">
-                              {formatCurrency(item.sellingPrice * item.quantity)}
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="number"
+                              min="0"
+                              value={item.sellingPrice}
+                              onChange={(e) => updatePrice(item.productId, Number(e.target.value), item.priceType)}
+                              className="w-24 p-1 text-sm border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 font-semibold text-right"
+                            />
+                            <span className="text-xs text-slate-500 dark:text-slate-400">
+                              × {item.quantity} ={" "}
+                              <span className="font-semibold text-orange-600 dark:text-orange-400">
+                                {formatCurrency(item.sellingPrice * item.quantity)}
+                              </span>
                             </span>
-                          </p>
+                          </div>
                           <div className="flex items-center gap-0.5">
                             <button
                               onClick={() =>
