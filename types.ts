@@ -373,7 +373,23 @@ export type CashTransactionCategory =
   | "sale_refund"
   | "other_expense"
   | "deposit"
-  | "service_deposit";
+  | "service_deposit"
+  | "supplier_payment"
+  | "debt_collection"
+  | "purchase"
+  | "materials"
+  | "equipment"
+  | "marketing"
+  | "transport"
+  | "repair_cost"
+  | "refund"
+  | "salary"
+  | "salaries"
+  | "expense"
+  | "sales"
+  | "service"
+  | "services"
+  | "refund_received";
 
 export interface CashTransaction {
   id: string;

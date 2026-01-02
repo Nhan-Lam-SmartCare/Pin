@@ -59,6 +59,30 @@ export interface CategoryAnalytics {
   percentage: number;
 }
 
+export interface InventoryAnalysis {
+  deadStock: PinProduct[]; // Products with no sales in last 90 days
+  lowTurnover: PinProduct[]; // Products with high stock but low sales velocity
+  stockValue: number;
+  totalItems: number;
+}
+
+export interface ProfitAnalysis {
+  topProfitProducts: ProductPerformance[]; // Sorted by total profit
+  averageMargin: number;
+}
+
+export interface RetentionMetrics {
+  returningRate: number; // % of customers with > 1 order
+  dormantCustomers: CustomerAnalytics[]; // Customers with no orders in last 60 days
+  totalCustomers: number;
+}
+
+export interface DebtOverview {
+  totalReceivables: number; // Customer debt
+  totalPayables: number; // Supplier debt (mock/placeholder if not available)
+  overdueCount: number;
+}
+
 export interface AnalyticsService {
   // Time series analysis
   getRevenueTimeSeries: (
@@ -107,9 +131,16 @@ export interface AnalyticsService {
     averageOrderValue: number;
     totalOrders: number;
   };
+
+  // New Advanced Metrics
+  getInventoryAnalysis: () => InventoryAnalysis;
+  getProfitAnalysis: (limit?: number) => ProfitAnalysis;
+  getRetentionMetrics: () => RetentionMetrics;
+  getDebtOverview: () => DebtOverview;
 }
 
 export function createAnalyticsService(ctx: PinContextType): AnalyticsService {
+  console.log("AnalyticsService initialized v2");
   const getSales = (): PinSale[] => ctx.pinSales || [];
   const getProducts = (): PinProduct[] => ctx.pinProducts || [];
   const getMaterials = (): PinMaterial[] => ctx.pinMaterials || [];
@@ -195,7 +226,8 @@ export function createAnalyticsService(ctx: PinContextType): AnalyticsService {
             profitMargin: 0,
           };
 
-          existing.totalRevenue += item.price * item.quantity;
+          // Updated calculation using item.sellingPrice
+          existing.totalRevenue += item.sellingPrice * item.quantity;
           existing.totalQuantity += item.quantity;
           existing.totalOrders += 1;
 
@@ -209,9 +241,9 @@ export function createAnalyticsService(ctx: PinContextType): AnalyticsService {
           ...p,
           averagePrice: p.totalRevenue / p.totalQuantity,
           profitMargin: product
-            ? ((product.sellingPrice - product.costPrice) /
-                product.sellingPrice) *
-              100
+            ? ((product.retailPrice - product.costPrice) /
+              product.retailPrice) *
+            100
             : 0,
         };
       });
@@ -251,7 +283,7 @@ export function createAnalyticsService(ctx: PinContextType): AnalyticsService {
           return (
             sum +
             productItems.reduce(
-              (itemSum, item) => itemSum + item.price * item.quantity,
+              (itemSum, item) => itemSum + item.sellingPrice * item.quantity,
               0
             )
           );
@@ -351,8 +383,8 @@ export function createAnalyticsService(ctx: PinContextType): AnalyticsService {
           orders:
             previousYearSales.length > 0
               ? ((currentYearSales.length - previousYearSales.length) /
-                  previousYearSales.length) *
-                100
+                previousYearSales.length) *
+              100
               : 0,
         },
       };
@@ -398,8 +430,8 @@ export function createAnalyticsService(ctx: PinContextType): AnalyticsService {
           orders:
             previousMonthSales.length > 0
               ? ((currentMonthSales.length - previousMonthSales.length) /
-                  previousMonthSales.length) *
-                100
+                previousMonthSales.length) *
+              100
               : 0,
         },
       };
@@ -484,7 +516,7 @@ export function createAnalyticsService(ctx: PinContextType): AnalyticsService {
             percentage: 0,
           };
 
-          const itemRevenue = item.price * item.quantity;
+          const itemRevenue = item.sellingPrice * item.quantity;
           existing.revenue += itemRevenue;
           existing.quantity += item.quantity;
           existing.orders += 1;
@@ -517,5 +549,147 @@ export function createAnalyticsService(ctx: PinContextType): AnalyticsService {
         totalOrders: sales.length,
       };
     },
+
+    getInventoryAnalysis: () => {
+      const products = getProducts();
+      const sales = getSales();
+      const ninetyDaysAgo = subMonths(new Date(), 3);
+
+      const deadStock = products.filter(p => {
+        if (p.stock <= 0) return false;
+        const hasRecentSale = sales.some(sale =>
+          new Date(sale.date) >= ninetyDaysAgo &&
+          sale.items.some(item => item.productId === p.id)
+        );
+        return !hasRecentSale;
+      });
+
+      const lowTurnover = products.filter(p => {
+        if (p.stock < 10) return false;
+        const totalSold = sales.reduce((sum, sale) => {
+          const item = sale.items.find(i => i.productId === p.id);
+          return sum + (item ? item.quantity : 0);
+        }, 0);
+        return totalSold < 5;
+      });
+
+      const stockValue = products.reduce((sum, p) => sum + (p.costPrice * p.stock), 0);
+
+      return {
+        deadStock: deadStock.slice(0, 10),
+        lowTurnover: lowTurnover.slice(0, 10),
+        stockValue,
+        totalItems: products.reduce((sum, p) => sum + p.stock, 0)
+      };
+    },
+
+    getProfitAnalysis: (limit = 10) => {
+      const sales = getSales();
+      const products = getProducts();
+      const productMap = new Map<string, ProductPerformance & { totalProfit: number }>();
+
+      sales.forEach((sale) => {
+        sale.items.forEach((item) => {
+          const product = products.find((p) => p.id === item.productId);
+          if (!product) return;
+
+          const profit = (item.sellingPrice - product.costPrice) * item.quantity;
+          const revenue = item.sellingPrice * item.quantity;
+
+          const existing = productMap.get(product.id) || {
+            sku: product.sku,
+            name: product.name,
+            totalRevenue: 0,
+            totalQuantity: 0,
+            totalOrders: 0,
+            averagePrice: 0,
+            profitMargin: 0,
+            totalProfit: 0
+          };
+
+          existing.totalRevenue += revenue;
+          existing.totalProfit += profit;
+          existing.totalQuantity += item.quantity;
+          existing.totalOrders += 1;
+
+          productMap.set(product.id, existing);
+        });
+      });
+
+      const result = Array.from(productMap.values()).map(p => ({
+        ...p,
+        averagePrice: p.totalRevenue / p.totalQuantity,
+        profitMargin: p.totalRevenue > 0 ? (p.totalProfit / p.totalRevenue) * 100 : 0
+      }));
+
+      // Sort by TOTAL PROFIT
+      const topProfitProducts = result
+        .sort((a, b) => b.totalProfit - a.totalProfit)
+        .slice(0, limit);
+
+      const totalProfit = result.reduce((sum, p) => sum + p.totalProfit, 0);
+      const totalRev = result.reduce((sum, p) => sum + p.totalRevenue, 0);
+      const averageMargin = totalRev > 0 ? (totalProfit / totalRev) * 100 : 0;
+
+      return {
+        topProfitProducts,
+        averageMargin
+      };
+    },
+
+    getRetentionMetrics: () => {
+      const sales = getSales();
+      const customers = ctx.pinCustomers || [];
+      const sixtyDaysAgo = subMonths(new Date(), 2);
+
+      const customerOrders = new Map<string, { count: number, lastOrder: string }>();
+
+      sales.forEach(sale => {
+        const id = sale.customer.id || sale.customer.phone;
+        if (!id) return;
+        const current = customerOrders.get(id) || { count: 0, lastOrder: '' };
+        current.count += 1;
+        if (!current.lastOrder || new Date(sale.date) > new Date(current.lastOrder)) {
+          current.lastOrder = sale.date;
+        }
+        customerOrders.set(id, current);
+      });
+
+      const returningCustomers = Array.from(customerOrders.values()).filter(c => c.count > 1).length;
+      const totalActiveCustomers = customerOrders.size;
+      const returningRate = totalActiveCustomers > 0 ? (returningCustomers / totalActiveCustomers) * 100 : 0;
+
+      const dormantList: CustomerAnalytics[] = [];
+      customerOrders.forEach((data, id) => {
+        if (new Date(data.lastOrder) < sixtyDaysAgo) {
+          const customerName = sales.find(s => (s.customer.id || s.customer.phone) === id)?.customer.name || 'Unknown';
+          dormantList.push({
+            name: customerName,
+            phone: id,
+            totalRevenue: 0,
+            orderCount: data.count,
+            averageOrderValue: 0,
+            lastOrderDate: data.lastOrder
+          });
+        }
+      });
+
+      return {
+        returningRate,
+        dormantCustomers: dormantList.slice(0, 10),
+        totalCustomers: customers.length
+      };
+    },
+
+    getDebtOverview: () => {
+      const customers = ctx.pinCustomers || [];
+      const totalReceivables = customers.reduce((sum, c) => sum + ((c as any).debt || 0), 0);
+
+      return {
+        totalReceivables,
+        totalPayables: 0,
+        overdueCount: customers.filter(c => ((c as any).debt || 0) > 0).length
+      };
+    }
   };
 }

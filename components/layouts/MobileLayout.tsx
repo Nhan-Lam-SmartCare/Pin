@@ -3,6 +3,7 @@ import { MobileHeader } from "../mobile/MobileHeader";
 import { MobileDrawer } from "../mobile/MobileDrawer";
 import { MobileBottomNav } from "../mobile/MobileBottomNav";
 import { MobileMoreMenu } from "../mobile/MobileMoreMenu";
+import { TetBanner, TetDecorations } from "../common/TetBanner";
 import { useLocation } from "react-router-dom";
 import type { CurrentUser } from "../../contexts/types";
 
@@ -30,6 +31,9 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+      {/* Tết 2026 Banner */}
+      <TetBanner />
+
       {/* Mobile Header */}
       <MobileHeader
         currentUser={currentUser}
@@ -55,8 +59,12 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
 
       {/* More Menu (Sheet) */}
       <MobileMoreMenu isOpen={isMoreMenuOpen} onClose={() => setIsMoreMenuOpen(false)} />
+
+      {/* Tết Decorations */}
+      <TetDecorations />
     </div>
   );
 };
 
 export default MobileLayout;
+
