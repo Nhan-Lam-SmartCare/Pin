@@ -84,6 +84,15 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
     address: "",
   });
 
+  // Check if order is completed and paid (CANNOT BE EDITED)
+  const isCompleted = useMemo(() => {
+    if (!initialOrder) return false;
+    const isReturned = initialOrder.status === "Trả máy";
+    const isPaid = initialOrder.paymentStatus === "paid";
+    const hasDeducted = initialOrder.materialsDeducted === true;
+    return isReturned && isPaid && hasDeducted;
+  }, [initialOrder]);
+
   // Gia công ngoài / Đặt hàng input state
   const [outsourcingInput, setOutsourcingInput] = useState({
     description: "",
@@ -444,6 +453,12 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // CRITICAL: Prevent double-submit
+    if (isSubmitting) {
+      console.warn("⚠️ Đang xử lý, vui lòng chờ...");
+      return;
+    }
+
     if (!currentUser) {
       alert("Vui lòng đăng nhập");
       return;
@@ -639,6 +654,28 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
         </div>
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
+          {/* Cảnh báo order đã hoàn tất */}
+          {isCompleted && (
+            <div className="m-3 sm:m-4 mb-0 p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 border-2 border-green-500 dark:border-green-600 rounded-xl shadow-lg">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-green-800 dark:text-green-300 text-base mb-1">
+                    ✅ Đơn hàng đã hoàn tất & thanh toán
+                  </h3>
+                  <p className="text-sm text-green-700 dark:text-green-400 leading-relaxed">
+                    Phiếu sửa chữa này đã <strong>trả máy</strong>, <strong>thanh toán đầy đủ</strong> và <strong>trừ kho vật tư</strong>. 
+                    <span className="block mt-1 font-semibold">🔒 Không thể chỉnh sửa để đảm bảo tính toàn vẹn dữ liệu kế toán.</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Layout 2 cột - 40% / 60% */}
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 p-3 sm:p-4">
             {/* CỘT TRÁI (40%) - Thông tin cơ bản */}
@@ -682,12 +719,13 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
                           }
                         }}
                         onBlur={() => setTimeout(() => setShowCustomerDropdown(false), 200)}
+                        disabled={isCompleted}
                         className={`w-full px-4 py-2.5 ${formData.customerName ? "pr-10" : ""
                           } border-2 border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 transition-all ${formData.customerName ? "font-semibold" : ""
-                          }`}
+                          } disabled:opacity-50 disabled:cursor-not-allowed`}
                         placeholder="Tìm khách hàng..."
                         autoComplete="off"
-                        readOnly={!!formData.customerName}
+                        readOnly={!!formData.customerName || isCompleted}
                       />
 
                       {/* Nút X để xóa khi đã chọn */}
@@ -737,7 +775,8 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
                     <button
                       type="button"
                       onClick={() => setShowAddCustomerModal(true)}
-                      className="flex-shrink-0 w-11 h-11 flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-md hover:shadow-lg transition-all"
+                      disabled={isCompleted}
+                      className="flex-shrink-0 w-11 h-11 flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                       title="Thêm khách hàng mới"
                     >
                       <PlusIcon className="w-6 h-6" />
@@ -801,7 +840,8 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
                         name="deviceName"
                         value={formData.deviceName || ""}
                         onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm font-medium"
+                        disabled={isCompleted}
+                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                         placeholder="VD: iPhone 13 Pro Max"
                       />
                     </div>
@@ -814,8 +854,9 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
                         type="text"
                         value={formData.technicianName || ""}
                         onChange={handleInputChange}
+                        disabled={isCompleted}
                         placeholder="Tên KTV"
-                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm"
+                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       />
                     </div>
                   </div>
@@ -829,8 +870,9 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
                       name="issueDescription"
                       value={formData.issueDescription || ""}
                       onChange={handleInputChange}
+                      disabled={isCompleted}
                       rows={2}
-                      className="w-full px-3 py-2 border-2 border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 resize-none bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm"
+                      className="w-full px-3 py-2 border-2 border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 resize-none bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       placeholder="Mô tả tìn trạng hư hỏng..."
                       required
                     />
@@ -844,7 +886,8 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
                         name="status"
                         value={formData.status || "Tiếp nhận"}
                         onChange={handleInputChange}
-                        className={`flex-1 px-3 py-1.5 border-2 rounded-lg text-sm font-bold transition-all ${formData.status === "Tiếp nhận" ? "border-blue-300 text-blue-700 bg-blue-50" :
+                        disabled={isCompleted}
+                        className={`flex-1 px-3 py-1.5 border-2 rounded-lg text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${formData.status === "Tiếp nhận" ? "border-blue-300 text-blue-700 bg-blue-50" :
                           formData.status === "Sẵn sàng sửa" ? "border-purple-300 text-purple-700 bg-purple-50" :
                             formData.status === "Đã sửa xong" ? "border-green-300 text-green-700 bg-green-50" :
                               formData.status === "Trả máy" ? "border-slate-400 text-slate-700 bg-slate-100" :
@@ -884,7 +927,8 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
                         name="dueDate"
                         value={formData.dueDate?.slice(0, 16) || ""}
                         onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm"
+                        disabled={isCompleted}
+                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       />
                     </div>
                     <div>
@@ -897,7 +941,8 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
                         placeholder="Ghi chú..."
                         value={formData.notes || ""}
                         onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm"
+                        disabled={isCompleted}
+                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       />
                     </div>
                   </div>
@@ -973,21 +1018,8 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
                           }}
                           onFocus={() => setShowMaterialDropdown(true)}
                           onBlur={() => setTimeout(() => setShowMaterialDropdown(false), 200)}
-                          className="w-full px-3 py-2 border border-indigo-300 dark:border-indigo-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 transition-all text-sm"
-                        />
-
-                        {/* Dropdown Results */}
-                        {showMaterialDropdown && filteredMaterials.length > 0 && (
-                          <div className="absolute z-30 w-[150%] left-0 mt-1 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-600 rounded-lg shadow-xl max-h-60 overflow-y-auto">
-                            {filteredMaterials.map((material: any) => {
-                              const stock = material.stock || 0;
-                              const isOutOfStock = stock <= 0;
-                              return (
-                                <button
-                                  key={material.id}
-                                  type="button"
-                                  onClick={() => {
-                                    setMaterialInput({
+                        disabled={isCompleted}
+                        className="w-full px-3 py-2 border border-indigo-300 dark:border-indigo-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                                       materialName: material.name,
                                       quantity: 1,
                                       price: material.retailPrice || material.purchasePrice || 0,
@@ -1032,7 +1064,8 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
                             quantity: parseInt(e.target.value) || 1,
                           }))
                         }
-                        className="col-span-2 px-2 py-2 border border-indigo-300 dark:border-indigo-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 transition-all text-sm text-center"
+                        disabled={isCompleted}
+                        className="col-span-2 px-2 py-2 border border-indigo-300 dark:border-indigo-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 transition-all text-sm text-center disabled:opacity-50 disabled:cursor-not-allowed"
                       />
 
                       {/* 3. Price Input */}
@@ -1046,14 +1079,16 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
                             price: parseCurrencyInput(e.target.value),
                           }))
                         }
-                        className="col-span-3 px-2 py-2 border border-indigo-300 dark:border-indigo-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 transition-all text-sm text-right"
+                        disabled={isCompleted}
+                        className="col-span-3 px-2 py-2 border border-indigo-300 dark:border-indigo-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 transition-all text-sm text-right disabled:opacity-50 disabled:cursor-not-allowed"
                       />
 
                       {/* 4. Add Button */}
                       <button
                         type="button"
                         onClick={handleAddMaterial}
-                        className="col-span-1 h-[38px] flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-sm transition-colors"
+                        disabled={isCompleted}
+                        className="col-span-1 h-[38px] flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         title="Thêm vật liệu"
                       >
                         <PlusIcon className="w-5 h-5" />
@@ -1188,7 +1223,8 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
                               <button
                                 type="button"
                                 onClick={() => handleRemoveMaterial(i)}
-                                className="ml-3 p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                                disabled={isCompleted}
+                                className="ml-3 p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 aria-label="Xóa"
                               >
                                 <TrashIcon className="w-5 h-5" />
@@ -1251,7 +1287,8 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
                             description: e.target.value,
                           }))
                         }
-                        className="col-span-4 px-3 py-2.5 border-2 border-orange-300 dark:border-orange-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-orange-500 transition-all text-sm"
+                        disabled={isCompleted}
+                        className="col-span-4 px-3 py-2.5 border-2 border-orange-300 dark:border-orange-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-orange-500 transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       />
                       <input
                         type="number"
@@ -1264,7 +1301,8 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
                             quantity: parseInt(e.target.value) || 1,
                           }))
                         }
-                        className="col-span-1 px-2 py-2.5 border-2 border-orange-300 dark:border-orange-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-orange-500 transition-all text-sm text-center"
+                        disabled={isCompleted}
+                        className="col-span-1 px-2 py-2.5 border-2 border-orange-300 dark:border-orange-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-orange-500 transition-all text-sm text-center disabled:opacity-50 disabled:cursor-not-allowed"
                       />
                       <input
                         type="text"
@@ -1276,7 +1314,8 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
                             costPrice: parseCurrencyInput(e.target.value),
                           }))
                         }
-                        className="col-span-2 px-2 py-2.5 border-2 border-orange-300 dark:border-orange-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-orange-500 transition-all text-sm"
+                        disabled={isCompleted}
+                        className="col-span-2 px-2 py-2.5 border-2 border-orange-300 dark:border-orange-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-orange-500 transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       />
                       <input
                         type="text"
@@ -1288,7 +1327,8 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
                             sellingPrice: parseCurrencyInput(e.target.value),
                           }))
                         }
-                        className="col-span-2 px-2 py-2.5 border-2 border-orange-300 dark:border-orange-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-orange-500 transition-all text-sm"
+                        disabled={isCompleted}
+                        className="col-span-2 px-2 py-2.5 border-2 border-orange-300 dark:border-orange-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-orange-500 transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       />
                       <div className="col-span-2 flex items-center justify-between">
                         <span className="text-xs text-slate-500 dark:text-slate-400">
@@ -1297,7 +1337,8 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
                         <button
                           type="button"
                           onClick={handleAddOutsourcing}
-                          className="px-3 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium flex items-center gap-1 text-xs transition-colors"
+                          disabled={isCompleted}
+                          className="px-3 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium flex items-center gap-1 text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <PlusIcon className="w-4 h-4" /> Thêm
                         </button>
@@ -1335,7 +1376,8 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
                             <button
                               type="button"
                               onClick={() => handleRemoveOutsourcing(idx)}
-                              className="ml-3 p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                              disabled={isCompleted}
+                              className="ml-3 p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                               aria-label="Xóa"
                             >
                               <TrashIcon className="w-5 h-5" />
@@ -1408,7 +1450,8 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
                           placeholder="0"
                           value={formData.laborCost ? formatCurrencyInput(formData.laborCost) : ""}
                           onChange={handleInputChange}
-                          className="w-28 px-2 py-1 text-right text-sm border border-slate-300 dark:border-slate-600 rounded focus:ring-1 focus:ring-emerald-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 font-medium"
+                          disabled={isCompleted}
+                          className="w-28 px-2 py-1 text-right text-sm border border-slate-300 dark:border-slate-600 rounded focus:ring-1 focus:ring-emerald-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                         />
                       </div>
                       <div className="flex justify-between items-center">
@@ -1419,7 +1462,8 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
                           placeholder="0"
                           value={formData.depositAmount ? formatCurrencyInput(formData.depositAmount) : ""}
                           onChange={handleInputChange}
-                          className="w-28 px-2 py-1 text-right text-sm border border-slate-300 dark:border-slate-600 rounded focus:ring-1 focus:ring-emerald-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 font-medium text-yellow-600 dark:text-yellow-400"
+                          disabled={isCompleted}
+                          className="w-28 px-2 py-1 text-right text-sm border border-slate-300 dark:border-slate-600 rounded focus:ring-1 focus:ring-emerald-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 font-medium text-yellow-600 dark:text-yellow-400 disabled:opacity-50 disabled:cursor-not-allowed"
                         />
                       </div>
                     </div>
@@ -1449,7 +1493,8 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
                         name="paymentStatus"
                         value={formData.paymentStatus || "unpaid"}
                         onChange={handleInputChange}
-                        className="w-full px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-medium"
+                        disabled={isCompleted}
+                        className="w-full px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <option value="unpaid">Chưa thanh toán</option>
                         <option value="partial">Thanh toán một phần</option>
@@ -1466,7 +1511,8 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
                           placeholder="0"
                           value={formData.partialPaymentAmount ? formatCurrencyInput(formData.partialPaymentAmount) : ""}
                           onChange={(e) => setFormData(prev => ({ ...prev, partialPaymentAmount: parseCurrencyInput(e.target.value) }))}
-                          className="w-full px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-800 text-right font-medium"
+                          disabled={isCompleted}
+                          className="w-full px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-800 text-right font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                         />
                       </div>
                     ) : (
@@ -1476,7 +1522,8 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
                           name="paymentMethod"
                           value={formData.paymentMethod || ""}
                           onChange={handleInputChange}
-                          className="w-full px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                          disabled={isCompleted}
+                          className="w-full px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <option value="">-- Chọn --</option>
                           <option value="cash">💵 Tiền mặt</option>
@@ -1544,10 +1591,17 @@ export const PinRepairModalNew: React.FC<PinRepairModalNewProps> = ({
               </button>
               <button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || isCompleted}
                 className="flex-[2] px-6 py-3 bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 hover:from-blue-700 hover:via-cyan-700 hover:to-teal-700 text-white rounded-xl font-bold text-base shadow-xl shadow-blue-500/40 hover:shadow-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                {isSubmitting ? (
+                {isCompleted ? (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    🔒 Đã hoàn tất - Không thể sửa
+                  </>
+                ) : isSubmitting ? (
                   <>
                     <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
                       <circle
