@@ -92,10 +92,10 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
   return (
     <div className="min-h-screen flex flex-col justify-center items-center p-4 font-sans relative z-50">
-      <div className="max-w-md w-full bg-white dark:bg-slate-800 rounded-xl shadow-lg p-8 space-y-8">
+      <div className="max-w-md w-full bg-white dark:bg-slate-800 rounded-xl shadow p-8 space-y-8">
         <div className="flex flex-col items-center">
           <Logo size={56} className="mb-3" rounded />
-          <div className="bg-sky-600 p-3 rounded-full mb-4 sm:hidden">
+          <div className="bg-slate-900 p-3 rounded-full mb-4 sm:hidden">
             {/* Accent icon on very small screens */}
             <WrenchScrewdriverIcon className="w-8 h-8 text-white" />
           </div>
@@ -155,7 +155,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-sky-600 hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 transition-colors disabled:bg-sky-400"
+            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg text-sm font-semibold text-white bg-slate-900 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-colors disabled:bg-slate-400"
           >
             {loading ? "Đang đăng nhập..." : "Đăng nhập"}
           </button>

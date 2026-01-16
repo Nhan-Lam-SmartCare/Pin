@@ -32,7 +32,7 @@ const ForgotPassword: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-slate-900 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white dark:bg-slate-800 rounded-xl shadow-lg p-8">
+      <div className="max-w-md w-full bg-white dark:bg-slate-800 rounded-xl shadow p-8">
         <h2 className="text-2xl font-bold mb-2">Quên mật khẩu</h2>
         <p className="text-sm text-slate-500 mb-4">
           Nhập email để nhận link đặt lại mật khẩu.
@@ -60,7 +60,7 @@ const ForgotPassword: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 bg-sky-600 text-white py-2 rounded"
+              className="flex-1 bg-slate-900 text-white py-2 rounded"
             >
               {loading ? "Đang gửi..." : "Gửi email"}
             </button>

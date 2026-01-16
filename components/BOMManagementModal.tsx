@@ -344,11 +344,11 @@ const BOMManagementModal: React.FC<BOMManagementModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-5xl max-h-[90vh] overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b dark:border-slate-700 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-slate-800 dark:to-slate-800">
+        <div className="flex items-center justify-between px-5 py-4 border-b dark:border-slate-700 bg-white dark:bg-slate-900">
           <div className="flex items-center space-x-2">
-            <BeakerIcon className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            <BeakerIcon className="w-5 h-5 text-slate-700 dark:text-slate-300" />
             <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">
               Quản lý Công thức Sản xuất (BOM)
             </h2>
@@ -373,7 +373,7 @@ const BOMManagementModal: React.FC<BOMManagementModalProps> = ({
                   <button
                     onClick={handleCreateBOM}
                     disabled={!currentUser}
-                    className="flex items-center space-x-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-300 text-white px-3 py-2 rounded-lg text-sm transition-colors"
+                    className="flex items-center space-x-2 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-400 text-white px-3 py-2 rounded-lg text-sm transition-colors"
                     title={!currentUser ? "Vui lòng đăng nhập để tạo BOM" : "Tạo BOM mới"}
                   >
                     <PlusIcon className="w-4 h-4" />
@@ -397,7 +397,7 @@ const BOMManagementModal: React.FC<BOMManagementModalProps> = ({
                       key={bom.id}
                       className={`p-4 border rounded-lg cursor-pointer transition-colors ${
                         selectedBOM?.id === bom.id
-                          ? "border-purple-300 bg-purple-50 dark:bg-purple-900/20"
+                          ? "border-slate-300 bg-slate-50 dark:bg-slate-800"
                           : "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
                       }`}
                       onClick={() => setSelectedBOM(bom)}
@@ -855,7 +855,7 @@ const BOMManagementModal: React.FC<BOMManagementModalProps> = ({
                   <button
                     onClick={handleCreateOrder}
                     disabled={!isStockSufficient}
-                    className="px-4 py-2 text-sm font-medium bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-blue-300 disabled:to-blue-300 text-white rounded-lg transition-all shadow-sm disabled:cursor-not-allowed"
+                    className="px-4 py-2 text-sm font-medium bg-slate-900 hover:bg-slate-800 disabled:bg-slate-400 text-white rounded-lg transition-all disabled:cursor-not-allowed"
                   >
                     Tạo lệnh sản xuất
                   </button>

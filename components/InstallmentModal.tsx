@@ -81,11 +81,11 @@ export default function InstallmentModal({
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="bg-gradient-to-r from-purple-600 to-purple-700 text-white p-4 rounded-t-xl">
-          <h2 className="text-lg font-bold flex items-center gap-2">📅 Thiết lập Trả góp</h2>
-          <p className="text-sm text-purple-100 mt-1">Tổng đơn hàng: {formatCurrency(total)}</p>
+        <div className="bg-slate-900 text-white p-4 rounded-t-xl">
+          <h2 className="text-lg font-bold flex items-center gap-2">Thiết lập Trả góp</h2>
+          <p className="text-sm text-slate-200 mt-1">Tổng đơn hàng: {formatCurrency(total)}</p>
         </div>
 
         {/* Content */}
@@ -93,7 +93,7 @@ export default function InstallmentModal({
           {/* Down Payment */}
           <div>
             <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-              💵 Tiền đặt cọc / Trả trước
+              Tiền đặt cọc / Trả trước
             </label>
             <div className="flex items-center gap-2">
               <input
@@ -111,7 +111,7 @@ export default function InstallmentModal({
                 <button
                   key={percent}
                   onClick={() => setDownPayment(Math.round((total * percent) / 100))}
-                  className="px-3 py-1 text-xs bg-slate-100 dark:bg-slate-700 rounded-full hover:bg-purple-100 dark:hover:bg-purple-900/30"
+                  className="px-3 py-1 text-xs bg-slate-100 dark:bg-slate-700 rounded-full hover:bg-slate-200 dark:hover:bg-slate-600"
                 >
                   {percent}%
                 </button>
@@ -122,7 +122,7 @@ export default function InstallmentModal({
           {/* Number of Installments */}
           <div>
             <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-              📆 Số kỳ trả góp (tháng)
+              Số kỳ trả góp (tháng)
             </label>
             <div className="grid grid-cols-4 gap-2">
               {[3, 6, 9, 12].map((months) => (
@@ -131,8 +131,8 @@ export default function InstallmentModal({
                   onClick={() => setNumberOfInstallments(months)}
                   className={`p-3 rounded-lg font-medium transition-all ${
                     numberOfInstallments === months
-                      ? "bg-purple-600 text-white"
-                      : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-purple-100"
+                      ? "bg-slate-900 text-white"
+                      : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200"
                   }`}
                 >
                   {months} tháng
@@ -153,7 +153,7 @@ export default function InstallmentModal({
           {/* Interest Rate */}
           <div>
             <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-              📊 Lãi suất (% / tháng)
+              Lãi suất (% / tháng)
             </label>
             <div className="flex items-center gap-2">
               <input
@@ -171,9 +171,9 @@ export default function InstallmentModal({
           </div>
 
           {/* Summary */}
-          <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-700">
-            <h3 className="font-semibold text-purple-800 dark:text-purple-300 mb-3">
-              📋 Tóm tắt kế hoạch trả góp
+          <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
+            <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-3">
+              Tóm tắt kế hoạch trả góp
             </h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
@@ -193,17 +193,17 @@ export default function InstallmentModal({
                 </span>
               </div>
               {interestRate > 0 && (
-                <div className="flex justify-between text-amber-600">
+                <div className="flex justify-between text-slate-600">
                   <span>
                     Lãi ({interestRate}% x {numberOfInstallments} tháng):
                   </span>
                   <span className="font-medium">+{formatCurrency(totalInterest)}</span>
                 </div>
               )}
-              <div className="border-t border-purple-200 dark:border-purple-700 pt-2 mt-2">
+              <div className="border-t border-slate-200 dark:border-slate-700 pt-2 mt-2">
                 <div className="flex justify-between">
                   <span className="text-slate-600 dark:text-slate-400">Tổng phải trả:</span>
-                  <span className="font-bold text-purple-700 dark:text-purple-300">
+                  <span className="font-bold text-slate-800 dark:text-slate-200">
                     {formatCurrency(totalWithInterest)}
                   </span>
                 </div>
@@ -211,7 +211,9 @@ export default function InstallmentModal({
                   <span className="font-semibold text-slate-700 dark:text-slate-300">
                     Mỗi tháng:
                   </span>
-                  <span className="font-bold text-red-600">{formatCurrency(monthlyPayment)}</span>
+                  <span className="font-bold text-slate-900 dark:text-white">
+                    {formatCurrency(monthlyPayment)}
+                  </span>
                 </div>
               </div>
             </div>
@@ -259,7 +261,7 @@ export default function InstallmentModal({
           <button
             onClick={handleConfirm}
             disabled={downPayment >= total || numberOfInstallments < 1}
-            className="flex-1 py-3 px-4 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg font-medium hover:from-purple-700 hover:to-purple-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 py-3 px-4 bg-slate-900 text-white rounded-lg font-medium hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             ✓ Xác nhận trả góp
           </button>

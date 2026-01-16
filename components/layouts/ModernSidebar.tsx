@@ -84,33 +84,33 @@ export const ModernSidebar: React.FC<{
         {
             title: "Kinh doanh",
             items: [
-                { to: "/sales", icon: <ShoppingCartIcon className="w-4 h-4" />, label: "Bán hàng", color: "text-emerald-500" },
-                { to: "/products", icon: <TagIcon className="w-4 h-4" />, label: "Sản phẩm", color: "text-amber-500" },
-                { to: "/delivery", icon: <TruckIcon className="w-4 h-4" />, label: "Giao hàng", color: "text-orange-500" },
+                { to: "/sales", icon: <ShoppingCartIcon className="w-4 h-4" />, label: "Bán hàng", color: "text-slate-500" },
+                { to: "/products", icon: <TagIcon className="w-4 h-4" />, label: "Sản phẩm", color: "text-slate-500" },
+                { to: "/delivery", icon: <TruckIcon className="w-4 h-4" />, label: "Giao hàng", color: "text-slate-500" },
             ],
         },
         {
             title: "Sản xuất & Kho",
             items: [
-                { to: "/materials", icon: <CubeIcon className="w-4 h-4" />, label: "Kho vật tư", color: "text-teal-500" },
-                { to: "/boms", icon: <BeakerIcon className="w-4 h-4" />, label: "Sản xuất", color: "text-rose-500" },
-                { to: "/repairs", icon: <WrenchScrewdriverIcon className="w-4 h-4" />, label: "Sửa chữa", color: "text-pink-500" },
+                { to: "/materials", icon: <CubeIcon className="w-4 h-4" />, label: "Kho vật tư", color: "text-slate-500" },
+                { to: "/boms", icon: <BeakerIcon className="w-4 h-4" />, label: "Sản xuất", color: "text-slate-500" },
+                { to: "/repairs", icon: <WrenchScrewdriverIcon className="w-4 h-4" />, label: "Sửa chữa", color: "text-slate-500" },
             ],
         },
         {
             title: "Quản trị",
             items: [
-                { to: "/financial", icon: <BanknotesIcon className="w-5 h-5" />, label: "Tài chính", color: "text-cyan-500" },
-                { to: "/receivables", icon: <BanknotesIcon className="w-5 h-5" />, label: "Công nợ", color: "text-indigo-500" },
-                { to: "/reports", icon: <ChartBarIcon className="w-5 h-5" />, label: "Báo cáo", color: "text-violet-500" },
-                { to: "/analytics", icon: <SparklesIcon className="w-5 h-5" />, label: "Phân tích AI", color: "text-purple-500" },
+                { to: "/financial", icon: <BanknotesIcon className="w-5 h-5" />, label: "Tài chính", color: "text-slate-500" },
+                { to: "/receivables", icon: <BanknotesIcon className="w-5 h-5" />, label: "Công nợ", color: "text-slate-500" },
+                { to: "/reports", icon: <ChartBarIcon className="w-5 h-5" />, label: "Báo cáo", color: "text-slate-500" },
+                { to: "/analytics", icon: <SparklesIcon className="w-5 h-5" />, label: "Phân tích AI", color: "text-slate-500" },
             ],
         },
     ];
 
     return (
         <aside
-            className={`h-[94vh] my-[3vh] ml-3 apple-glass rounded-xl flex flex-col transition-all duration-300 z-30 hidden lg:flex shadow-md ${isCollapsed ? "w-20" : "w-52"
+            className={`h-[94vh] my-[3vh] ml-3 apple-glass rounded-xl flex flex-col transition-all duration-300 z-30 hidden lg:flex shadow-sm ${isCollapsed ? "w-20" : "w-52"
                 }`}
         >
             {/* Header / Logo */}
@@ -160,7 +160,7 @@ export const ModernSidebar: React.FC<{
             {/* Footer / User Wrapper */}
             <div className="p-2 border-t border-pin-gray-100 dark:border-pin-dark-300">
                 <div className={`flex items-center gap-2 p-1.5 rounded-lg bg-pin-gray-50 dark:bg-pin-dark-100 transition-all ${isCollapsed ? "justify-center" : ""}`}>
-                    <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-pin-blue-500 to-pin-blue-400 flex items-center justify-center text-white font-bold text-[10px] shadow-sm shrink-0">
+                    <div className="w-7 h-7 rounded-full bg-slate-900 dark:bg-slate-200 flex items-center justify-center text-white dark:text-slate-900 font-bold text-[10px] shrink-0">
                         {currentUser?.name?.charAt(0).toUpperCase()}
                     </div>
 

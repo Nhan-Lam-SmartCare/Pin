@@ -706,13 +706,13 @@ const BomManager: React.FC<BomManagerProps> = (props) => {
         currentUser={props.currentUser}
       />
 
-      <div className="flex items-center justify-between gap-2 md:gap-4 flex-shrink-0 sticky top-0 z-20 pb-3 md:pb-4 bg-gradient-to-b from-slate-100 via-slate-100 to-transparent dark:from-slate-900 dark:via-slate-900 backdrop-blur-md animate-fadeIn">
+      <div className="flex items-center justify-between gap-2 md:gap-4 flex-shrink-0 sticky top-0 z-20 pb-3 md:pb-4 bg-slate-100/80 dark:bg-slate-900/70 backdrop-blur-sm animate-fadeIn">
         <div className="flex gap-1 md:gap-2 overflow-x-auto">
           <button
             onClick={() => setActiveTab("boms")}
             className={`px-3 md:px-6 py-2 md:py-3 font-semibold rounded-lg md:rounded-xl transition-all duration-200 transform text-xs md:text-base whitespace-nowrap ${
               activeTab === "boms"
-                ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30 scale-105"
+                ? "bg-slate-900 text-white"
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/70 dark:hover:bg-slate-700/50"
             }`}
           >
@@ -724,7 +724,7 @@ const BomManager: React.FC<BomManagerProps> = (props) => {
             onClick={() => setActiveTab("history")}
             className={`px-3 md:px-6 py-2 md:py-3 font-semibold rounded-lg md:rounded-xl transition-all duration-200 transform text-xs md:text-base whitespace-nowrap ${
               activeTab === "history"
-                ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30 scale-105"
+                ? "bg-slate-900 text-white"
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/70 dark:hover:bg-slate-700/50"
             }`}
           >
@@ -737,14 +737,14 @@ const BomManager: React.FC<BomManagerProps> = (props) => {
 
       {activeTab === "boms" && (
         <div className="space-y-6">
-          <div className="bg-white dark:bg-slate-800 p-3 md:p-6 rounded-xl md:rounded-2xl shadow-xl border-2 border-slate-200 dark:border-slate-700 animate-fadeIn">
+          <div className="bg-white dark:bg-slate-800 p-3 md:p-6 rounded-xl md:rounded-2xl border border-slate-200 dark:border-slate-700 animate-fadeIn">
             <div className="flex flex-col gap-3 md:gap-4">
               <input
                 type="text"
-                placeholder="🔍 Tìm theo tên hoặc SKU..."
+                placeholder="Tìm theo tên hoặc SKU..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-3 md:px-5 py-3 md:py-4 border-2 border-slate-300 dark:border-slate-600 rounded-lg md:rounded-xl bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 text-sm md:text-base font-medium focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all duration-200 shadow-sm"
+                className="w-full px-3 md:px-5 py-3 md:py-4 border border-slate-300 dark:border-slate-600 rounded-lg md:rounded-xl bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 text-sm md:text-base font-medium focus:border-slate-500 focus:ring-2 focus:ring-slate-500/20 transition-all duration-200"
               />
               <div className="flex items-center gap-2 md:gap-3">
                 <button
@@ -753,7 +753,7 @@ const BomManager: React.FC<BomManagerProps> = (props) => {
                   title={!props.currentUser ? "Bạn phải đăng nhập để tạo lệnh" : undefined}
                   className={`flex-1 md:flex-none flex items-center justify-center gap-1 md:gap-2 px-3 md:px-6 py-2 md:py-3 font-semibold rounded-lg md:rounded-xl shadow-lg transition-all duration-200 transform text-xs md:text-base ${
                     props.currentUser
-                      ? "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-green-500/30 hover:shadow-xl hover:-translate-y-0.5"
+                      ? "bg-slate-900 hover:bg-slate-800 text-white"
                       : "bg-green-300 text-white/80 cursor-not-allowed opacity-50"
                   }`}
                 >
@@ -770,7 +770,7 @@ const BomManager: React.FC<BomManagerProps> = (props) => {
                   title={!props.currentUser ? "Bạn phải đăng nhập để thêm công thức" : undefined}
                   className={`flex-1 md:flex-none flex items-center justify-center gap-1 md:gap-2 px-3 md:px-6 py-2 md:py-3 font-semibold rounded-lg md:rounded-xl shadow-lg transition-all duration-200 transform text-xs md:text-base ${
                     props.currentUser
-                      ? "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-blue-500/30 hover:shadow-xl hover:-translate-y-0.5"
+                      ? "bg-slate-700 hover:bg-slate-600 text-white"
                       : "bg-blue-300 text-white/80 cursor-not-allowed opacity-50"
                   }`}
                 >
@@ -781,7 +781,7 @@ const BomManager: React.FC<BomManagerProps> = (props) => {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-800 rounded-xl md:rounded-2xl shadow-xl border-2 border-slate-200 dark:border-slate-700 overflow-hidden animate-fadeIn">
+          <div className="bg-white dark:bg-slate-800 rounded-xl md:rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden animate-fadeIn">
             {/* Mobile Card View */}
             <div className="md:hidden space-y-2 p-2">
               {paginatedBoms.map((bom) => (
@@ -838,7 +838,7 @@ const BomManager: React.FC<BomManagerProps> = (props) => {
             {/* Desktop Table View */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left min-w-max">
-                <thead className="border-b-2 dark:border-slate-600 bg-gradient-to-r from-blue-50 via-purple-50 to-blue-50 dark:from-slate-700 dark:via-slate-800 dark:to-slate-700">
+                <thead className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
                   <tr>
                     <th className="p-5 font-bold text-slate-800 dark:text-slate-200">
                       Tên Thành phẩm
@@ -855,7 +855,7 @@ const BomManager: React.FC<BomManagerProps> = (props) => {
                   {paginatedBoms.map((bom) => (
                     <tr
                       key={bom.id}
-                      className="border-t dark:border-slate-700 hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-purple-50/50 dark:hover:from-slate-700/50 dark:hover:to-slate-600/50 transition-all duration-200"
+                      className="border-t dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all duration-200"
                     >
                       <td className="p-3 font-medium text-slate-800 dark:text-slate-200">
                         {bom.productName}

@@ -6,6 +6,12 @@ import { BusinessSettingsService } from "../../lib/services/BusinessSettingsServ
 interface SalesInvoiceTemplateProps {
   sale: PinSale;
   onClose?: () => void;
+  inventoryLogs?: {
+    isLoading: boolean;
+    error: string | null;
+    materials: Array<{ name: string; sku?: string; quantity: number }>;
+    products: Array<{ name: string; sku?: string; quantity: number }>;
+  };
 }
 
 const formatCurrency = (amount: number) => new Intl.NumberFormat("vi-VN").format(amount) + " đ";
@@ -20,7 +26,11 @@ const formatDateTime = (date: string | Date) => {
     .padStart(2, "0")}/${d.getFullYear()}`;
 };
 
-export default function SalesInvoiceTemplate({ sale, onClose }: SalesInvoiceTemplateProps) {
+export default function SalesInvoiceTemplate({
+  sale,
+  onClose,
+  inventoryLogs,
+}: SalesInvoiceTemplateProps) {
   const [businessSettings, setBusinessSettings] = useState<BusinessSettings | null>(null);
   const [installmentPlan, setInstallmentPlan] = useState<InstallmentPlan | null>(
     sale.installmentPlan || null
@@ -204,6 +214,59 @@ export default function SalesInvoiceTemplate({ sale, onClose }: SalesInvoiceTemp
           <span className="text-lg font-bold text-red-600">{formatCurrency(sale.total)}</span>
         </div>
       </div>
+
+      {/* Inventory logs (read-only) */}
+      {inventoryLogs && (
+        <div className="border border-gray-300 rounded p-2 mb-3">
+          <div className="text-[11px] font-bold text-gray-900 mb-1">Xuất kho (ghi log)</div>
+
+          {inventoryLogs.isLoading && (
+            <div className="text-[11px] text-gray-600">Đang tải dữ liệu kho…</div>
+          )}
+
+          {!inventoryLogs.isLoading && inventoryLogs.error && (
+            <div className="text-[11px] text-red-600">{inventoryLogs.error}</div>
+          )}
+
+          {!inventoryLogs.isLoading && !inventoryLogs.error && (
+            <div className="text-[11px] text-gray-800 space-y-1">
+              {inventoryLogs.products.length > 0 && (
+                <div>
+                  <div className="font-semibold">Thành phẩm</div>
+                  {inventoryLogs.products.map((r, idx) => (
+                    <div key={`p-${idx}`} className="flex justify-between">
+                      <span>
+                        {r.name}
+                        {r.sku ? ` (${r.sku})` : ""}
+                      </span>
+                      <span>-{r.quantity}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {inventoryLogs.materials.length > 0 && (
+                <div>
+                  <div className="font-semibold">Vật tư</div>
+                  {inventoryLogs.materials.map((r, idx) => (
+                    <div key={`m-${idx}`} className="flex justify-between">
+                      <span>
+                        {r.name}
+                        {r.sku ? ` (${r.sku})` : ""}
+                      </span>
+                      <span>-{r.quantity}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {inventoryLogs.products.length === 0 && inventoryLogs.materials.length === 0 && (
+                <div className="text-gray-600">Chưa có log xuất kho cho hoá đơn này.</div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Installment Info */}
       {isInstallmentSale && installmentPlan && (

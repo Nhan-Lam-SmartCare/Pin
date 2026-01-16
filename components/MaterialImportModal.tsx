@@ -236,11 +236,11 @@ const MaterialImportModal: React.FC<{
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-3xl shadow-2xl border border-gray-200 dark:border-gray-600 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-3xl shadow-xl border border-gray-200 dark:border-gray-600 overflow-hidden">
         <div className="px-5 py-4 border-b dark:border-gray-700 flex items-center justify-between">
           <div>
             <div className="text-lg font-bold text-gray-900 dark:text-white">
-              📥 Upload danh sách vật tư
+              Upload danh sách vật tư
             </div>
             <div className="text-xs text-gray-500 dark:text-gray-400">
               Tự nhận biết: Tên, SKU, Đơn vị, Giá nhập, SL, NCC, SĐT…
@@ -268,7 +268,7 @@ const MaterialImportModal: React.FC<{
             />
             <label
               htmlFor="material-csv-file"
-              className="inline-flex px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg cursor-pointer"
+              className="inline-flex px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg cursor-pointer"
             >
               {parsing ? "Đang đọc file..." : "Chọn file CSV"}
             </label>

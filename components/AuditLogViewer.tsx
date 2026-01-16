@@ -347,7 +347,7 @@ const AuditLogViewer: React.FC = () => {
       {/* Log Detail Modal */}
       {selectedLog && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
             <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-700">
               <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
                 Chi tiết Log

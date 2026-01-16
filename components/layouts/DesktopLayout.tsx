@@ -28,7 +28,11 @@ export const DesktopLayout: React.FC<DesktopLayoutProps> = ({
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-h-0">
-        <main className="flex-1 overflow-y-auto p-3 lg:p-4">{children}</main>
+        <main className="flex-1 overflow-y-auto">
+          <div className="mx-auto w-full max-w-[1400px] px-3 lg:px-6 py-4 lg:py-6">
+            {children}
+          </div>
+        </main>
       </div>
 
       {/* Tết Decorations */}

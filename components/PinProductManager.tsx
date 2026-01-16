@@ -115,7 +115,7 @@ const EditPriceModal: React.FC<{
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4">
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md">
+      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg w-full max-w-md">
         <div className="p-4 border-b dark:border-slate-700 flex justify-between items-center">
           <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Cập nhật Giá bán</h3>
           <button onClick={onClose}>
@@ -290,21 +290,21 @@ const PinProductManager: React.FC<PinProductManagerProps> = ({ products, updateP
         product={editingProduct}
       />
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 animate-fadeIn">
-        <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent flex items-center gap-2">
-          <Icon name="cube" className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+        <h1 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <Icon name="cube" className="w-6 h-6 text-slate-700 dark:text-slate-300" />
           Quản lý Thành phẩm
         </h1>
         <div className="flex items-center gap-2 overflow-x-auto">
           <button
             onClick={syncProductsFromCompletedOrders}
-            className="px-3 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg font-semibold shadow-md hover:shadow-lg transition-all duration-200 flex items-center gap-1 text-xs whitespace-nowrap"
+            className="px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-semibold transition-all duration-200 flex items-center gap-1 text-xs whitespace-nowrap"
           >
             <Icon name="arrows-clockwise" className="w-4 h-4 text-white" />
             Sync từ Đơn hoàn thành
           </button>
-          <div className="px-3 py-2 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/40 dark:to-purple-900/40 rounded-lg border border-blue-200 dark:border-blue-800 whitespace-nowrap">
+          <div className="px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 whitespace-nowrap">
             <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Tổng: </span>
-            <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
+            <span className="text-sm font-bold text-slate-800 dark:text-slate-200">
               {products.length}
             </span>
             <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">
@@ -315,7 +315,7 @@ const PinProductManager: React.FC<PinProductManagerProps> = ({ products, updateP
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-800 p-3 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 animate-fadeIn">
+      <div className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700 animate-fadeIn">
         <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
           <input
             type="text"
@@ -325,11 +325,11 @@ const PinProductManager: React.FC<PinProductManagerProps> = ({ products, updateP
             className="flex-1 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 text-sm font-medium focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
           />
           {filteredProducts.length !== products.length && (
-            <div className="px-3 md:px-5 py-2 md:py-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/40 dark:to-emerald-900/40 rounded-lg md:rounded-xl border-2 border-green-200 dark:border-green-800 text-center md:text-left">
+            <div className="px-3 md:px-5 py-2 md:py-3 bg-slate-100 dark:bg-slate-800 rounded-lg md:rounded-xl border border-slate-200 dark:border-slate-700 text-center md:text-left">
               <span className="text-xs md:text-sm font-semibold text-slate-600 dark:text-slate-400">
                 Tìm thấy:{" "}
               </span>
-              <span className="text-sm md:text-lg font-bold text-green-600 dark:text-green-400">
+              <span className="text-sm md:text-lg font-bold text-slate-800 dark:text-slate-200">
                 {filteredProducts.length}
               </span>
               <span className="hidden md:inline text-sm font-semibold text-slate-600 dark:text-slate-400">
@@ -443,39 +443,39 @@ const PinProductManager: React.FC<PinProductManagerProps> = ({ products, updateP
 
         {/* Desktop Table View */}
         <table className="hidden md:table w-full text-left min-w-max">
-          <thead className="border-b-2 dark:border-slate-600 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-800">
+          <thead className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
             <tr>
-              <th className="p-4 font-semibold text-slate-700 dark:text-slate-300">
+              <th className="p-3 font-semibold text-slate-700 dark:text-slate-300">
                 <div className="flex items-center gap-2">
                   <Icon name="package" className="w-4 h-4 text-slate-600 dark:text-slate-300" />
                   Tên Thành phẩm
                 </div>
               </th>
-              <th className="p-4 font-semibold text-slate-700 dark:text-slate-300">
+              <th className="p-3 font-semibold text-slate-700 dark:text-slate-300">
                 <div className="flex items-center gap-2">
                   <Icon name="tag" className="w-4 h-4 text-slate-600 dark:text-slate-300" />
                   SKU
                 </div>
               </th>
-              <th className="p-4 font-semibold text-slate-700 dark:text-slate-300 text-right">
+              <th className="p-3 font-semibold text-slate-700 dark:text-slate-300 text-right">
                 <div className="flex items-center gap-2 justify-end">
                   <Icon name="chart-bar" className="w-4 h-4 text-slate-600 dark:text-slate-300" />
                   Tồn kho
                 </div>
               </th>
-              <th className="p-4 font-semibold text-slate-700 dark:text-slate-300 text-right">
+              <th className="p-3 font-semibold text-slate-700 dark:text-slate-300 text-right">
                 <div className="flex items-center gap-2 justify-end">
                   <Icon name="coins" className="w-4 h-4 text-slate-600 dark:text-slate-300" />
                   Giá vốn
                 </div>
               </th>
-              <th className="p-4 font-semibold text-slate-700 dark:text-slate-300 text-right">
+              <th className="p-3 font-semibold text-slate-700 dark:text-slate-300 text-right">
                 <div className="flex items-center gap-2 justify-end">
                   <Icon name="money" className="w-4 h-4 text-slate-600 dark:text-slate-300" />
                   Giá bán
                 </div>
               </th>
-              <th className="p-4 font-semibold text-slate-700 dark:text-slate-300 text-center">
+              <th className="p-3 font-semibold text-slate-700 dark:text-slate-300 text-center">
                 <div className="flex items-center gap-2 justify-center">
                   <Icon name="gear" className="w-4 h-4 text-slate-600 dark:text-slate-300" />
                   Thao tác
@@ -496,7 +496,7 @@ const PinProductManager: React.FC<PinProductManagerProps> = ({ products, updateP
                   key={product.id}
                   className="border-t dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors"
                 >
-                  <td className="p-4">
+                  <td className="p-3">
                     <div>
                       <div className="font-medium text-slate-800 dark:text-slate-200">
                         {product.name}
@@ -508,12 +508,12 @@ const PinProductManager: React.FC<PinProductManagerProps> = ({ products, updateP
                       </div>
                     </div>
                   </td>
-                  <td className="p-4">
+                  <td className="p-3">
                     <span className="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded text-sm font-mono text-slate-700 dark:text-slate-300">
                       {product.sku}
                     </span>
                   </td>
-                  <td className="p-4 text-right">
+                  <td className="p-3 text-right">
                     <div
                       className={`font-bold ${
                         product.stock <= 10
@@ -526,19 +526,19 @@ const PinProductManager: React.FC<PinProductManagerProps> = ({ products, updateP
                       {product.stock}
                     </div>
                     <div className="text-xs text-slate-500 dark:text-slate-400">
-                      {product.stock <= 10 ? "⚠️ Thấp" : product.stock <= 50 ? "🔶 Vừa" : "✅ Ổn"}
+                      {product.stock <= 10 ? "Thấp" : product.stock <= 50 ? "Vừa" : "Ổn"}
                     </div>
                   </td>
-                  <td className="p-4 text-right text-slate-800 dark:text-slate-200">
+                  <td className="p-3 text-right text-slate-800 dark:text-slate-200">
                     {formatCurrency(product.costPrice)}
                   </td>
-                  <td className="p-4 text-right">
+                  <td className="p-3 text-right">
                     <div className="space-y-1">
-                      <div className="font-semibold text-green-600 dark:text-green-400">
-                        💰 {formatCurrency(retailPrice)}
+                      <div className="font-semibold text-slate-800 dark:text-slate-200">
+                        Lẻ: {formatCurrency(retailPrice)}
                       </div>
-                      <div className="text-xs text-blue-600 dark:text-blue-400">
-                        🏪 {formatCurrency(wholesalePrice)}
+                      <div className="text-xs text-slate-500 dark:text-slate-400">
+                        Sỉ: {formatCurrency(wholesalePrice)}
                       </div>
                     </div>
                     <div
@@ -550,14 +550,10 @@ const PinProductManager: React.FC<PinProductManagerProps> = ({ products, updateP
                             : "text-red-500"
                       }`}
                     >
-                      {profitMarginRetail >= 20
-                        ? "💚 Tốt"
-                        : profitMarginRetail >= 10
-                          ? "🟡 TB"
-                          : "🔴 Thấp"}
+                      {profitMarginRetail >= 20 ? "Tốt" : profitMarginRetail >= 10 ? "TB" : "Thấp"}
                     </div>
                   </td>
-                  <td className="p-4">
+                  <td className="p-3">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
                       {/* Quantity input and delete button */}
                       <div className="flex items-center gap-2 text-xs text-slate-400">

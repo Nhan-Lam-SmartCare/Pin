@@ -71,7 +71,7 @@ export const ModernHeader: React.FC<ModernHeaderProps> = ({ currentUser }) => {
 
                     {/* User Avatar */}
                     <div className="ml-2 flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer">
-                        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold shadow-sm">
+                        <div className="w-7 h-7 rounded-full bg-slate-900 dark:bg-slate-200 flex items-center justify-center text-white dark:text-slate-900 text-xs font-bold">
                             {currentUser?.name?.charAt(0).toUpperCase()}
                         </div>
                         <span className="text-sm font-medium text-pin-gray-900 dark:text-white hidden md:block">

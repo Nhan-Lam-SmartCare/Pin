@@ -244,11 +244,11 @@ export default function DebtCollectionModal({ open, onClose, preSelectedDebtId }
   if (showReceipt && receiptData) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-        <div className="bg-white dark:bg-slate-800 rounded-lg w-full max-w-md mx-4 shadow-2xl">
+        <div className="bg-white dark:bg-slate-800 rounded-lg w-full max-w-md mx-4 shadow-xl">
           {/* Header */}
           <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center print:border-black">
             <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 print:text-black">
-              🧾 Phiếu thu tiền
+              Phiếu thu tiền
             </h3>
             <button
               onClick={handleCloseReceipt}
@@ -360,11 +360,11 @@ export default function DebtCollectionModal({ open, onClose, preSelectedDebtId }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white dark:bg-slate-800 rounded-lg w-full max-w-lg mx-4 shadow-2xl">
+      <div className="bg-white dark:bg-slate-800 rounded-lg w-full max-w-lg mx-4 shadow-xl">
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
           <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">
-            💰 Thu nợ khách hàng
+            Thu nợ khách hàng
           </h3>
           <button
             onClick={onClose}
@@ -373,9 +373,9 @@ export default function DebtCollectionModal({ open, onClose, preSelectedDebtId }
             <XMarkIcon className="w-5 h-5 text-slate-500" />
           </button>
         </div>
-
+        
         {/* Body */}
-        <div className="p-6 space-y-4">
+        <div className="px-6 py-4 space-y-5">
           {/* Danh sách đơn nợ */}
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
@@ -479,9 +479,9 @@ export default function DebtCollectionModal({ open, onClose, preSelectedDebtId }
                   value="cash"
                   checked={paymentMethod === "cash"}
                   onChange={(e) => setPaymentMethod(e.target.value as "cash" | "bank")}
-                  className="w-4 h-4 text-sky-600"
+                  className="w-4 h-4 text-slate-700"
                 />
-                <span className="text-slate-700 dark:text-slate-300">💵 Tiền mặt</span>
+                <span className="text-slate-700 dark:text-slate-300">Tiền mặt</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -489,9 +489,9 @@ export default function DebtCollectionModal({ open, onClose, preSelectedDebtId }
                   value="bank"
                   checked={paymentMethod === "bank"}
                   onChange={(e) => setPaymentMethod(e.target.value as "cash" | "bank")}
-                  className="w-4 h-4 text-sky-600"
+                  className="w-4 h-4 text-slate-700"
                 />
-                <span className="text-slate-700 dark:text-slate-300">🏦 Chuyển khoản</span>
+                <span className="text-slate-700 dark:text-slate-300">Chuyển khoản</span>
               </label>
             </div>
           </div>
@@ -514,7 +514,7 @@ export default function DebtCollectionModal({ open, onClose, preSelectedDebtId }
           <button
             onClick={handleSubmit}
             disabled={!selectedDebtId || !amount || Number(amount) <= 0}
-            className="w-full py-3 bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-700 hover:to-blue-700 disabled:from-slate-400 disabled:to-slate-500 text-white font-semibold rounded-lg transition-all shadow-lg disabled:shadow-none disabled:cursor-not-allowed"
+            className="w-full py-3 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-400 text-white font-semibold rounded-lg transition-all disabled:cursor-not-allowed"
           >
             {!selectedDebtId
               ? "Chọn đơn nợ để thu"

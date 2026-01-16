@@ -98,6 +98,24 @@ CREATE TABLE IF NOT EXISTS public.pin_product_stock_history (
   created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL
 );
 
+ALTER TABLE public.pin_product_stock_history ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'pin_product_stock_history'
+      AND policyname = 'Allow all for pin_product_stock_history'
+  ) THEN
+    EXECUTE 'CREATE POLICY "Allow all for pin_product_stock_history" ON public.pin_product_stock_history FOR ALL TO authenticated USING (true) WITH CHECK (true)';
+  END IF;
+END
+$$;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.pin_product_stock_history TO authenticated;
+
 CREATE INDEX IF NOT EXISTS idx_pin_product_stock_history_product_id ON public.pin_product_stock_history(product_id);
 CREATE INDEX IF NOT EXISTS idx_pin_product_stock_history_created_at ON public.pin_product_stock_history(created_at DESC);
 

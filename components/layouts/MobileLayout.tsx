@@ -51,7 +51,9 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
 
       {/* Main Content - with padding for header and bottom nav */}
       <main className="pt-14 pb-20 min-h-screen">
-        <div className="px-3 py-3">{children}</div>
+        <div className="mx-auto w-full max-w-[640px] px-3 sm:px-4 py-3">
+          {children}
+        </div>
       </main>
 
       {/* Bottom Navigation */}

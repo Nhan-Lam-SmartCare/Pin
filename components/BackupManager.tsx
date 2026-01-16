@@ -70,12 +70,12 @@ const BackupManager: React.FC<BackupManagerProps> = ({ isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col animate-zoom-in">
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col animate-zoom-in">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-700">
           <div>
             <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
-              📦 Quản lý Sao lưu
+              Quản lý Sao lưu
             </h2>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
               Sao lưu và khôi phục dữ liệu hệ thống
@@ -103,9 +103,9 @@ const BackupManager: React.FC<BackupManagerProps> = ({ isOpen, onClose }) => {
               <button
                 onClick={handleExportJSON}
                 disabled={isExporting}
-                className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-blue-300 dark:border-blue-700 rounded-xl hover:border-blue-500 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
+                className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl hover:border-slate-400 dark:hover:border-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
               >
-                <DocumentArrowDownIcon className="w-12 h-12 text-blue-500 mb-3 group-hover:scale-110 transition-transform" />
+                <DocumentArrowDownIcon className="w-12 h-12 text-slate-600 mb-3 group-hover:scale-105 transition-transform" />
                 <div className="text-center">
                   <div className="font-semibold text-slate-700 dark:text-slate-200">
                     Xuất JSON
@@ -120,9 +120,9 @@ const BackupManager: React.FC<BackupManagerProps> = ({ isOpen, onClose }) => {
               <button
                 onClick={handleExportExcel}
                 disabled={isExporting}
-                className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-emerald-300 dark:border-emerald-700 rounded-xl hover:border-emerald-500 dark:hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
+                className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl hover:border-slate-400 dark:hover:border-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
               >
-                <DocumentArrowDownIcon className="w-12 h-12 text-emerald-500 mb-3 group-hover:scale-110 transition-transform" />
+                <DocumentArrowDownIcon className="w-12 h-12 text-slate-600 mb-3 group-hover:scale-105 transition-transform" />
                 <div className="text-center">
                   <div className="font-semibold text-slate-700 dark:text-slate-200">
                     Xuất Excel (CSV)
@@ -142,9 +142,9 @@ const BackupManager: React.FC<BackupManagerProps> = ({ isOpen, onClose }) => {
               Nhập dữ liệu (Import)
             </h3>
 
-            <div className="border-2 border-dashed border-amber-300 dark:border-amber-700 rounded-xl p-6 hover:border-amber-500 dark:hover:border-amber-500 transition-all">
+            <div className="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl p-6 hover:border-slate-400 dark:hover:border-slate-500 transition-all">
               <label className="flex flex-col items-center justify-center cursor-pointer group">
-                <ArrowUpTrayIcon className="w-12 h-12 text-amber-500 mb-3 group-hover:scale-110 transition-transform" />
+                <ArrowUpTrayIcon className="w-12 h-12 text-slate-600 mb-3 group-hover:scale-105 transition-transform" />
                 <div className="text-center">
                   <div className="font-semibold text-slate-700 dark:text-slate-200 mb-2">
                     {isImporting ? "Đang nhập..." : "Khôi phục từ file JSON"}

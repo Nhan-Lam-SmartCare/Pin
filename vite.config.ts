@@ -6,13 +6,9 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, ".", "");
   return {
     server: {
-      port: 3002,
+      port: 3004,
       host: "0.0.0.0",
       hmr: {
-        host: "localhost",
-        protocol: "ws",
-        port: 3002,
-        clientPort: 3002,
         overlay: false,
       },
       watch: {
@@ -26,10 +22,15 @@ export default defineConfig(({ mode }) => {
       "process.env.API_KEY": JSON.stringify(env.GEMINI_API_KEY),
       "process.env.GEMINI_API_KEY": JSON.stringify(env.GEMINI_API_KEY),
     },
+    optimizeDeps: {
+      include: ["react", "react-dom"],
+    },
     resolve: {
       dedupe: ["react", "react-dom"],
       alias: {
         "@": path.resolve(__dirname, "."),
+        react: path.resolve(__dirname, "node_modules/react"),
+        "react-dom": path.resolve(__dirname, "node_modules/react-dom"),
       },
     },
   };

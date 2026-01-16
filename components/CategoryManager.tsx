@@ -189,14 +189,14 @@ export const CategoryManager: React.FC = () => {
       {/* Modal thêm/sửa danh mục */}
       {showModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 flex justify-between items-center">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl max-w-md w-full overflow-hidden">
+            <div className="bg-slate-900 px-6 py-4 flex justify-between items-center">
               <h3 className="text-xl font-bold text-white">
                 {editingCategory ? "Sửa danh mục" : "Thêm danh mục mới"}
               </h3>
               <button
                 onClick={handleCloseModal}
-                className="text-white hover:bg-white/20 rounded-full p-1"
+                className="text-white hover:bg-white/10 rounded-full p-1"
               >
                 <XMarkIcon className="w-6 h-6" />
               </button>

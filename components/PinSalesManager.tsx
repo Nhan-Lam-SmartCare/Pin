@@ -30,6 +30,7 @@ import { InvoicePreviewModal } from "./invoices/InvoicePreviewModal";
 import SalesInvoiceTemplate from "./invoices/SalesInvoiceTemplate";
 import InstallmentModal from "./InstallmentModal";
 import { InstallmentService } from "../lib/services/InstallmentService";
+import { supabase } from "../supabaseClient";
 
 
 
@@ -275,6 +276,101 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
   const [activeTab, setActiveTab] = useState<"pos" | "history">("pos");
   const [showInvoicePreview, setShowInvoicePreview] = useState(false);
   const [invoiceSaleData, setInvoiceSaleData] = useState<PinSale | null>(null);
+
+  const [invoiceInventoryLogs, setInvoiceInventoryLogs] = useState<{
+    isLoading: boolean;
+    error: string | null;
+    materials: Array<{ name: string; sku?: string; quantity: number }>;
+    products: Array<{ name: string; sku?: string; quantity: number }>;
+  } | null>(null);
+
+  useEffect(() => {
+    const run = async () => {
+      if (!showInvoicePreview || !invoiceSaleData) return;
+
+      const invNo = invoiceSaleData.code || invoiceSaleData.id;
+      setInvoiceInventoryLogs({
+        isLoading: true,
+        error: null,
+        materials: [],
+        products: [],
+      });
+
+      try {
+        const matById = new Map((pinMaterials || []).map((m: PinMaterial) => [m.id, m]));
+        const prodById = new Map((products || []).map((p: PinProduct) => [p.id, p]));
+
+        const [matRes, prodRes] = await Promise.all([
+          supabase
+            .from("pin_stock_history")
+            .select("material_id, quantity_change, transaction_type, invoice_number")
+            .eq("invoice_number", invNo)
+            .eq("transaction_type", "export"),
+          supabase
+            .from("pin_product_stock_history")
+            .select("product_id, quantity_change, transaction_type, invoice_number")
+            .eq("invoice_number", invNo)
+            .eq("transaction_type", "export"),
+        ]);
+
+        // If product history table doesn't exist yet, ignore.
+        const prodMissingTable =
+          !!prodRes.error && /does not exist|42P01/i.test(prodRes.error.message || "");
+        const matMissingTable =
+          !!matRes.error && /does not exist|42P01/i.test(matRes.error.message || "");
+
+        const materials: Array<{ name: string; sku?: string; quantity: number }> = [];
+        if (!matRes.error && Array.isArray(matRes.data)) {
+          for (const row of matRes.data as any[]) {
+            const id = row.material_id;
+            const m = id ? matById.get(id) : undefined;
+            const qty = Math.abs(Number(row.quantity_change ?? 0));
+            if (qty <= 0) continue;
+            materials.push({
+              name: m?.name || id || "(Không rõ)",
+              sku: m?.sku,
+              quantity: qty,
+            });
+          }
+        }
+
+        const productsOut: Array<{ name: string; sku?: string; quantity: number }> = [];
+        if (!prodRes.error && Array.isArray(prodRes.data)) {
+          for (const row of prodRes.data as any[]) {
+            const id = row.product_id;
+            const p = id ? prodById.get(id) : undefined;
+            const qty = Math.abs(Number(row.quantity_change ?? 0));
+            if (qty <= 0) continue;
+            productsOut.push({
+              name: p?.name || id || "(Không rõ)",
+              sku: p?.sku,
+              quantity: qty,
+            });
+          }
+        }
+
+        const errors: string[] = [];
+        if (matRes.error && !matMissingTable) errors.push(matRes.error.message);
+        if (prodRes.error && !prodMissingTable) errors.push(prodRes.error.message);
+
+        setInvoiceInventoryLogs({
+          isLoading: false,
+          error: errors.length ? errors.join(" | ") : null,
+          materials,
+          products: productsOut,
+        });
+      } catch (e: any) {
+        setInvoiceInventoryLogs({
+          isLoading: false,
+          error: e?.message || String(e),
+          materials: [],
+          products: [],
+        });
+      }
+    };
+
+    run();
+  }, [showInvoicePreview, invoiceSaleData, pinMaterials, products]);
 
   // Installment (trả góp) state
   const [showInstallmentModal, setShowInstallmentModal] = useState(false);
@@ -718,22 +814,22 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
         </InvoicePreviewModal>
       )}
       {/* Mobile-optimized Tab Navigation */}
-      <div className="mb-2 md:mb-4 border-b border-slate-200 dark:border-slate-700">
-        <nav className="-mb-px flex space-x-4 md:space-x-8" aria-label="Tabs">
+      <div className="mb-3 md:mb-4 rounded-lg bg-white/70 dark:bg-slate-800/70 border border-slate-200/70 dark:border-slate-700/60 px-2">
+        <nav className="flex space-x-4 md:space-x-8" aria-label="Tabs">
           <button
             onClick={() => setActiveTab("pos")}
-            className={`py-2 md:py-4 px-1 border-b-2 font-medium text-xs md:text-sm ${activeTab === "pos"
-              ? "border-sky-500 text-sky-600 dark:text-sky-400"
-              : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+            className={`py-2 md:py-3 px-1 font-medium text-xs md:text-sm ${activeTab === "pos"
+              ? "text-slate-900 dark:text-white"
+              : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
               }`}
           >
             🛒 Bán hàng
           </button>
           <button
             onClick={() => setActiveTab("history")}
-            className={`py-2 md:py-4 px-1 border-b-2 font-medium text-xs md:text-sm ${activeTab === "history"
-              ? "border-sky-500 text-sky-600 dark:text-sky-400"
-              : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+            className={`py-2 md:py-3 px-1 font-medium text-xs md:text-sm ${activeTab === "history"
+              ? "text-slate-900 dark:text-white"
+              : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
               }`}
           >
             📋 Lịch sử
@@ -760,11 +856,11 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
             />
 
             {/* Category Filter - Compact on mobile */}
-            <div className="flex gap-1 mb-2 overflow-x-auto pb-1 scrollbar-hide">
+            <div className="flex gap-2 mb-2 overflow-x-auto pb-1 scrollbar-hide">
               <button
                 onClick={() => setSalesCategory("all")}
-                className={`px-2 py-1 text-[10px] font-medium rounded-full transition-colors whitespace-nowrap ${salesCategory === "all"
-                  ? "bg-blue-500 text-white"
+                className={`px-2.5 py-1 text-[11px] font-medium rounded-full transition-colors whitespace-nowrap ${salesCategory === "all"
+                  ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
                   : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
                   }`}
               >
@@ -772,8 +868,8 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
               </button>
               <button
                 onClick={() => setSalesCategory("products")}
-                className={`px-2 py-1 text-[10px] font-medium rounded-full transition-colors whitespace-nowrap ${salesCategory === "products"
-                  ? "bg-green-500 text-white"
+                className={`px-2.5 py-1 text-[11px] font-medium rounded-full transition-colors whitespace-nowrap ${salesCategory === "products"
+                  ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
                   : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
                   }`}
               >
@@ -781,8 +877,8 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
               </button>
               <button
                 onClick={() => setSalesCategory("materials")}
-                className={`px-2 py-1 text-[10px] font-medium rounded-full transition-colors whitespace-nowrap ${salesCategory === "materials"
-                  ? "bg-orange-500 text-white"
+                className={`px-2.5 py-1 text-[11px] font-medium rounded-full transition-colors whitespace-nowrap ${salesCategory === "materials"
+                  ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
                   : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
                   }`}
               >
@@ -1725,26 +1821,26 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
                         ? "Giỏ hàng trống"
                         : "Hoàn tất thanh toán"
                   }
-                  className={`w-full font-bold py-3 md:py-4 rounded-lg text-base md:text-lg flex items-center justify-center gap-2 transition-all shadow-lg ${!currentUser ||
+                  className={`w-full font-semibold py-3 md:py-4 rounded-lg text-base md:text-lg flex items-center justify-center gap-2 transition-all ${!currentUser ||
                     cartItems.length === 0 ||
                     (paymentMode === "partial" && !(paidAmount > 0 && paidAmount < total))
                     ? "bg-slate-300 dark:bg-slate-600 text-slate-500 dark:text-slate-400 cursor-not-allowed"
-                    : "bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700 transform hover:scale-105 active:scale-95"
+                    : "bg-slate-900 text-white hover:bg-slate-800"
                     }`}
                 >
                   {!currentUser ? (
-                    <>🔐 Đăng nhập</>
+                    <>Đăng nhập</>
                   ) : cartItems.length === 0 ? (
-                    <>🛒 Giỏ hàng trống</>
+                    <>Giỏ hàng trống</>
                   ) : paymentMode === "partial" ? (
                     <>
-                      ✨ Thanh {formatCurrency(Math.min(paidAmount || 0, total))} • Nợ{" "}
+                      Thanh {formatCurrency(Math.min(paidAmount || 0, total))} • Nợ{" "}
                       {formatCurrency(Math.max(0, total - (paidAmount || 0)))}{" "}
                     </>
                   ) : paymentMode === "debt" ? (
-                    <>📝 Ghi nợ {formatCurrency(total)}</>
+                    <>Ghi nợ {formatCurrency(total)}</>
                   ) : (
-                    <>✨ Thanh toán {formatCurrency(total)}</>
+                    <>Thanh toán {formatCurrency(total)}</>
                   )}
                 </button>
               </div>
@@ -1754,7 +1850,7 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
       )}
 
       {activeTab === "history" && (
-        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200/60 dark:border-slate-700 p-2 md:p-4">
+        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200/60 dark:border-slate-700 p-3 md:p-4">
           <h3 className="text-base md:text-lg font-bold mb-3 md:mb-4">
             Lịch sử bán hàng (50 gần nhất)
           </h3>
@@ -1822,11 +1918,11 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
               return (
                 <div
                   key={s.id}
-                  className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-3 border border-slate-200 dark:border-slate-600"
+                  className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-slate-200 dark:border-slate-700"
                 >
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex flex-col gap-1">
-                      <span className="text-xs font-mono font-semibold text-blue-600 dark:text-blue-400">
+                      <span className="text-xs font-mono font-semibold text-slate-700 dark:text-slate-300">
                         {s.code || s.id.slice(0, 8)}
                       </span>
                       <span className="text-xs text-slate-500">
@@ -2366,6 +2462,14 @@ const PinSalesManager: React.FC<PinSalesManagerProps> = ({
           <SalesInvoiceTemplate
             sale={invoiceSaleData}
             onClose={() => setShowInvoicePreview(false)}
+            inventoryLogs={
+              invoiceInventoryLogs || {
+                isLoading: true,
+                error: null,
+                materials: [],
+                products: [],
+              }
+            }
           />
         </InvoicePreviewModal>
       )}
