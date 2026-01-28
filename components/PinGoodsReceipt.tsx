@@ -692,7 +692,13 @@ const PinGoodsReceiptNew: React.FC<PinGoodsReceiptNewProps> = ({
     [receiptItems]
   );
 
-  const totalAfterDiscount = subtotal - discount;
+  // Tính số tiền chiết khấu từ %
+  const discountAmount = useMemo(
+    () => (subtotal * discount) / 100,
+    [subtotal, discount]
+  );
+
+  const totalAfterDiscount = subtotal - discountAmount;
   const totalWithTax = totalAfterDiscount + tax;
 
   // Tính số tiền thanh toán thực tế
@@ -1828,16 +1834,36 @@ const PinGoodsReceiptNew: React.FC<PinGoodsReceiptNewProps> = ({
 
           {/* Payment Details */}
           <div className="flex-1 overflow-auto p-3 md:p-4 space-y-2.5 md:space-y-3">
-            {/* Discount */}
+            {/* Subtotal */}
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[10px] md:text-xs text-slate-400">Chiết khấu (%):</span>
-              <input
-                type="number"
-                value={discount || ""}
-                onChange={(e) => setDiscount(Number(e.target.value))}
-                className="w-16 md:w-20 px-2 py-1.5 text-right bg-slate-900 border border-slate-700 rounded-lg text-white text-xs md:text-sm focus:outline-none focus:ring-1 focus:ring-slate-500"
-                placeholder="0"
-              />
+              <span className="text-[10px] md:text-xs text-slate-400">Tạm tính:</span>
+              <span className="text-xs md:text-sm text-slate-300">
+                {formatCurrency(subtotal)} đ
+              </span>
+            </div>
+
+            {/* Discount */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[10px] md:text-xs text-slate-400">Chiết khấu (%):</span>
+                <input
+                  type="number"
+                  value={discount || ""}
+                  onChange={(e) => setDiscount(Number(e.target.value))}
+                  className="w-16 md:w-20 px-2 py-1.5 text-right bg-slate-900 border border-slate-700 rounded-lg text-white text-xs md:text-sm focus:outline-none focus:ring-1 focus:ring-slate-500"
+                  placeholder="0"
+                  min="0"
+                  max="100"
+                />
+              </div>
+              {discount > 0 && (
+                <div className="flex items-center justify-between gap-2 pl-2">
+                  <span className="text-[9px] md:text-[10px] text-emerald-400">Tiết kiệm:</span>
+                  <span className="text-[10px] md:text-xs text-emerald-400 font-medium">
+                    -{formatCurrency(discountAmount)} đ
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Tax */}
